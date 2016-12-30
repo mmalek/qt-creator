@@ -56,6 +56,7 @@ Project {
         "qtsupport/qtsupport.qbs",
         "remotelinux/remotelinux.qbs",
         "resourceeditor/resourceeditor.qbs",
+        "rust/rust.qbs",
         "scxmleditor/scxmleditor.qbs",
         "silversearcher/silversearcher.qbs",
         "subversion/subversion.qbs",
