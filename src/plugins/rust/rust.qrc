@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>Rust.mimetypes.xml</file>
+        <file>images/rust.svg</file>
+    </qresource>
+</RCC>
