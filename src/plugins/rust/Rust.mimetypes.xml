@@ -7,4 +7,10 @@
         <glob pattern="*.rs"/>
     </mime-type>
 
+    <mime-type type="text/x-cargo-manifest">
+        <sub-class-of type="text/plain"/>
+        <comment>Cargo manifest file </comment>
+        <glob pattern="Cargo.toml"/>
+    </mime-type>
+
 </mime-info>

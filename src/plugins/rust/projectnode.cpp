@@ -23,25 +23,56 @@
 **
 ****************************************************************************/
 
-#pragma once
+#include "projectnode.h"
 
-#include <extensionsystem/iplugin.h>
+#include <projectexplorer/projectnodes.h>
 
 namespace Rust {
 
-class RustPlugin : public ExtensionSystem::IPlugin
+ProjectNode::ProjectNode(const Utils::FileName &projectFilePath)
+    : ProjectExplorer::ProjectNode(projectFilePath)
+{}
+
+QList<ProjectExplorer::ProjectAction> ProjectNode::supportedActions(Node *node) const
 {
-    Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
+    using namespace ProjectExplorer;
 
-public:
-    RustPlugin();
+    switch (node->nodeType()) {
+    case FileNodeType:
+        return { Rename, RemoveFile };
+    case FolderNodeType:
+    case ProjectNodeType:
+        return { AddNewFile, RemoveFile };
+    default:
+        return ProjectNode::supportedActions(node);
+    }
+}
 
-    ~RustPlugin();
+bool ProjectNode::addFiles(const QStringList &filePaths, QStringList *notAdded)
+{
+    Q_UNUSED(filePaths)
+    Q_UNUSED(notAdded)
+    return true;
+}
 
-    bool initialize(const QStringList &arguments, QString *errorMessage) override;
+bool ProjectNode::removeFiles(const QStringList &filePaths, QStringList *notRemoved)
+{
+    Q_UNUSED(filePaths)
+    Q_UNUSED(notRemoved)
+    return true;
+}
 
-    void extensionsInitialized() override {}
-};
+bool ProjectNode::deleteFiles(const QStringList &filePaths)
+{
+    Q_UNUSED(filePaths)
+    return true;
+}
+
+bool ProjectNode::renameFile(const QString &filePath, const QString &newFilePath)
+{
+    Q_UNUSED(filePath)
+    Q_UNUSED(newFilePath)
+    return true;
+}
 
 }

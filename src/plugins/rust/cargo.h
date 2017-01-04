@@ -23,41 +23,51 @@
 **
 ****************************************************************************/
 
-#include "rustplugin.h"
+#pragma once
 
-#include <coreplugin/fileiconprovider.h>
-#include <utils/mimetypes/mimedatabase.h>
+#include <QObject>
+#include <QQueue>
 
-#include <QtPlugin>
+#include <coreplugin/shellcommand.h>
+#include <utils/fileutils.h>
+
+namespace Core { class ShellCommand; }
 
 namespace Rust {
 
-static RustPlugin *m_instance = 0;
-
-RustPlugin::RustPlugin()
+class Cargo : public QObject
 {
-    m_instance = this;
+    Q_OBJECT
+public:
+    Cargo(const QString &workingDirectory,
+              const QProcessEnvironment &environment,
+              QObject *parent = 0);
+    ~Cargo();
+
+signals:
+    void listOfFiles(QVector<Utils::FileName> files);
+    void error(const QString& text);
+
+public slots:
+    void getListOfFiles();
+
+private slots:
+    void readStdOutText(const QString &text);
+    void readStdErrText(const QString &text);
+    void finish(bool ok, int exitCode, const QVariant &cookie);
+
+private:
+    void run(QStringList arguments, int timeoutS = -1);
+
+    enum Mode {
+        None,
+        ListOfFiles
+    };
+
+    Core::ShellCommand m_shellCommand;
+    Mode m_mode;
+    QString m_stdOut;
+    QString m_stdErr;
+};
+
 }
-
-RustPlugin::~RustPlugin()
-{
-    m_instance = 0;
-}
-
-bool RustPlugin::initialize(const QStringList &arguments, QString *errorMessage)
-{
-    Q_UNUSED(arguments)
-    Q_UNUSED(errorMessage)
-
-    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
-
-    // Add MIME overlay icons (these icons displayed at Project dock panel)
-    const QIcon icon((QLatin1String(":/images/rust.svg")));
-    if (!icon.isNull()) {
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, "text/rust");
-    }
-
-    return true;
-}
-
-} // namespace Rust
