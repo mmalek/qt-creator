@@ -10,11 +10,18 @@ QtcPlugin {
     Depends { name: "TextEditor" }
     Depends { name: "ProjectExplorer" }
 
-    Group {
-        name: "General"
-        files: [
-            "rustplugin.cpp", "rustplugin.h",
-            "rust.qrc",
-        ]
-    }
+    files: [
+        "mimetypes.h",
+        "rust.qrc",
+        "cargo.cpp",
+        "cargo.h",
+        "plugin.cpp",
+        "plugin.h",
+        "project.h",
+        "project.cpp",
+        "projectmanager.h",
+        "projectmanager.cpp",
+        "projectnode.h",
+        "projectnode.cpp",
+    ]
 }
