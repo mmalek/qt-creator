@@ -57,6 +57,7 @@ Cargo::~Cargo()
 
 void Cargo::getListOfFiles()
 {
+    Q_ASSERT(m_mode != None);
     QStringList args = {QLatin1String("package"), QLatin1String("--list")};
     run(args);
 }
@@ -80,16 +81,20 @@ void Cargo::finish(bool ok, int exitCode, const QVariant &cookie)
 {
     Q_UNUSED(exitCode);
     Q_UNUSED(cookie);
-    if (ok)
-    {
-        const QStringList relativePaths = m_stdOut.split('\n', QString::SkipEmptyParts);
-        QVector<Utils::FileName> fileList;
-        for (QString relativePath : relativePaths)
-        {
-            QFileInfo fileInfo(QDir(m_shellCommand.defaultWorkingDirectory()), relativePath);
-            fileList.push_back(Utils::FileName(fileInfo));
+    if (ok) {
+        if (m_mode == ListOfFiles) {
+            const QStringList relativePaths = m_stdOut.split('\n', QString::SkipEmptyParts);
+            QVector<Utils::FileName> fileList;
+            for (QString relativePath : relativePaths)
+            {
+                QFileInfo fileInfo(QDir(m_shellCommand.defaultWorkingDirectory()), relativePath);
+                fileList.push_back(Utils::FileName(fileInfo));
+            }
+            emit listOfFiles(std::move(fileList));
+
+        } else {
+            Q_UNREACHABLE();
         }
-        emit listOfFiles(std::move(fileList));
     }
     else
     {
@@ -98,6 +103,7 @@ void Cargo::finish(bool ok, int exitCode, const QVariant &cookie)
 
     m_stdOut.clear();
     m_stdErr.clear();
+    m_mode = None;
 }
 
 }

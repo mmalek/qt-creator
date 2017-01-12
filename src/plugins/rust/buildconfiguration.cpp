@@ -23,54 +23,28 @@
 **
 ****************************************************************************/
 
-#include "plugin.h"
-#include "mimetypes.h"
-#include "projectmanager.h"
-#include "buildconfigurationfactory.h"
-#include "buildstepfactory.h"
+#include "buildconfiguration.h"
 
-#include <coreplugin/fileiconprovider.h>
-#include <utils/mimetypes/mimedatabase.h>
-
-#include <QtPlugin>
+#include <projectexplorer/namedwidget.h>
 
 namespace Rust {
 
-static Plugin *m_instance = 0;
+const char BuildConfiguration::ID[] = "Rust.BuildConfiguration";
 
-Plugin::Plugin()
-{
-    m_instance = this;
-}
-
-Plugin::~Plugin()
-{
-    m_instance = 0;
-}
-
-bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
-{
-    Q_UNUSED(arguments)
-    Q_UNUSED(errorMessage)
-
-    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
-
-    addAutoReleasedObject(new ProjectManager);
-    addAutoReleasedObject(new BuildConfigurationFactory);
-    addAutoReleasedObject(new BuildStepFactory);
-
-    // Add MIME overlay icons (these icons displayed at Project dock panel)
-    const QIcon icon((QLatin1String(":/images/rust.svg")));
-    if (!icon.isNull()) {
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
-    }
-
-    return true;
-}
-
-void Plugin::extensionsInitialized()
+BuildConfiguration::BuildConfiguration(ProjectExplorer::Target *target)
+    : ProjectExplorer::BuildConfiguration(target, ID)
 {
 }
 
-} // namespace Rust
+
+ProjectExplorer::NamedWidget *BuildConfiguration::createConfigWidget()
+{
+    return new ProjectExplorer::NamedWidget(nullptr);
+}
+
+BuildConfiguration::BuildType BuildConfiguration::buildType() const
+{
+    return BuildType::Unknown;
+}
+
+}
