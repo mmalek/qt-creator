@@ -23,54 +23,30 @@
 **
 ****************************************************************************/
 
-#include "plugin.h"
-#include "mimetypes.h"
-#include "projectmanager.h"
-#include "buildconfigurationfactory.h"
-#include "buildstepfactory.h"
+#include "buildstep.h"
 
-#include <coreplugin/fileiconprovider.h>
-#include <utils/mimetypes/mimedatabase.h>
-
-#include <QtPlugin>
+#include <projectexplorer/processparameters.h>
+#include <projectexplorer/project.h>
 
 namespace Rust {
 
-static Plugin *m_instance = 0;
+const char BuildStep::ID[] = "Rust.BuildStep";
+const char BuildStep::DISPLAY_NAME[] = QT_TRANSLATE_NOOP("RustBuildStep", "Rust Build Step");
 
-Plugin::Plugin()
+BuildStep::BuildStep(ProjectExplorer::BuildStepList *parentList)
+    : AbstractProcessStep(parentList, ID)
 {
-    m_instance = this;
+    setDefaultDisplayName(tr(DISPLAY_NAME));
+    setDisplayName(tr(DISPLAY_NAME));
+
+    processParameters()->setCommand(QLatin1String("/usr/bin/cargo"));
+    processParameters()->setArguments(QLatin1String("build"));
+    processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
 }
 
-Plugin::~Plugin()
+ProjectExplorer::BuildStepConfigWidget *BuildStep::createConfigWidget()
 {
-    m_instance = 0;
-}
-
-bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
-{
-    Q_UNUSED(arguments)
-    Q_UNUSED(errorMessage)
-
-    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
-
-    addAutoReleasedObject(new ProjectManager);
-    addAutoReleasedObject(new BuildConfigurationFactory);
-    addAutoReleasedObject(new BuildStepFactory);
-
-    // Add MIME overlay icons (these icons displayed at Project dock panel)
-    const QIcon icon((QLatin1String(":/images/rust.svg")));
-    if (!icon.isNull()) {
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
-    }
-
-    return true;
-}
-
-void Plugin::extensionsInitialized()
-{
+    return new ProjectExplorer::SimpleBuildStepConfigWidget(this);
 }
 
 } // namespace Rust

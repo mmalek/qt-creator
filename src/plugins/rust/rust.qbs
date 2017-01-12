@@ -11,6 +11,14 @@ QtcPlugin {
     Depends { name: "ProjectExplorer" }
 
     files: [
+        "buildconfiguration.cpp",
+        "buildconfiguration.h",
+        "buildconfigurationfactory.cpp",
+        "buildconfigurationfactory.h",
+        "buildstep.cpp",
+        "buildstep.h",
+        "buildstepfactory.cpp",
+        "buildstepfactory.h",
         "mimetypes.h",
         "rust.qrc",
         "cargo.cpp",

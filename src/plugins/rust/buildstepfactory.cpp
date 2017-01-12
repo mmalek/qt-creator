@@ -23,54 +23,43 @@
 **
 ****************************************************************************/
 
-#include "plugin.h"
-#include "mimetypes.h"
-#include "projectmanager.h"
-#include "buildconfigurationfactory.h"
 #include "buildstepfactory.h"
+#include "buildstep.h"
 
-#include <coreplugin/fileiconprovider.h>
-#include <utils/mimetypes/mimedatabase.h>
+#include <projectexplorer/buildsteplist.h>
+#include <projectexplorer/projectexplorerconstants.h>
+#include <utils/qtcassert.h>
 
-#include <QtPlugin>
+#include <QScopedPointer>
 
 namespace Rust {
 
-static Plugin *m_instance = 0;
-
-Plugin::Plugin()
+BuildStepFactory::BuildStepFactory(QObject *parent)
+    : ProjectExplorer::IBuildStepFactory(parent)
 {
-    m_instance = this;
 }
 
-Plugin::~Plugin()
+QList<ProjectExplorer::BuildStepInfo> BuildStepFactory::availableSteps(ProjectExplorer::BuildStepList *parent) const
 {
-    m_instance = 0;
-}
-
-bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
-{
-    Q_UNUSED(arguments)
-    Q_UNUSED(errorMessage)
-
-    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
-
-    addAutoReleasedObject(new ProjectManager);
-    addAutoReleasedObject(new BuildConfigurationFactory);
-    addAutoReleasedObject(new BuildStepFactory);
-
-    // Add MIME overlay icons (these icons displayed at Project dock panel)
-    const QIcon icon((QLatin1String(":/images/rust.svg")));
-    if (!icon.isNull()) {
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
+    if (parent->id() == ProjectExplorer::Constants::BUILDSTEPS_BUILD) {
+        return {{ BuildStep::ID, tr(BuildStep::DISPLAY_NAME) }};
+    } else {
+        return {};
     }
-
-    return true;
 }
 
-void Plugin::extensionsInitialized()
+ProjectExplorer::BuildStep *BuildStepFactory::create(ProjectExplorer::BuildStepList *parent, Core::Id id)
 {
+    Q_UNUSED(id)
+    return new BuildStep(parent);
+}
+
+ProjectExplorer::BuildStep *BuildStepFactory::clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *product)
+{
+    QTC_ASSERT(parent, return nullptr);
+    QTC_ASSERT(product, return nullptr);
+    QScopedPointer<BuildStep> result(new BuildStep(parent));
+    return result->fromMap(product->toMap()) ? result.take() : nullptr;
 }
 
 } // namespace Rust

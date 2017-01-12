@@ -23,54 +23,20 @@
 **
 ****************************************************************************/
 
-#include "plugin.h"
-#include "mimetypes.h"
-#include "projectmanager.h"
-#include "buildconfigurationfactory.h"
-#include "buildstepfactory.h"
+#pragma once
 
-#include <coreplugin/fileiconprovider.h>
-#include <utils/mimetypes/mimedatabase.h>
-
-#include <QtPlugin>
+#include <projectexplorer/buildstep.h>
 
 namespace Rust {
 
-static Plugin *m_instance = 0;
-
-Plugin::Plugin()
+class BuildStepFactory final : public ProjectExplorer::IBuildStepFactory
 {
-    m_instance = this;
-}
+public:
+    explicit BuildStepFactory(QObject *parent = nullptr);
 
-Plugin::~Plugin()
-{
-    m_instance = 0;
-}
-
-bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
-{
-    Q_UNUSED(arguments)
-    Q_UNUSED(errorMessage)
-
-    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
-
-    addAutoReleasedObject(new ProjectManager);
-    addAutoReleasedObject(new BuildConfigurationFactory);
-    addAutoReleasedObject(new BuildStepFactory);
-
-    // Add MIME overlay icons (these icons displayed at Project dock panel)
-    const QIcon icon((QLatin1String(":/images/rust.svg")));
-    if (!icon.isNull()) {
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
-    }
-
-    return true;
-}
-
-void Plugin::extensionsInitialized()
-{
-}
+    QList<ProjectExplorer::BuildStepInfo> availableSteps(ProjectExplorer::BuildStepList *parent) const override;
+    ProjectExplorer::BuildStep *create(ProjectExplorer::BuildStepList *parent, Core::Id id) override;
+    ProjectExplorer::BuildStep *clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *product) override;
+};
 
 } // namespace Rust
