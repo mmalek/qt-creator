@@ -44,6 +44,8 @@ public:
               QObject *parent = 0);
     ~Cargo();
 
+    static Utils::FileName binary();
+
 signals:
     void listOfFiles(QVector<Utils::FileName> files);
     void error(const QString& text);

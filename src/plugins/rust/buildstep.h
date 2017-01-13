@@ -42,4 +42,17 @@ public:
     ProjectExplorer::BuildStepConfigWidget *createConfigWidget() override;
 };
 
+class CleanStep final : public ProjectExplorer::AbstractProcessStep
+{
+    Q_OBJECT
+
+public:
+    static const char ID[];
+    static const char DISPLAY_NAME[];
+
+    CleanStep(ProjectExplorer::BuildStepList *parentList);
+
+    ProjectExplorer::BuildStepConfigWidget *createConfigWidget() override;
+};
+
 }

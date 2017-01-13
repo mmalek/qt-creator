@@ -43,6 +43,8 @@ QList<ProjectExplorer::BuildStepInfo> BuildStepFactory::availableSteps(ProjectEx
 {
     if (parent->id() == ProjectExplorer::Constants::BUILDSTEPS_BUILD) {
         return {{ BuildStep::ID, tr(BuildStep::DISPLAY_NAME) }};
+    } else if (parent->id() == ProjectExplorer::Constants::BUILDSTEPS_CLEAN) {
+        return {{ CleanStep::ID, tr(CleanStep::DISPLAY_NAME) }};
     } else {
         return {};
     }
@@ -50,8 +52,13 @@ QList<ProjectExplorer::BuildStepInfo> BuildStepFactory::availableSteps(ProjectEx
 
 ProjectExplorer::BuildStep *BuildStepFactory::create(ProjectExplorer::BuildStepList *parent, Core::Id id)
 {
-    Q_UNUSED(id)
-    return new BuildStep(parent);
+    if (id == BuildStep::ID) {
+        return new BuildStep(parent);
+    } else if (id == CleanStep::ID) {
+        return new CleanStep(parent);
+    } else {
+        return nullptr;
+    }
 }
 
 ProjectExplorer::BuildStep *BuildStepFactory::clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *product)
