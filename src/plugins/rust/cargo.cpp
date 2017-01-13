@@ -34,12 +34,6 @@ namespace Rust {
 namespace {
     constexpr char CARGO_BINARY[] = "cargo";
 
-    Utils::FileName cargoBinary()
-    {
-        QStringList additionalSearchDirs;
-        return Utils::Environment::systemEnvironment().searchInPath(
-                    QLatin1String(CARGO_BINARY), additionalSearchDirs);
-    }
 }
 
 Cargo::Cargo(const QString &workingDirectory,
@@ -55,6 +49,13 @@ Cargo::~Cargo()
 {
 }
 
+Utils::FileName Cargo::binary()
+{
+    QStringList additionalSearchDirs;
+    return Utils::Environment::systemEnvironment().searchInPath(
+                QLatin1String(CARGO_BINARY), additionalSearchDirs);
+}
+
 void Cargo::getListOfFiles()
 {
     Q_ASSERT(m_mode != None);
@@ -64,7 +65,7 @@ void Cargo::getListOfFiles()
 
 void Cargo::run(QStringList arguments, int timeoutS)
 {
-    m_shellCommand.addJob(cargoBinary(), arguments, timeoutS);
+    m_shellCommand.addJob(binary(), arguments, timeoutS);
 }
 
 void Cargo::readStdOutText(const QString &text)

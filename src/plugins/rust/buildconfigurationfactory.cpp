@@ -76,8 +76,11 @@ ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::create(ProjectEx
     buildConfiguration->setDefaultDisplayName(info->displayName);
     buildConfiguration->setBuildDirectory(info->buildDirectory);
 
-    ProjectExplorer::BuildStepList* buildStepList = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
-    buildStepList->appendStep(new BuildStep(buildStepList));
+    ProjectExplorer::BuildStepList* buildSteps = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
+    buildSteps->appendStep(new BuildStep(buildSteps));
+
+    ProjectExplorer::BuildStepList* cleanSteps = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_CLEAN);
+    cleanSteps->appendStep(new CleanStep(cleanSteps));
 
     return buildConfiguration;
 }

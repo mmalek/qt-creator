@@ -25,13 +25,14 @@
 
 #include "buildstep.h"
 
+#include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/processparameters.h>
 #include <projectexplorer/project.h>
 
 namespace Rust {
 
 const char BuildStep::ID[] = "Rust.BuildStep";
-const char BuildStep::DISPLAY_NAME[] = QT_TRANSLATE_NOOP("RustBuildStep", "Rust Build Step");
+const char BuildStep::DISPLAY_NAME[] = QT_TRANSLATE_NOOP("RustBuildStep", "cargo build");
 
 BuildStep::BuildStep(ProjectExplorer::BuildStepList *parentList)
     : AbstractProcessStep(parentList, ID)
@@ -39,12 +40,33 @@ BuildStep::BuildStep(ProjectExplorer::BuildStepList *parentList)
     setDefaultDisplayName(tr(DISPLAY_NAME));
     setDisplayName(tr(DISPLAY_NAME));
 
-    processParameters()->setCommand(QLatin1String("/usr/bin/cargo"));
+    processParameters()->setCommand(QLatin1String("cargo"));
     processParameters()->setArguments(QLatin1String("build"));
     processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
+    processParameters()->setEnvironment(buildConfiguration()->environment());
 }
 
 ProjectExplorer::BuildStepConfigWidget *BuildStep::createConfigWidget()
+{
+    return new ProjectExplorer::SimpleBuildStepConfigWidget(this);
+}
+
+const char CleanStep::ID[] = "Rust.CleanStep";
+const char CleanStep::DISPLAY_NAME[] = QT_TRANSLATE_NOOP("RustCleanStep", "cargo clean");
+
+CleanStep::CleanStep(ProjectExplorer::BuildStepList *parentList)
+    : AbstractProcessStep(parentList, ID)
+{
+    setDefaultDisplayName(tr(DISPLAY_NAME));
+    setDisplayName(tr(DISPLAY_NAME));
+
+    processParameters()->setCommand(QLatin1String("cargo"));
+    processParameters()->setArguments(QLatin1String("clean"));
+    processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
+    processParameters()->setEnvironment(buildConfiguration()->environment());
+}
+
+ProjectExplorer::BuildStepConfigWidget *CleanStep::createConfigWidget()
 {
     return new ProjectExplorer::SimpleBuildStepConfigWidget(this);
 }
