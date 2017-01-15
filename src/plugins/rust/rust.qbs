@@ -7,8 +7,8 @@ QtcPlugin {
     Depends { name: "Utils" }
 
     Depends { name: "Core" }
-    Depends { name: "TextEditor" }
     Depends { name: "ProjectExplorer" }
+    Depends { name: "TextEditor" }
 
     files: [
         "buildconfiguration.cpp",
@@ -31,5 +31,7 @@ QtcPlugin {
         "projectmanager.cpp",
         "projectnode.h",
         "projectnode.cpp",
+        "rustcparser.cpp",
+        "rustcparser.hpp",
     ]
 }

@@ -25,38 +25,24 @@
 
 #pragma once
 
-#include <projectexplorer/abstractprocessstep.h>
+#include <projectexplorer/ioutputparser.h>
 
-namespace  Rust {
+class QJsonObject;
 
-class BuildStep final : public ProjectExplorer::AbstractProcessStep
+namespace Utils { class FileName; }
+
+namespace Rust {
+
+class RustcParser : public ProjectExplorer::IOutputParser
 {
     Q_OBJECT
 
 public:
-    static const char ID[];
-    static const char DISPLAY_NAME[];
+    void stdOutput(const QString &line) override;
 
-    BuildStep(ProjectExplorer::BuildStepList *parentList);
-
-    bool init(QList<const ProjectExplorer::BuildStep *> &earlierSteps) override;
-
-    ProjectExplorer::BuildStepConfigWidget *createConfigWidget() override;
+private:
+    void parseMessage(const QJsonObject& message);
+    void parseCode(const QJsonObject& code, const Utils::FileName &file, int line);
 };
 
-class CleanStep final : public ProjectExplorer::AbstractProcessStep
-{
-    Q_OBJECT
-
-public:
-    static const char ID[];
-    static const char DISPLAY_NAME[];
-
-    CleanStep(ProjectExplorer::BuildStepList *parentList);
-
-    bool init(QList<const ProjectExplorer::BuildStep *> &earlierSteps) override;
-
-    ProjectExplorer::BuildStepConfigWidget *createConfigWidget() override;
-};
-
-}
+} // namespace Rust
