@@ -24,6 +24,7 @@
 ****************************************************************************/
 
 #include "buildstep.h"
+#include "rustcparser.hpp"
 
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/processparameters.h>
@@ -39,11 +40,18 @@ BuildStep::BuildStep(ProjectExplorer::BuildStepList *parentList)
 {
     setDefaultDisplayName(tr(DISPLAY_NAME));
     setDisplayName(tr(DISPLAY_NAME));
+}
 
+bool BuildStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
+{
     processParameters()->setCommand(QLatin1String("cargo"));
-    processParameters()->setArguments(QLatin1String("build"));
+    processParameters()->setArguments(QLatin1String("build --message-format=json"));
     processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
     processParameters()->setEnvironment(buildConfiguration()->environment());
+
+    setOutputParser(new RustcParser);
+
+    return AbstractProcessStep::init(earlierSteps);
 }
 
 ProjectExplorer::BuildStepConfigWidget *BuildStep::createConfigWidget()
@@ -59,11 +67,16 @@ CleanStep::CleanStep(ProjectExplorer::BuildStepList *parentList)
 {
     setDefaultDisplayName(tr(DISPLAY_NAME));
     setDisplayName(tr(DISPLAY_NAME));
+}
 
+bool CleanStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
+{
     processParameters()->setCommand(QLatin1String("cargo"));
     processParameters()->setArguments(QLatin1String("clean"));
     processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
     processParameters()->setEnvironment(buildConfiguration()->environment());
+
+    return AbstractProcessStep::init(earlierSteps);
 }
 
 ProjectExplorer::BuildStepConfigWidget *CleanStep::createConfigWidget()
