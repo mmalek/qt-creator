@@ -43,16 +43,18 @@ void RustcParser::stdOutput(const QString &line)
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(line.toUtf8(), &parseError);
     if (document.isNull()) {
-        addTask({ProjectExplorer::Task::Error,
-                 tr("Internal error: cannot parse message: %1").arg(parseError.errorString()),
-                 Utils::FileName(), -1,
-                 ProjectExplorer::Constants::TASK_CATEGORY_COMPILE});
+        emit addTask({ProjectExplorer::Task::Error,
+                     tr("Internal error: cannot parse message: %1").arg(parseError.errorString()),
+                     Utils::FileName(), -1,
+                     ProjectExplorer::Constants::TASK_CATEGORY_COMPILE});
         return;
     }
 
     QJsonObject root = document.object();
 
     parseMessage(root.value("message").toObject());
+
+    IOutputParser::stdError(line);
 }
 
 void RustcParser::parseMessage(const QJsonObject& message)
@@ -122,7 +124,7 @@ void RustcParser::parseMessage(const QJsonObject& message)
              primaryFileNameLine,
              ProjectExplorer::Constants::TASK_CATEGORY_COMPILE);
     task.formats = std::move(formats);
-    addTask(task);
+    emit addTask(task);
 
     for (QJsonValue childVal : message.value("children").toArray()) {
         parseMessage(childVal.toObject());
@@ -137,15 +139,44 @@ void RustcParser::parseCode(const QJsonObject& code, const Utils::FileName &file
         return;
     }
 
+    QString description = tr("[%1] ").arg(code.value("code").toString());
+    const int prefixSize = description.size();
+    description.append(code.value("explanation").toString().trimmed());
+
     ProjectExplorer::Task task(ProjectExplorer::Task::Unknown,
-                               QString("%1 %2")
-                                 .arg(code.value("code").toString())
-                                 .arg(code.value("explanation").toString().trimmed()),
+                               description,
                                file,
                                line,
                                ProjectExplorer::Constants::TASK_CATEGORY_COMPILE);
 
-    addTask(task);
+    const QLatin1String BLOCK_TAG("```");
+
+    for (int i = prefixSize; i < description.size(); ++i) {
+        QTextLayout::FormatRange formatRange;
+
+        const int start = description.indexOf(BLOCK_TAG, i);
+        if (start < 0) {
+            break;
+        }
+
+        i = start + BLOCK_TAG.size();
+
+        const int end = description.indexOf(BLOCK_TAG, start + BLOCK_TAG.size());
+        if (end < 0) {
+            break;
+        }
+
+        i = end + BLOCK_TAG.size();
+
+        formatRange.start = start;
+        formatRange.length = end - start + BLOCK_TAG.size();
+        formatRange.format.setFont(TextEditor::TextEditorSettings::fontSettings().font());
+        formatRange.format.setFontStyleHint(QFont::Monospace);
+
+        task.formats.append(formatRange);
+    }
+
+    emit addTask(task);
 }
 
 } // namespace Rust
