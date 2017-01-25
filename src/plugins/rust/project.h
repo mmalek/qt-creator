@@ -26,11 +26,16 @@
 
 #pragma once
 
+#include "product.h"
+
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectnodes.h>
+#include <utils/fileutils.h>
+#include <utils/qtcprocess.h>
 
 #include <QFileSystemWatcher>
 #include <QElapsedTimer>
+#include <QProcess>
 #include <QTimer>
 
 namespace TextEditor { class TextDocument; }
@@ -42,6 +47,7 @@ class ProjectManager;
 class Project final : public ProjectExplorer::Project
 {
     Q_OBJECT
+public:
 
 public:
     Project(ProjectManager *projectManager, const QString &fileName);
@@ -51,6 +57,11 @@ public:
     bool needsConfiguration() const override;
     bool supportsKit(ProjectExplorer::Kit *k, QString *errorMessage) const override;
     Utils::FileNameList files() const;
+
+    const QVector<Product>& products() const { return m_products; }
+
+private slots:
+    void readManifestFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
     void scheduleProjectScan();
@@ -62,6 +73,9 @@ private:
 
     QElapsedTimer m_lastProjectScan;
     QTimer m_projectScanTimer;
+    Utils::QtcProcess *m_cargoReadManifest;
+
+    QVector<Product> m_products;
 };
 
 }
