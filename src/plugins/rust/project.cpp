@@ -35,8 +35,14 @@
 #include <texteditor/textdocument.h>
 
 #include <utils/algorithm.h>
+#include <utils/environment.h>
 
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QJsonValue>
 #include <QQueue>
 
 using namespace ProjectExplorer;
@@ -47,11 +53,13 @@ namespace Rust {
 const int MIN_TIME_BETWEEN_PROJECT_SCANS = 4500;
 
 Project::Project(ProjectManager *projectManager, const QString &fileName)
+    : m_cargoReadManifest(new QtcProcess(this))
 {
     setId("Rust.Project");
     setProjectManager(projectManager);
     setDocument(new TextEditor::TextDocument);
     document()->setFilePath(FileName::fromString(fileName));
+
     QFileInfo fi = QFileInfo(fileName);
     QDir dir = fi.dir();
     setRootProjectNode(new ProjectNode(FileName::fromString(dir.absolutePath())));
@@ -59,6 +67,12 @@ Project::Project(ProjectManager *projectManager, const QString &fileName)
 
     m_projectScanTimer.setSingleShot(true);
     connect(&m_projectScanTimer, &QTimer::timeout, this, &Project::populateProject);
+    connect(m_cargoReadManifest, SIGNAL(finished(int, QProcess::ExitStatus)),
+            this, SLOT(readManifestFinished(int, QProcess::ExitStatus)));
+
+    m_cargoReadManifest->setCommand(QLatin1String("cargo"), QLatin1String("read-manifest"));
+    m_cargoReadManifest->setEnvironment(Utils::Environment::systemEnvironment());
+    m_cargoReadManifest->setWorkingDirectory(projectDirectory().toString());
 
     populateProject();
 
@@ -78,6 +92,52 @@ QStringList Project::files(FilesMode) const
 bool Project::needsConfiguration() const
 {
     return targets().empty();
+}
+
+void Project::readManifestFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    Q_UNUSED(exitCode);
+
+    if (exitStatus != QProcess::NormalExit) {
+        return;
+    }
+
+    QByteArray output = m_cargoReadManifest->readAllStandardOutput();
+
+    const QJsonDocument document = QJsonDocument::fromJson(output);
+    if (document.isNull() || !document.isObject()) {
+        return;
+    }
+
+    const QJsonObject root = document.object();
+    const QString name = root.value(QLatin1String("name")).toString();
+    if (ProjectExplorer::ProjectNode *node = rootProjectNode()) {
+        node->setDisplayName(name);
+    }
+
+    m_products.clear();
+
+    for (QJsonValue targetVal : root.value(QLatin1String("targets")).toArray()) {
+        const QJsonObject target = targetVal.toObject();
+        const QJsonArray kindArr = target.value(QLatin1String("kind")).toArray();
+        if (!kindArr.empty()) {
+            const QString name = target.value(QLatin1String("name")).toString();
+            const QString srcPathStr = target.value(QLatin1String("src_path")).toString();
+            const Utils::FileName srcPath = Utils::FileName::fromString(srcPathStr);
+            const QString kindStr = kindArr.first().toString();
+            if (kindStr == QLatin1String("bench")) {
+                m_products.append(Product{Product::Benchmark, name, srcPath});
+            } else if (kindStr == QLatin1String("bin")) {
+                m_products.append(Product{Product::Binary, name, srcPath});
+            } else if (kindStr == QLatin1String("example")) {
+                m_products.append(Product{Product::Example, name, srcPath});
+            } else if (kindStr == QLatin1String("lib")) {
+                m_products.append(Product{Product::Library, name, srcPath});
+            } else  if (kindStr == QLatin1String("test")) {
+                m_products.append(Product{Product::Test, name, srcPath});
+            }
+        }
+    }
 }
 
 void Project::scheduleProjectScan()
@@ -108,6 +168,8 @@ void Project::populateProject()
         return new FileNode(FileName::fromString(f), SourceType, false);
     });
     rootProjectNode()->buildTree(fileNodes);
+
+    m_cargoReadManifest->start();
 
     emit fileListChanged();
 

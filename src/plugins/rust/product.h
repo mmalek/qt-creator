@@ -23,56 +23,28 @@
 **
 ****************************************************************************/
 
-#include "plugin.h"
-#include "mimetypes.h"
-#include "projectmanager.h"
-#include "buildconfigurationfactory.h"
-#include "buildstepfactory.h"
-#include "runconfiguration.h"
+#pragma once
 
-#include <coreplugin/fileiconprovider.h>
-#include <utils/mimetypes/mimedatabase.h>
+#include <utils/fileutils.h>
 
-#include <QtPlugin>
+#include <QString>
 
 namespace Rust {
 
-static Plugin *m_instance = 0;
-
-Plugin::Plugin()
+struct Product
 {
-    m_instance = this;
-}
+    enum Kind
+    {
+        Benchmark,
+        Binary,
+        Example,
+        Library,
+        Test
+    };
 
-Plugin::~Plugin()
-{
-    m_instance = 0;
-}
-
-bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
-{
-    Q_UNUSED(arguments)
-    Q_UNUSED(errorMessage)
-
-    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
-
-    addAutoReleasedObject(new ProjectManager);
-    addAutoReleasedObject(new BuildConfigurationFactory);
-    addAutoReleasedObject(new BuildStepFactory);
-    addAutoReleasedObject(new RunConfigurationFactory);
-
-    // Add MIME overlay icons (these icons displayed at Project dock panel)
-    const QIcon icon((QLatin1String(":/images/rust.svg")));
-    if (!icon.isNull()) {
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
-    }
-
-    return true;
-}
-
-void Plugin::extensionsInitialized()
-{
-}
+    Kind kind;
+    QString name;
+    Utils::FileName srcPath;
+};
 
 } // namespace Rust
