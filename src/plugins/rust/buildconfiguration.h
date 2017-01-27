@@ -55,4 +55,30 @@ private:
     BuildType m_buildType = Unknown;
 };
 
+class BuildConfigurationFactory final : public ProjectExplorer::IBuildConfigurationFactory
+{
+    Q_OBJECT
+
+public:
+    BuildConfigurationFactory(QObject *parent = nullptr);
+
+    int priority(const ProjectExplorer::Target *parent) const override;
+    QList<ProjectExplorer::BuildInfo *> availableBuilds(const ProjectExplorer::Target *parent) const override;
+    int priority(const ProjectExplorer::Kit *k, const QString &projectPath) const override;
+    QList<ProjectExplorer::BuildInfo *> availableSetups(const ProjectExplorer::Kit *k, const QString &projectPath) const override;
+    ProjectExplorer::BuildConfiguration *create(ProjectExplorer::Target *parent, const ProjectExplorer::BuildInfo *info) const override;
+    bool canRestore(const ProjectExplorer::Target *parent, const QVariantMap &map) const override;
+    ProjectExplorer::BuildConfiguration *restore(ProjectExplorer::Target *parent, const QVariantMap &map) override;
+    bool canClone(const ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) const override;
+    ProjectExplorer::BuildConfiguration *clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) override;
+
+private:
+    bool canHandle(const ProjectExplorer::Target *t) const;
+    static Utils::FileName buildDirectory(const Utils::FileName &projectDir,
+                                          ProjectExplorer::BuildConfiguration::BuildType buildType);
+    ProjectExplorer::BuildInfo *createBuildInfo(const ProjectExplorer::Kit *k,
+                                                const Utils::FileName &projectDir,
+                                                ProjectExplorer::BuildConfiguration::BuildType buildType) const;
+};
+
 }
