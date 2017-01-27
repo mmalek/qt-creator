@@ -27,6 +27,8 @@
 
 #include <projectexplorer/buildconfiguration.h>
 
+namespace Utils { class FileName; }
+
 namespace Rust {
 
 class BuildConfigurationFactory final : public ProjectExplorer::IBuildConfigurationFactory
@@ -43,12 +45,15 @@ public:
     ProjectExplorer::BuildConfiguration *create(ProjectExplorer::Target *parent, const ProjectExplorer::BuildInfo *info) const override;
     bool canRestore(const ProjectExplorer::Target *parent, const QVariantMap &map) const override;
     ProjectExplorer::BuildConfiguration *restore(ProjectExplorer::Target *parent, const QVariantMap &map) override;
-    bool canClone(const ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *product) const override;
-    ProjectExplorer::BuildConfiguration *clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *product) override;
+    bool canClone(const ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) const override;
+    ProjectExplorer::BuildConfiguration *clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) override;
 
 private:
+    bool canHandle(const ProjectExplorer::Target *t) const;
+    static Utils::FileName buildDirectory(const Utils::FileName &projectDir,
+                                          ProjectExplorer::BuildConfiguration::BuildType buildType);
     ProjectExplorer::BuildInfo *createBuildInfo(const ProjectExplorer::Kit *k,
-                                                const Utils::FileName &projectPath,
+                                                const Utils::FileName &projectDir,
                                                 ProjectExplorer::BuildConfiguration::BuildType buildType) const;
 };
 
