@@ -176,6 +176,28 @@ Utils::FileName RunConfiguration::executable(ProjectExplorer::BuildConfiguration
     }
 }
 
+Utils::FileName RunConfiguration::workingDirectory() const
+{
+    if (const Product* p = product()) {
+        Utils::FileName path = target()->project()->projectDirectory();
+
+        switch(p->kind) {
+        case Product::Example:
+            path.appendPath(QLatin1String("examples"));
+            break;
+        case Product::Test:
+            Q_UNIMPLEMENTED();
+            break;
+        default:
+            break;
+        }
+
+        return path;
+    } else {
+        return Utils::FileName();
+    }
+}
+
 const Project& RunConfiguration::project() const
 {
     Project* project = qobject_cast<Project*>(target()->project());
@@ -291,13 +313,15 @@ RunConfigurationWidget::RunConfigurationWidget(RunConfiguration *rc)
 
     m_executableLineLabel = new QLabel(this);
     m_executableLineLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    setExecutableLineText();
     toplayout->addRow(tr("Executable:"), m_executableLineLabel);
 
     m_rc->extraAspect<ProjectExplorer::ArgumentsAspect>()->addToMainConfigurationWidget(this, toplayout);
     m_rc->extraAspect<ProjectExplorer::WorkingDirectoryAspect>()->addToMainConfigurationWidget(this, toplayout);
-
     m_rc->extraAspect<ProjectExplorer::TerminalAspect>()->addToMainConfigurationWidget(this, toplayout);
+
+    ProjectExplorer::WorkingDirectoryAspect *aspect = m_rc->extraAspect<ProjectExplorer::WorkingDirectoryAspect>();
+    aspect->setDefaultWorkingDirectory(m_rc->workingDirectory());
+    aspect->pathChooser()->setBaseFileName(m_rc->target()->project()->projectDirectory());
 
     runConfigurationEnabledChange();
 
@@ -310,10 +334,8 @@ RunConfigurationWidget::RunConfigurationWidget(RunConfiguration *rc)
 
 void RunConfigurationWidget::onActiveBuildConfigChanged(ProjectExplorer::BuildConfiguration *bc)
 {
-    setExecutableLineText(m_rc->executable(bc).toString());
-    ProjectExplorer::WorkingDirectoryAspect *aspect = m_rc->extraAspect<ProjectExplorer::WorkingDirectoryAspect>();
-    aspect->setDefaultWorkingDirectory(bc->buildDirectory());
-    aspect->pathChooser()->setBaseFileName(m_rc->target()->project()->projectDirectory());
+    const QString text = m_rc->executable(bc).toString();
+    m_executableLineLabel->setText(text.isEmpty() ? tr("<unknown>") : text);
 }
 
 void RunConfigurationWidget::runConfigurationEnabledChange()
@@ -324,12 +346,6 @@ void RunConfigurationWidget::runConfigurationEnabledChange()
     m_disabledReason->setText(m_rc->disabledReason());
 
     onActiveBuildConfigChanged(m_rc->target()->activeBuildConfiguration());
-}
-
-void RunConfigurationWidget::setExecutableLineText(const QString &text)
-{
-    const QString newText = text.isEmpty() ? tr("<unknown>") : text;
-    m_executableLineLabel->setText(newText);
 }
 
 } // namespace Rust
