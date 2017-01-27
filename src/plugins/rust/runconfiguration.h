@@ -49,6 +49,7 @@ public:
     QWidget *createConfigurationWidget() override;
     ProjectExplorer::Runnable runnable() const override;
     Utils::FileName executable(ProjectExplorer::BuildConfiguration* bc) const;
+    Utils::FileName workingDirectory() const;
     const Project& project() const;
     const Product* product() const;
 
@@ -88,7 +89,6 @@ private slots:
 
 private:
     void runConfigurationEnabledChange();
-    void setExecutableLineText(const QString &text = QString());
 
     RunConfiguration *m_rc;
     QLabel *m_disabledIcon;
