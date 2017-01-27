@@ -26,7 +26,7 @@
 #include "plugin.h"
 #include "mimetypes.h"
 #include "projectmanager.h"
-#include "buildconfigurationfactory.h"
+#include "buildconfiguration.h"
 #include "buildstep.h"
 #include "runconfiguration.h"
 

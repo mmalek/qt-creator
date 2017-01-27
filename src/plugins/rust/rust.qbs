@@ -13,8 +13,6 @@ QtcPlugin {
     files: [
         "buildconfiguration.cpp",
         "buildconfiguration.h",
-        "buildconfigurationfactory.cpp",
-        "buildconfigurationfactory.h",
         "buildconfigurationwidget.cpp",
         "buildconfigurationwidget.h",
         "buildconfigurationwidget.ui",
