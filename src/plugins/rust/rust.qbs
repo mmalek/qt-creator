@@ -20,8 +20,6 @@ QtcPlugin {
         "buildconfigurationwidget.ui",
         "buildstep.cpp",
         "buildstep.h",
-        "buildstepfactory.cpp",
-        "buildstepfactory.h",
         "mimetypes.h",
         "product.h",
         "runconfiguration.cpp",

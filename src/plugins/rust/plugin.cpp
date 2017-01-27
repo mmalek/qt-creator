@@ -27,7 +27,7 @@
 #include "mimetypes.h"
 #include "projectmanager.h"
 #include "buildconfigurationfactory.h"
-#include "buildstepfactory.h"
+#include "buildstep.h"
 #include "runconfiguration.h"
 
 #include <coreplugin/fileiconprovider.h>

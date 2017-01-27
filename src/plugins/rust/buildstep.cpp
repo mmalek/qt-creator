@@ -27,8 +27,13 @@
 #include "rustcparser.hpp"
 
 #include <projectexplorer/buildconfiguration.h>
+#include <projectexplorer/buildsteplist.h>
 #include <projectexplorer/processparameters.h>
 #include <projectexplorer/project.h>
+#include <projectexplorer/projectexplorerconstants.h>
+#include <utils/qtcassert.h>
+
+#include <QScopedPointer>
 
 namespace Rust {
 
@@ -95,6 +100,41 @@ bool CleanStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
 ProjectExplorer::BuildStepConfigWidget *CleanStep::createConfigWidget()
 {
     return new ProjectExplorer::SimpleBuildStepConfigWidget(this);
+}
+
+BuildStepFactory::BuildStepFactory(QObject *parent)
+    : ProjectExplorer::IBuildStepFactory(parent)
+{
+}
+
+QList<ProjectExplorer::BuildStepInfo> BuildStepFactory::availableSteps(ProjectExplorer::BuildStepList *parent) const
+{
+    if (parent->id() == ProjectExplorer::Constants::BUILDSTEPS_BUILD) {
+        return {{ BuildStep::ID, tr(BuildStep::DISPLAY_NAME) }};
+    } else if (parent->id() == ProjectExplorer::Constants::BUILDSTEPS_CLEAN) {
+        return {{ CleanStep::ID, tr(CleanStep::DISPLAY_NAME) }};
+    } else {
+        return {};
+    }
+}
+
+ProjectExplorer::BuildStep *BuildStepFactory::create(ProjectExplorer::BuildStepList *parent, Core::Id id)
+{
+    if (id == BuildStep::ID) {
+        return new BuildStep(parent);
+    } else if (id == CleanStep::ID) {
+        return new CleanStep(parent);
+    } else {
+        return nullptr;
+    }
+}
+
+ProjectExplorer::BuildStep *BuildStepFactory::clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *product)
+{
+    QTC_ASSERT(parent, return nullptr);
+    QTC_ASSERT(product, return nullptr);
+    QScopedPointer<BuildStep> result(new BuildStep(parent));
+    return result->fromMap(product->toMap()) ? result.take() : nullptr;
 }
 
 } // namespace Rust
