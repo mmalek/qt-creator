@@ -25,34 +25,26 @@
 
 #pragma once
 
-#include <projectexplorer/buildconfiguration.h>
+#include <projectexplorer/namedwidget.h>
+
+#include <QScopedPointer>
 
 namespace Rust {
 
-class BuildConfiguration final : public ProjectExplorer::BuildConfiguration
+namespace Ui { class BuildConfigurationWidget; }
+
+class BuildConfiguration;
+
+class BuildConfigurationWidget final : public ProjectExplorer::NamedWidget
 {
     Q_OBJECT
 
 public:
-    static const char ID[];
-
-    explicit BuildConfiguration(ProjectExplorer::Target *target, BuildType buildType = Unknown);
-    BuildConfiguration(ProjectExplorer::Target *target, BuildConfiguration *source);
-
-    ProjectExplorer::NamedWidget *createConfigWidget() override;
-
-    bool fromMap(const QVariantMap &map) override;
-    QVariantMap toMap() const override;
-
-    void setBuildType(BuildType buildType);
-    BuildType buildType() const override;
-
-    static Utils::FileName buildDirectory(Utils::FileName projectDir, BuildType buildType);
+    explicit BuildConfigurationWidget(BuildConfiguration *buildConfiguration);
+    ~BuildConfigurationWidget();
 
 private:
-    void updateBuildDirectory();
-
-    BuildType m_buildType = Unknown;
+    QScopedPointer<Ui::BuildConfigurationWidget> m_ui;
 };
 
-}
+} // namespace Rust

@@ -44,8 +44,15 @@ BuildStep::BuildStep(ProjectExplorer::BuildStepList *parentList)
 
 bool BuildStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
 {
+    QStringList args;
+    args.append(QLatin1String("build"));
+    args.append(QLatin1String("--message-format=json"));
+    if (buildConfiguration()->buildType() == ProjectExplorer::BuildConfiguration::Release) {
+        args.append(QLatin1String("--release"));
+    }
+
     processParameters()->setCommand(QLatin1String("cargo"));
-    processParameters()->setArguments(QLatin1String("build --message-format=json"));
+    processParameters()->setArguments(args.join(' '));
     processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
     processParameters()->setEnvironment(buildConfiguration()->environment());
 
@@ -71,8 +78,14 @@ CleanStep::CleanStep(ProjectExplorer::BuildStepList *parentList)
 
 bool CleanStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
 {
+    QStringList args;
+    args.append(QLatin1String("clean"));
+    if (buildConfiguration()->buildType() == ProjectExplorer::BuildConfiguration::Release) {
+        args.append(QLatin1String("--release"));
+    }
+
     processParameters()->setCommand(QLatin1String("cargo"));
-    processParameters()->setArguments(QLatin1String("clean"));
+    processParameters()->setArguments(args.join(' '));
     processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
     processParameters()->setEnvironment(buildConfiguration()->environment());
 

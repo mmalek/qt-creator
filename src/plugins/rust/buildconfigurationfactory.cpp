@@ -26,6 +26,8 @@
 #include "buildconfigurationfactory.h"
 #include "buildconfiguration.h"
 #include "buildstep.h"
+#include "mimetypes.h"
+#include "project.h"
 
 #include <projectexplorer/buildinfo.h>
 #include <projectexplorer/buildsteplist.h>
@@ -34,6 +36,7 @@
 #include <projectexplorer/project.h>
 #include <projectexplorer/target.h>
 #include <utils/qtcassert.h>
+#include <utils/mimetypes/mimedatabase.h>
 
 #include <QScopedPointer>
 
@@ -46,8 +49,7 @@ BuildConfigurationFactory::BuildConfigurationFactory(QObject *parent)
 }
 int BuildConfigurationFactory::priority(const ProjectExplorer::Target *parent) const
 {
-    Q_UNUSED(parent);
-    return 0;
+    return canHandle(parent) ? 0 : -1;
 }
 
 QList<ProjectExplorer::BuildInfo *> BuildConfigurationFactory::availableBuilds(const ProjectExplorer::Target *parent) const
@@ -57,24 +59,41 @@ QList<ProjectExplorer::BuildInfo *> BuildConfigurationFactory::availableBuilds(c
 
 int BuildConfigurationFactory::priority(const ProjectExplorer::Kit *k, const QString &projectPath) const
 {
-    Q_UNUSED(k);
-    Q_UNUSED(projectPath);
-    return 0;
+    Utils::MimeDatabase mdb;
+    if (k && mdb.mimeTypeForFile(projectPath).matchesName(QLatin1String(MimeTypes::CARGO_MANIFEST)))
+        return 0;
+    else
+        return -1;
 }
 
 QList<ProjectExplorer::BuildInfo *> BuildConfigurationFactory::availableSetups(const ProjectExplorer::Kit *k, const QString &projectPath) const
 {
-    ProjectExplorer::BuildInfo *debug = createBuildInfo(k, Utils::FileName::fromString(projectPath), BuildConfiguration::Debug);
-    ProjectExplorer::BuildInfo *release = createBuildInfo(k, Utils::FileName::fromString(projectPath), BuildConfiguration::Release);
+    const Utils::FileName prjDir = Utils::FileName::fromString(projectPath).parentDir();
+
+    ProjectExplorer::BuildInfo *debug = createBuildInfo(k, prjDir, BuildConfiguration::Debug);
+    debug->displayName = tr("Debug");
+
+    ProjectExplorer::BuildInfo *release = createBuildInfo(k, prjDir, BuildConfiguration::Release);
+    release->displayName = tr("Release");
+
     return { debug, release };
 }
 
 ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::create(ProjectExplorer::Target *parent, const ProjectExplorer::BuildInfo *info) const
 {
-    BuildConfiguration* buildConfiguration = new BuildConfiguration(parent);
+    QTC_ASSERT(info->factory() == this, return 0);
+    QTC_ASSERT(info->kitId == parent->kit()->id(), return 0);
+    QTC_ASSERT(!info->displayName.isEmpty(), return 0);
+
+    BuildConfiguration* buildConfiguration = new BuildConfiguration(parent, info->buildType);
     buildConfiguration->setDisplayName(info->displayName);
     buildConfiguration->setDefaultDisplayName(info->displayName);
-    buildConfiguration->setBuildDirectory(info->buildDirectory);
+
+    Utils::FileName buildDir = info->buildDirectory;
+    if (buildDir.isEmpty()) {
+        buildDir = buildDirectory(parent->project()->projectDirectory(), info->buildType);
+    }
+    buildConfiguration->setBuildDirectory(buildDir);
 
     ProjectExplorer::BuildStepList* buildSteps = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
     buildSteps->appendStep(new BuildStep(buildSteps));
@@ -87,45 +106,52 @@ ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::create(ProjectEx
 
 bool BuildConfigurationFactory::canRestore(const ProjectExplorer::Target *parent, const QVariantMap &map) const
 {
-    Q_UNUSED(parent);
-    return ProjectExplorer::idFromMap(map) == BuildConfiguration::ID;
+    return canHandle(parent) && ProjectExplorer::idFromMap(map) == BuildConfiguration::ID;
 }
 
 ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::restore(ProjectExplorer::Target *parent, const QVariantMap &map)
 {
-    QTC_ASSERT(parent, return nullptr);
     QTC_ASSERT(canRestore(parent, map), return nullptr);
     QScopedPointer<BuildConfiguration> result(new BuildConfiguration(parent));
     return result->fromMap(map) ? result.take() : nullptr;
 }
 
-bool BuildConfigurationFactory::canClone(const ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *product) const
+bool BuildConfigurationFactory::canClone(const ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) const
 {
-    QTC_ASSERT(parent, return false);
-    QTC_ASSERT(product, return false);
-    return product->id() == BuildConfiguration::ID;
+    return canHandle(parent) && qobject_cast<BuildConfiguration *>(source);
 }
 
-ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *product)
+ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source)
 {
-    QTC_ASSERT(parent, return nullptr);
-    QTC_ASSERT(product, return nullptr);
-    BuildConfiguration* buildConfiguration = qobject_cast<BuildConfiguration *>(product);
-    QTC_ASSERT(buildConfiguration, return nullptr);
-    QScopedPointer<BuildConfiguration> result(new BuildConfiguration(parent));
-    return result->fromMap(buildConfiguration->toMap()) ? result.take() : nullptr;
+    if (!canClone(parent, source))
+        return 0;
+    BuildConfiguration *buildConfiguration = static_cast<BuildConfiguration *>(source);
+    return new BuildConfiguration(parent, buildConfiguration);
+}
+
+bool BuildConfigurationFactory::canHandle(const ProjectExplorer::Target *t) const
+{
+    return qobject_cast<Project *>(t->project());
+}
+
+Utils::FileName BuildConfigurationFactory::buildDirectory(const Utils::FileName &projectDir,
+                                                          BuildConfiguration::BuildType buildType)
+{
+    Utils::FileName path = projectDir;
+    path.appendPath(QLatin1String("target"));
+    path.appendPath(BuildConfiguration::buildTypeName(buildType));
+    return path;
 }
 
 ProjectExplorer::BuildInfo *BuildConfigurationFactory::createBuildInfo(const ProjectExplorer::Kit *k,
-                                                                       const Utils::FileName &projectPath,
+                                                                       const Utils::FileName &projectDir,
                                                                        ProjectExplorer::BuildConfiguration::BuildType buildType) const
 {
     ProjectExplorer::BuildInfo* result = new ProjectExplorer::BuildInfo(this);
     result->buildType = buildType;
-    result->displayName = BuildConfiguration::buildTypeName(buildType);
-    result->buildDirectory = projectPath;
     result->kitId = k->id();
     result->typeName = tr("Build");
+    result->buildDirectory = buildDirectory(projectDir, buildType);
     return result;
 }
 

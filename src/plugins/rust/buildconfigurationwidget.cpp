@@ -23,36 +23,41 @@
 **
 ****************************************************************************/
 
-#pragma once
-
-#include <projectexplorer/buildconfiguration.h>
+#include "buildconfigurationwidget.h"
+#include "buildconfiguration.h"
+#include "ui_buildconfigurationwidget.h"
 
 namespace Rust {
 
-class BuildConfiguration final : public ProjectExplorer::BuildConfiguration
-{
-    Q_OBJECT
-
-public:
-    static const char ID[];
-
-    explicit BuildConfiguration(ProjectExplorer::Target *target, BuildType buildType = Unknown);
-    BuildConfiguration(ProjectExplorer::Target *target, BuildConfiguration *source);
-
-    ProjectExplorer::NamedWidget *createConfigWidget() override;
-
-    bool fromMap(const QVariantMap &map) override;
-    QVariantMap toMap() const override;
-
-    void setBuildType(BuildType buildType);
-    BuildType buildType() const override;
-
-    static Utils::FileName buildDirectory(Utils::FileName projectDir, BuildType buildType);
-
-private:
-    void updateBuildDirectory();
-
-    BuildType m_buildType = Unknown;
-};
-
+namespace {
+constexpr int BUILD_TYPE_DEBUG = 0;
+constexpr int BUILD_TYPE_RELEASE = 1;
 }
+
+BuildConfigurationWidget::BuildConfigurationWidget(BuildConfiguration *buildConfiguration)
+    : m_ui(new Ui::BuildConfigurationWidget)
+{
+    m_ui->setupUi(this);
+
+    if (buildConfiguration->buildType() == BuildConfiguration::Debug) {
+        m_ui->buildVariant->setCurrentIndex(BUILD_TYPE_DEBUG);
+    } else if (buildConfiguration->buildType() == BuildConfiguration::Release) {
+        m_ui->buildVariant->setCurrentIndex(BUILD_TYPE_RELEASE);
+    }
+
+    connect(m_ui->buildVariant,
+            static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            [buildConfiguration](int index) {
+        if (index == BUILD_TYPE_DEBUG) {
+            buildConfiguration->setBuildType(BuildConfiguration::Debug);
+        } else if (index == BUILD_TYPE_RELEASE) {
+            buildConfiguration->setBuildType(BuildConfiguration::Release);
+        }
+    });
+}
+
+BuildConfigurationWidget::~BuildConfigurationWidget()
+{
+}
+
+} // namespace Rust
