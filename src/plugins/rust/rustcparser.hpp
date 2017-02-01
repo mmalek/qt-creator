@@ -43,6 +43,12 @@ public:
 private:
     void parseMessage(const QJsonObject& message);
     void parseCode(const QJsonObject& code, const Utils::FileName &file, int line);
+
+    void showJsonOnConsole(bool value) { m_showJsonOnConsole = value; }
+    bool showJsonOnConsole() const { return m_showJsonOnConsole; }
+
+private:
+    bool m_showJsonOnConsole = false;
 };
 
 } // namespace Rust

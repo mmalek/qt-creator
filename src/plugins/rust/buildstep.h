@@ -27,24 +27,36 @@
 
 #include <projectexplorer/abstractprocessstep.h>
 
+#include <QScopedPointer>
+
 namespace  Rust {
 
-class BuildStep final : public ProjectExplorer::AbstractProcessStep
+class CargoStep : public ProjectExplorer::AbstractProcessStep
 {
     Q_OBJECT
 
 public:
-    static const char ID[];
-    static const char DISPLAY_NAME[];
+    CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QString& displayName);
+    CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const QString& displayName);
 
-    BuildStep(ProjectExplorer::BuildStepList *parentList);
-
-    bool init(QList<const ProjectExplorer::BuildStep *> &earlierSteps) override;
+    bool init(QList<const ProjectExplorer::BuildStep *> &earlierSteps) final;
 
     ProjectExplorer::BuildStepConfigWidget *createConfigWidget() override;
+
+    bool fromMap(const QVariantMap &map) override;
+    QVariantMap toMap() const override;
+
+    const QString& extraArgs() const { return m_extraArgs; }
+    virtual QString mainArgs() const = 0;
+
+public slots:
+    void setExtraArgs(const QString& value);
+
+private:
+    QString m_extraArgs;
 };
 
-class CleanStep final : public ProjectExplorer::AbstractProcessStep
+class BuildStep final : public CargoStep
 {
     Q_OBJECT
 
@@ -52,11 +64,68 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    CleanStep(ProjectExplorer::BuildStepList *parentList);
+    explicit BuildStep(ProjectExplorer::BuildStepList *bsl);
+    BuildStep(ProjectExplorer::BuildStepList *bsl, BuildStep *bs);
 
-    bool init(QList<const ProjectExplorer::BuildStep *> &earlierSteps) override;
+    QString mainArgs() const override;
+};
 
-    ProjectExplorer::BuildStepConfigWidget *createConfigWidget() override;
+class TestStep final : public CargoStep
+{
+    Q_OBJECT
+
+public:
+    static const char ID[];
+    static const char DISPLAY_NAME[];
+
+    explicit TestStep(ProjectExplorer::BuildStepList *bsl);
+    TestStep(ProjectExplorer::BuildStepList *bsl, TestStep *bs);
+
+    QString mainArgs() const override;
+};
+
+class BenchStep final : public CargoStep
+{
+    Q_OBJECT
+
+public:
+    static const char ID[];
+    static const char DISPLAY_NAME[];
+
+    explicit BenchStep(ProjectExplorer::BuildStepList *bsl);
+    BenchStep(ProjectExplorer::BuildStepList *bsl, BenchStep *bs);
+
+    QString mainArgs() const override;
+};
+
+class CleanStep final : public CargoStep
+{
+    Q_OBJECT
+
+public:
+    static const char ID[];
+    static const char DISPLAY_NAME[];
+
+    explicit CleanStep(ProjectExplorer::BuildStepList *bsl);
+    CleanStep(ProjectExplorer::BuildStepList *bsl, CleanStep *bs);
+
+    QString mainArgs() const override;
+};
+
+namespace Ui { class BuildStepConfigWidget; }
+
+class BuildStepConfigWidget : public ProjectExplorer::SimpleBuildStepConfigWidget
+{
+    Q_OBJECT
+
+public:
+    explicit BuildStepConfigWidget(CargoStep *step);
+    ~BuildStepConfigWidget();
+
+    bool showWidget() const override { return true; }
+
+private:
+    QScopedPointer<Ui::BuildStepConfigWidget> m_ui;
 };
 
 class BuildStepFactory final : public ProjectExplorer::IBuildStepFactory
@@ -66,7 +135,7 @@ public:
 
     QList<ProjectExplorer::BuildStepInfo> availableSteps(ProjectExplorer::BuildStepList *parent) const override;
     ProjectExplorer::BuildStep *create(ProjectExplorer::BuildStepList *parent, Core::Id id) override;
-    ProjectExplorer::BuildStep *clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *product) override;
+    ProjectExplorer::BuildStep *clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *source) override;
 };
 
 }

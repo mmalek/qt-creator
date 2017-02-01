@@ -73,10 +73,10 @@ ProjectExplorer::NamedWidget *BuildConfiguration::createConfigWidget()
 
 bool BuildConfiguration::fromMap(const QVariantMap &map)
 {
-    const QString buildType = map.value(BUILD_TYPE_KEY).toString();
-    if (buildType == BUILD_TYPE_VAL_DEBUG) {
+    const QString buildType = map.value(QLatin1String(BUILD_TYPE_KEY)).toString();
+    if (buildType == QLatin1String(BUILD_TYPE_VAL_DEBUG)) {
         setBuildType(Debug);
-    } else if (buildType == BUILD_TYPE_VAL_RELEASE) {
+    } else if (buildType == QLatin1String(BUILD_TYPE_VAL_RELEASE)) {
         setBuildType(Release);
     }
 
@@ -89,10 +89,10 @@ QVariantMap BuildConfiguration::toMap() const
     switch(m_buildType)
     {
     case Debug:
-        map.insert(BUILD_TYPE_KEY, BUILD_TYPE_VAL_DEBUG);
+        map.insert(QLatin1String(BUILD_TYPE_KEY), QLatin1String(BUILD_TYPE_VAL_DEBUG));
         break;
     case Release:
-        map.insert(BUILD_TYPE_KEY, BUILD_TYPE_VAL_RELEASE);
+        map.insert(QLatin1String(BUILD_TYPE_KEY), QLatin1String(BUILD_TYPE_VAL_RELEASE));
         break;
     default:
         break;

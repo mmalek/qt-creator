@@ -40,21 +40,26 @@ namespace Rust {
 
 void RustcParser::stdOutput(const QString &line)
 {
-    QJsonParseError parseError;
-    const QJsonDocument document = QJsonDocument::fromJson(line.toUtf8(), &parseError);
-    if (document.isNull()) {
-        emit addTask({ProjectExplorer::Task::Error,
-                     tr("Internal error: cannot parse message: %1").arg(parseError.errorString()),
-                     Utils::FileName(), -1,
-                     ProjectExplorer::Constants::TASK_CATEGORY_COMPILE});
-        return;
+    if (line.startsWith(QLatin1Char('{'))/* && line.endsWith(QLatin1Char('}'))*/) {
+        QJsonParseError parseError;
+        const QJsonDocument document = QJsonDocument::fromJson(line.toUtf8(), &parseError);
+        if (!document.isNull()) {
+            QJsonObject root = document.object();
+
+            parseMessage(root.value("message").toObject());
+
+            if (m_showJsonOnConsole) {
+                IOutputParser::stdError(line);
+            }
+        } else {
+            emit addTask({ProjectExplorer::Task::Error,
+                         tr("Internal error: cannot parse message: %1").arg(parseError.errorString()),
+                         Utils::FileName(), -1,
+                         ProjectExplorer::Constants::TASK_CATEGORY_COMPILE});
+        }
+    } else {
+        IOutputParser::stdError(line);
     }
-
-    QJsonObject root = document.object();
-
-    parseMessage(root.value("message").toObject());
-
-    IOutputParser::stdError(line);
 }
 
 void RustcParser::parseMessage(const QJsonObject& message)
