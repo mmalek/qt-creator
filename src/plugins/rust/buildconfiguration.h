@@ -26,6 +26,9 @@
 #pragma once
 
 #include <projectexplorer/buildconfiguration.h>
+#include <projectexplorer/namedwidget.h>
+
+#include <QScopedPointer>
 
 namespace Rust {
 
@@ -53,6 +56,20 @@ private:
     void updateBuildDirectory();
 
     BuildType m_buildType = Unknown;
+};
+
+namespace Ui { class BuildConfigurationWidget; }
+
+class BuildConfigurationWidget final : public ProjectExplorer::NamedWidget
+{
+    Q_OBJECT
+
+public:
+    explicit BuildConfigurationWidget(BuildConfiguration *buildConfiguration);
+    ~BuildConfigurationWidget();
+
+private:
+    QScopedPointer<Ui::BuildConfigurationWidget> m_ui;
 };
 
 class BuildConfigurationFactory final : public ProjectExplorer::IBuildConfigurationFactory

@@ -24,10 +24,10 @@
 ****************************************************************************/
 
 #include "buildconfiguration.h"
-#include "buildconfigurationwidget.h"
 #include "buildstep.h"
 #include "mimetypes.h"
 #include "project.h"
+#include "ui_buildconfigurationwidget.h"
 
 #include <projectexplorer/buildinfo.h>
 #include <projectexplorer/buildsteplist.h>
@@ -124,6 +124,35 @@ Utils::FileName BuildConfiguration::buildDirectory(Utils::FileName path, BuildTy
 void BuildConfiguration::updateBuildDirectory()
 {
     setBuildDirectory(buildDirectory(target()->project()->projectDirectory(), m_buildType));
+}
+
+BuildConfigurationWidget::BuildConfigurationWidget(BuildConfiguration *buildConfiguration)
+    : m_ui(new Ui::BuildConfigurationWidget)
+{
+    constexpr int BUILD_TYPE_DEBUG = 0;
+    constexpr int BUILD_TYPE_RELEASE = 1;
+
+    m_ui->setupUi(this);
+
+    if (buildConfiguration->buildType() == BuildConfiguration::Debug) {
+        m_ui->buildVariant->setCurrentIndex(BUILD_TYPE_DEBUG);
+    } else if (buildConfiguration->buildType() == BuildConfiguration::Release) {
+        m_ui->buildVariant->setCurrentIndex(BUILD_TYPE_RELEASE);
+    }
+
+    connect(m_ui->buildVariant,
+            static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            [buildConfiguration](int index) {
+        if (index == BUILD_TYPE_DEBUG) {
+            buildConfiguration->setBuildType(BuildConfiguration::Debug);
+        } else if (index == BUILD_TYPE_RELEASE) {
+            buildConfiguration->setBuildType(BuildConfiguration::Release);
+        }
+    });
+}
+
+BuildConfigurationWidget::~BuildConfigurationWidget()
+{
 }
 
 BuildConfigurationFactory::BuildConfigurationFactory(QObject *parent)
