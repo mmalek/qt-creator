@@ -27,11 +27,9 @@
 
 namespace  Rust {
 
-namespace MimeTypes {
+namespace Editors {
 
-const char RUST_SOURCE[] = "text/rust";
-
-const char CARGO_MANIFEST[] = "text/x-cargo-manifest";
+const char RUST[] = "Rust.Editor";
 
 }
 
