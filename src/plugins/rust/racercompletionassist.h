@@ -25,14 +25,29 @@
 
 #pragma once
 
-namespace  Rust {
+#include <texteditor/codeassist/completionassistprovider.h>
+#include <texteditor/codeassist/keywordscompletionassist.h>
 
-namespace MimeTypes {
+namespace Rust {
 
-const char RUST_SOURCE[] = "text/rust";
+class RacerCompletionAssistProcessor : public TextEditor::KeywordsCompletionAssistProcessor
+{
+public:
+    RacerCompletionAssistProcessor();
+    ~RacerCompletionAssistProcessor();
 
-const char CARGO_MANIFEST[] = "text/x-cargo-manifest";
+    TextEditor::IAssistProposal *perform(const TextEditor::AssistInterface *interface) override;
+};
 
-}
+class RacerCompletionAssistProvider : public TextEditor::CompletionAssistProvider
+{
+    Q_OBJECT
 
-}
+public:
+    RacerCompletionAssistProvider(QObject *parent = nullptr);
+
+    bool supportsEditor(Core::Id editorId) const override;
+    TextEditor::IAssistProcessor *createProcessor() const override;
+};
+
+} // namespace Rust

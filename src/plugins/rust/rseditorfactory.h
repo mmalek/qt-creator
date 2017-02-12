@@ -25,14 +25,16 @@
 
 #pragma once
 
-namespace  Rust {
+#include <texteditor/texteditor.h>
 
-namespace MimeTypes {
+namespace Rust {
 
-const char RUST_SOURCE[] = "text/rust";
+class RsEditorFactory : public TextEditor::TextEditorFactory
+{
+    Q_OBJECT
 
-const char CARGO_MANIFEST[] = "text/x-cargo-manifest";
+public:
+    RsEditorFactory();
+};
 
-}
-
-}
+} // namespace Rust

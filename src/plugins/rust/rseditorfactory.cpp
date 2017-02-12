@@ -23,16 +23,42 @@
 **
 ****************************************************************************/
 
-#pragma once
+#include "rseditorfactory.h"
+#include "editors.h"
+#include "racercompletionassist.h"
+#include "mimetypes.h"
 
-namespace  Rust {
+#include <texteditor/basehoverhandler.h>
+#include <texteditor/normalindenter.h>
+#include <texteditor/textdocument.h>
+#include <texteditor/texteditoractionhandler.h>
+#include <utils/uncommentselection.h>
 
-namespace MimeTypes {
+namespace Rust {
 
-const char RUST_SOURCE[] = "text/rust";
+using namespace TextEditor;
 
-const char CARGO_MANIFEST[] = "text/x-cargo-manifest";
+RsEditorFactory::RsEditorFactory()
+{
+    setId(Editors::RUST);
+    setDisplayName(tr("Rust Editor"));
+    addMimeType(MimeTypes::RUST_SOURCE);
+    addHoverHandler(new BaseHoverHandler);
 
+    setEditorActionHandlers(TextEditorActionHandler::Format
+                            | TextEditorActionHandler::UnCommentSelection
+                            | TextEditorActionHandler::UnCollapseAll);
+
+    setCommentStyle(Utils::CommentDefinition::CppStyle);
+    setCompletionAssistProvider(new RacerCompletionAssistProvider);
+    setDocumentCreator([]{
+        auto document = new TextDocument(Editors::RUST);
+        document->setMimeType(QLatin1String(MimeTypes::RUST_SOURCE));
+        return document;
+    });
+
+    setIndenterCreator([]() { return new NormalIndenter; });
+    setUseGenericHighlighter(true);
 }
 
-}
+} // namespace Rust
