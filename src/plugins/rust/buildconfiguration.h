@@ -31,6 +31,7 @@
 #include <QScopedPointer>
 
 namespace Rust {
+namespace Internal {
 
 class BuildConfiguration final : public ProjectExplorer::BuildConfiguration
 {
@@ -98,4 +99,5 @@ private:
                                                 ProjectExplorer::BuildConfiguration::BuildType buildType) const;
 };
 
-}
+} // namespace Internal
+} // namespace Rust

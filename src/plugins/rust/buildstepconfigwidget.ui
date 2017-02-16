@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Rust::BuildStepConfigWidget</class>
- <widget class="QWidget" name="Rust::BuildStepConfigWidget">
+ <class>Rust::Internal::BuildStepConfigWidget</class>
+ <widget class="QWidget" name="Rust::Internal::BuildStepConfigWidget">
   <layout class="QFormLayout">
    <item row="0" column="0">
     <widget class="QLabel" name="extraArgsLabel">

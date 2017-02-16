@@ -28,6 +28,7 @@
 #include "project.h"
 
 namespace Rust {
+namespace Internal {
 
 QString ProjectManager::mimeType() const
 {
@@ -44,4 +45,5 @@ ProjectExplorer::Project *ProjectManager::openProject(const QString &fileName, Q
     return new Project(this, fileName);
 }
 
-}
+} // namespace Internal
+} // namespace Rust

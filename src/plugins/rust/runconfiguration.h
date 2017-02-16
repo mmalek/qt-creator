@@ -27,12 +27,12 @@
 
 #include <projectexplorer/runconfiguration.h>
 
-
 class QLabel;
 
 namespace Utils { class FileName; }
 
 namespace Rust {
+namespace Internal {
 
 struct Product;
 class Project;
@@ -97,4 +97,5 @@ private:
     bool m_isShown = false;
 };
 
+} // namespace Internal
 } // namespace Rust

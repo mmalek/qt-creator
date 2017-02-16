@@ -37,6 +37,7 @@
 #include <QtPlugin>
 
 namespace Rust {
+namespace Internal {
 
 static Plugin *m_instance = 0;
 
@@ -77,4 +78,5 @@ void Plugin::extensionsInitialized()
 {
 }
 
+} // namespace Internal
 } // namespace Rust

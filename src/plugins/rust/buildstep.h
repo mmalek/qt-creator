@@ -29,7 +29,8 @@
 
 #include <QScopedPointer>
 
-namespace  Rust {
+namespace Rust {
+namespace Internal {
 
 class CargoStep : public ProjectExplorer::AbstractProcessStep
 {
@@ -138,4 +139,5 @@ public:
     ProjectExplorer::BuildStep *clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *source) override;
 };
 
-}
+} // namespace Internal
+} // namespace Rust

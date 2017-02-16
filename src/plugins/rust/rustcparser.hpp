@@ -32,6 +32,7 @@ class QJsonObject;
 namespace Utils { class FileName; }
 
 namespace Rust {
+namespace Internal {
 
 class RustcParser : public ProjectExplorer::IOutputParser
 {
@@ -51,4 +52,5 @@ private:
     bool m_showJsonOnConsole = false;
 };
 
+} // namespace Internal
 } // namespace Rust

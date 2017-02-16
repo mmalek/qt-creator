@@ -35,6 +35,7 @@
 #include <utils/uncommentselection.h>
 
 namespace Rust {
+namespace Internal {
 
 using namespace TextEditor;
 
@@ -61,4 +62,5 @@ RsEditorFactory::RsEditorFactory()
     setUseGenericHighlighter(true);
 }
 
+} // namespace Internal
 } // namespace Rust

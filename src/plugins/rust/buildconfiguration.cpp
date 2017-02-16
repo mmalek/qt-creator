@@ -41,6 +41,7 @@
 #include <QScopedPointer>
 
 namespace Rust {
+namespace Internal {
 
 namespace {
 
@@ -268,4 +269,5 @@ ProjectExplorer::BuildInfo *BuildConfigurationFactory::createBuildInfo(const Pro
     return result;
 }
 
-}
+} // namespace Internal
+} // namespace Rust

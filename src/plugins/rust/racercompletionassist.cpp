@@ -40,6 +40,7 @@
 #include <QTextStream>
 
 namespace Rust {
+namespace Internal {
 
 using namespace TextEditor;
 
@@ -126,4 +127,5 @@ IAssistProcessor *RacerCompletionAssistProvider::createProcessor() const
     return new RacerCompletionAssistProcessor;
 }
 
+} // namespace Internal
 } // namespace Rust

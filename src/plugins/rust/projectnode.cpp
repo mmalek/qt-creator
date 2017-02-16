@@ -28,6 +28,7 @@
 #include <projectexplorer/projectnodes.h>
 
 namespace Rust {
+namespace Internal {
 
 ProjectNode::ProjectNode(const Utils::FileName &projectFilePath)
     : ProjectExplorer::ProjectNode(projectFilePath)
@@ -75,4 +76,5 @@ bool ProjectNode::renameFile(const QString &filePath, const QString &newFilePath
     return true;
 }
 
-}
+} // namespace Internal
+} // namespace Rust

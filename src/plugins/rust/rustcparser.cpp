@@ -37,6 +37,7 @@
 #include <QJsonValue>
 
 namespace Rust {
+namespace Internal {
 
 void RustcParser::stdOutput(const QString &line)
 {
@@ -184,4 +185,5 @@ void RustcParser::parseCode(const QJsonObject& code, const Utils::FileName &file
     emit addTask(task);
 }
 
+} // namespace Internal
 } // namespace Rust

@@ -28,6 +28,7 @@
 #include <projectexplorer/iprojectmanager.h>
 
 namespace Rust {
+namespace Internal {
 
 class ProjectManager final : public ProjectExplorer::IProjectManager
 {
@@ -39,4 +40,5 @@ public:
     ProjectExplorer::Project *openProject(const QString &fileName, QString *errorString) override;
 };
 
-}
+} // namespace Internal
+} // namespace Rust
