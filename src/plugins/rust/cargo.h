@@ -34,6 +34,7 @@
 namespace Core { class ShellCommand; }
 
 namespace Rust {
+namespace Internal {
 
 class Cargo : public QObject
 {
@@ -72,4 +73,5 @@ private:
     QString m_stdErr;
 };
 
-}
+} // namespace Internal
+} // namespace Rust

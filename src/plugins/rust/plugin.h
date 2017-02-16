@@ -28,6 +28,7 @@
 #include <extensionsystem/iplugin.h>
 
 namespace Rust {
+namespace Internal {
 
 class Plugin final : public ExtensionSystem::IPlugin
 {
@@ -44,4 +45,5 @@ public:
     void extensionsInitialized() override;
 };
 
-}
+} // namespace Internal
+} // namespace Rust

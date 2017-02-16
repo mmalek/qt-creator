@@ -49,6 +49,7 @@ using namespace ProjectExplorer;
 using namespace Utils;
 
 namespace Rust {
+namespace Internal {
 
 const int MIN_TIME_BETWEEN_PROJECT_SCANS = 4500;
 
@@ -215,4 +216,5 @@ FileNameList Project::files() const
     return result;
 }
 
-}
+} // namespace Internal
+} // namespace Rust

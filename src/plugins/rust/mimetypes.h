@@ -25,7 +25,8 @@
 
 #pragma once
 
-namespace  Rust {
+namespace Rust {
+namespace Internal {
 
 namespace MimeTypes {
 
@@ -35,4 +36,5 @@ const char CARGO_MANIFEST[] = "text/x-cargo-manifest";
 
 }
 
-}
+} // namespace Internal
+} // namespace Rust

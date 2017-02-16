@@ -30,6 +30,7 @@
 #include <QDir>
 
 namespace Rust {
+namespace Internal {
 
 namespace {
     constexpr char CARGO_BINARY[] = "cargo";
@@ -107,4 +108,5 @@ void Cargo::finish(bool ok, int exitCode, const QVariant &cookie)
     m_mode = None;
 }
 
-}
+} // namespace Internal
+} // namespace Rust

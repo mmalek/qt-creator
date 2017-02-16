@@ -30,6 +30,7 @@
 #include <QString>
 
 namespace Rust {
+namespace Internal {
 
 struct Product
 {
@@ -47,4 +48,5 @@ struct Product
     Utils::FileName srcPath;
 };
 
+} // namespace Internal
 } // namespace Rust

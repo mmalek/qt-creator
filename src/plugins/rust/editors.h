@@ -25,12 +25,14 @@
 
 #pragma once
 
-namespace  Rust {
+namespace Rust {
+namespace Internal {
 
 namespace Editors {
 
 const char RUST[] = "Rust.Editor";
 
-}
+} // namespace Editors
 
-}
+} // namespace Internal
+} // namespace Rust

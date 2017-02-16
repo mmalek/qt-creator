@@ -29,6 +29,7 @@
 #include <texteditor/codeassist/keywordscompletionassist.h>
 
 namespace Rust {
+namespace Internal {
 
 class RacerCompletionAssistProcessor : public TextEditor::KeywordsCompletionAssistProcessor
 {
@@ -50,4 +51,5 @@ public:
     TextEditor::IAssistProcessor *createProcessor() const override;
 };
 
+} // namespace Internal
 } // namespace Rust

@@ -35,6 +35,7 @@
 #include <utils/qtcassert.h>
 
 namespace Rust {
+namespace Internal {
 
 namespace {
 
@@ -251,4 +252,5 @@ ProjectExplorer::BuildStep *BuildStepFactory::clone(ProjectExplorer::BuildStepLi
     return result && result->fromMap(source->toMap()) ? result.take() : nullptr;
 }
 
+} // namespace Internal
 } // namespace Rust

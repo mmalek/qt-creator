@@ -30,6 +30,7 @@
 namespace Utils { class FileName; }
 
 namespace Rust {
+namespace Internal {
 
 class ProjectNode final : public ProjectExplorer::ProjectNode
 {
@@ -43,4 +44,5 @@ public:
     bool renameFile(const QString &, const QString &) override;
 };
 
-}
+} // namespace Internal
+} // namespace Rust

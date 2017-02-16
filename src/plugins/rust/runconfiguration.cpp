@@ -40,6 +40,7 @@
 #include <QLabel>
 
 namespace Rust {
+namespace Internal {
 
 namespace {
     QString toString(Product::Kind kind)
@@ -348,4 +349,5 @@ void RunConfigurationWidget::runConfigurationEnabledChange()
     onActiveBuildConfigChanged(m_rc->target()->activeBuildConfiguration());
 }
 
+} // namespace Internal
 } // namespace Rust

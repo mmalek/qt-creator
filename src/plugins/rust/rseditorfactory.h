@@ -28,6 +28,7 @@
 #include <texteditor/texteditor.h>
 
 namespace Rust {
+namespace Internal {
 
 class RsEditorFactory : public TextEditor::TextEditorFactory
 {
@@ -37,4 +38,5 @@ public:
     RsEditorFactory();
 };
 
+} // namespace Internal
 } // namespace Rust

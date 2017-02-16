@@ -41,6 +41,7 @@
 namespace TextEditor { class TextDocument; }
 
 namespace Rust {
+namespace Internal {
 
 class ProjectManager;
 
@@ -78,4 +79,5 @@ private:
     QVector<Product> m_products;
 };
 
-}
+} // namespace Internal
+} // namespace Rust
