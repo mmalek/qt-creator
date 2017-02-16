@@ -22,8 +22,6 @@ QtcPlugin {
         "product.h",
         "racercompletionassist.cpp",
         "racercompletionassist.h",
-        "rseditorfactory.cpp",
-        "rseditorfactory.h",
         "runconfiguration.cpp",
         "runconfiguration.h",
         "rust.qrc",
@@ -39,5 +37,7 @@ QtcPlugin {
         "projectnode.cpp",
         "rustcparser.cpp",
         "rustcparser.hpp",
+        "rusteditorfactory.cpp",
+        "rusteditorfactory.h",
     ]
 }

@@ -28,8 +28,8 @@
 #include "projectmanager.h"
 #include "buildconfiguration.h"
 #include "buildstep.h"
-#include "rseditorfactory.h"
 #include "runconfiguration.h"
+#include "rusteditorfactory.h"
 
 #include <coreplugin/fileiconprovider.h>
 #include <utils/mimetypes/mimedatabase.h>
@@ -62,7 +62,7 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
     addAutoReleasedObject(new BuildConfigurationFactory);
     addAutoReleasedObject(new BuildStepFactory);
     addAutoReleasedObject(new RunConfigurationFactory);
-    addAutoReleasedObject(new RsEditorFactory);
+    addAutoReleasedObject(new RustEditorFactory);
 
     // Add MIME overlay icons (these icons displayed at Project dock panel)
     const QIcon icon((QLatin1String(":/images/rust.svg")));

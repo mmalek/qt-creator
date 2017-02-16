@@ -23,44 +23,20 @@
 **
 ****************************************************************************/
 
-#include "rseditorfactory.h"
-#include "editors.h"
-#include "racercompletionassist.h"
-#include "mimetypes.h"
+#pragma once
 
-#include <texteditor/basehoverhandler.h>
-#include <texteditor/normalindenter.h>
-#include <texteditor/textdocument.h>
-#include <texteditor/texteditoractionhandler.h>
-#include <utils/uncommentselection.h>
+#include <texteditor/texteditor.h>
 
 namespace Rust {
 namespace Internal {
 
-using namespace TextEditor;
-
-RsEditorFactory::RsEditorFactory()
+class RustEditorFactory : public TextEditor::TextEditorFactory
 {
-    setId(Editors::RUST);
-    setDisplayName(tr("Rust Editor"));
-    addMimeType(MimeTypes::RUST_SOURCE);
-    addHoverHandler(new BaseHoverHandler);
+    Q_OBJECT
 
-    setEditorActionHandlers(TextEditorActionHandler::Format
-                            | TextEditorActionHandler::UnCommentSelection
-                            | TextEditorActionHandler::UnCollapseAll);
-
-    setCommentStyle(Utils::CommentDefinition::CppStyle);
-    setCompletionAssistProvider(new RacerCompletionAssistProvider);
-    setDocumentCreator([]{
-        auto document = new TextDocument(Editors::RUST);
-        document->setMimeType(QLatin1String(MimeTypes::RUST_SOURCE));
-        return document;
-    });
-
-    setIndenterCreator([]() { return new NormalIndenter; });
-    setUseGenericHighlighter(true);
-}
+public:
+    RustEditorFactory();
+};
 
 } // namespace Internal
 } // namespace Rust
