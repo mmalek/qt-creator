@@ -18,6 +18,8 @@ QtcPlugin {
         "buildstep.h",
         "buildstepconfigwidget.ui",
         "editors.h",
+        "lexer.cpp",
+        "lexer.h",
         "mimetypes.h",
         "product.h",
         "racercompletionassist.cpp",
@@ -39,5 +41,16 @@ QtcPlugin {
         "rustcparser.hpp",
         "rusteditorfactory.cpp",
         "rusteditorfactory.h",
+        "token.h",
     ]
+
+    Group {
+        name: "Unit tests"
+        condition: qtc.testsEnabled
+        prefix: "tests/"
+        files: [
+            "lexer_test.cpp",
+            "lexer_test.h",
+        ]
+    }
 }
