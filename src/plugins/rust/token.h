@@ -29,7 +29,8 @@ namespace Rust {
 namespace Internal {
 
 enum class TokenType {
-    None,
+    None, // No token found
+    Unknown, // Unidentified token found
     Keyword,
     Operator,
     Identifier,

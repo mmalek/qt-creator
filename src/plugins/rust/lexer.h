@@ -36,23 +36,50 @@ struct Token;
 class Lexer final
 {
 public:
-    enum class State : int {
-        Default = -1,
-        Comment,
-        String
+    class State {
+    public:
+        enum Type
+        {
+            Default = 0,
+            Unknown = 0,
+            IdentOrKeyword,
+            Zero,
+            BinNumber,
+            DecNumber,
+            HexNumber,
+            OctNumber,
+            FloatNumber,
+            String,
+            Comment = 50
+        };
+
+        State(State::Type type) : m_value(type) {}
+        explicit State(int value) : m_value(value) {}
+        explicit operator int() { return m_value; }
+
+        void setType(Type type) { m_value = type; }
+
+        Type type() const { return m_value < Comment ? static_cast<Type>(m_value) : Comment; }
+
+        void setCommentDepth(int depth) { m_value = (depth <= 0) ? Default : Comment + depth; }
+
+        int commentDepth() const { return m_value >= Comment ? (m_value - Comment + 1) : 0; }
+
+    private:
+        int m_value;
     };
 
 public:
-    explicit Lexer(QStringRef buffer, State state = State::Default);
+    explicit Lexer(QStringRef buffer, State multiLineState = State::Default);
 
-    State state() const { return m_state; }
+    State multiLineState() const { return m_multiLineState; }
 
     Token next();
 
 private:
     QStringRef m_buf;
     int m_pos;
-    State m_state;
+    State m_multiLineState;
 };
 
 } // namespace Internal

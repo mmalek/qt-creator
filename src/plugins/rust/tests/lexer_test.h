@@ -44,6 +44,9 @@ private slots:
     void integer2();
     void integer3();
     void integer4();
+    void binary();
+    void hexadecimal();
+    void octal();
     void floating1();
     void floating2();
     void floating3();
