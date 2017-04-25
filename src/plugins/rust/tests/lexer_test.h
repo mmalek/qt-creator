@@ -40,6 +40,7 @@ private slots:
     void whitespace();
     void identifier();
     void keyword();
+    void zero();
     void integer1();
     void integer2();
     void integer3();
@@ -50,6 +51,7 @@ private slots:
     void floating1();
     void floating2();
     void floating3();
+    void floating4();
 };
 
 } // namespace Internal

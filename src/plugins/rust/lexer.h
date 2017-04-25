@@ -41,7 +41,7 @@ public:
         enum Type
         {
             Default = 0,
-            Unknown = 0,
+            Unknown = 1,
             IdentOrKeyword,
             Zero,
             BinNumber,
