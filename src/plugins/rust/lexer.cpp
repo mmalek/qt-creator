@@ -74,12 +74,12 @@ constexpr bool isXidContinue(QChar c)
     return c.isLetterOrNumber() || isUnderscore(c);
 }
 
-int skipXidContinue(int pos, QStringRef buf)
+int skipWhile(int pos, QStringRef buf, bool (*predicate)(QChar))
 {
     do
     {
         ++pos;
-    } while (pos < buf.size() && isXidContinue(buf[pos]));
+    } while (pos < buf.size() && predicate(buf[pos]));
     return pos;
 }
 
@@ -106,17 +106,16 @@ constexpr std::array<const char*, 10> INTSUFFIXES =
     "i8", "u8", "i16", "u16", "i32", "u32", "i64", "u64", "isize", "usize"
 };
 
+bool isIntSuffix(QStringRef text)
+{
+    const auto isEqual = [&text](const char* keyword) { return QLatin1String(keyword) == text; };
+    return std::any_of(INTSUFFIXES.begin(), INTSUFFIXES.end(), isEqual);
+}
+
 constexpr std::array<const char*, 2> FLOATSUFFIXES =
 {
     "f32", "f64"
 };
-
-bool isNumSuffix(QStringRef text)
-{
-    const auto isEqual = [&text](const char* keyword) { return QLatin1String(keyword) == text; };
-    return std::any_of(INTSUFFIXES.begin(), INTSUFFIXES.end(), isEqual) ||
-           std::any_of(FLOATSUFFIXES.begin(), FLOATSUFFIXES.end(), isEqual);
-}
 
 bool isFloatSuffix(QStringRef text)
 {
@@ -139,25 +138,41 @@ Token Lexer::next()
 
     int begin = -1;
 
-    auto processNumSuffix = [&](QChar character, bool (*checker)(QStringRef) = &isNumSuffix) {
-        if (isXidContinue(character)) {
-            const int suffixBegin = m_pos;
-            m_pos = skipXidContinue(m_pos, m_buf);
+    auto processNumSuffix = [&]() {
+        bool shouldBreak = false;
 
-            if (!checker(m_buf.mid(suffixBegin, m_pos - suffixBegin))) {
+        if (m_buf[m_pos].unicode() == 0x0045 || m_buf[m_pos].unicode() == 0x0065) {
+            ++m_pos;
+            const bool plusPresent = m_pos < m_buf.size() && m_buf[m_pos].unicode() == 0x002B;
+
+            m_pos = skipWhile(m_pos, m_buf, [](QChar c) { return c.isNumber(); });
+
+            state.setType(plusPresent ? State::FloatNumber : State::Unknown);
+            shouldBreak = true;
+        }
+
+        if (isXidContinue(m_buf[m_pos])) {
+            const int suffixBegin = m_pos;
+            m_pos = skipWhile(m_pos, m_buf, &isXidContinue);
+
+            if (((state.type() != State::Zero && state.type() != State::DecNumber) ||
+                 !isIntSuffix(m_buf.mid(suffixBegin, m_pos - suffixBegin))) &&
+                (state.type() != State::FloatNumber ||
+                 !isFloatSuffix(m_buf.mid(suffixBegin, m_pos - suffixBegin)))) {
                 state.setType(State::Unknown);
             }
-            return true;
-        } else {
-            return false;
+
+            shouldBreak = true;
         }
+
+        return shouldBreak;
     };
 
     auto processBinNumber = [&](QChar character) -> bool {
         if (isBinDigit(character) || isUnderscore(character)) {
             return false;
         } else {
-            processNumSuffix(character);
+            processNumSuffix();
             return true;
         }
     };
@@ -166,7 +181,7 @@ Token Lexer::next()
         if (isHexDigit(character) || isUnderscore(character)) {
             return false;
         } else {
-            processNumSuffix(character);
+            processNumSuffix();
             return true;
         }
     };
@@ -175,13 +190,16 @@ Token Lexer::next()
         if (isOctDigit(character) || isUnderscore(character)) {
             return false;
         } else {
-            processNumSuffix(character);
+            processNumSuffix();
             return true;
         }
     };
 
     auto processDecNumber = [&](QChar character) -> bool {
         if (character.isNumber() || isUnderscore(character)) {
+            if (state.type() == State::Zero) {
+                state.setType(State::DecNumber);
+            }
             return false;
         } else if (isPoint(character)) {
             const int nextPos = m_pos + 1;
@@ -192,7 +210,7 @@ Token Lexer::next()
                 return true;
             }
         } else {
-            processNumSuffix(character);
+            processNumSuffix();
             return true;
         }
     };
@@ -201,7 +219,7 @@ Token Lexer::next()
         if (character.isNumber() || isUnderscore(character)) {
             return false;
         } else {
-            processNumSuffix(character, &isFloatSuffix);
+            processNumSuffix();
             return true;
         }
     };
