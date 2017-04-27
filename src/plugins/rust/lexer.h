@@ -49,6 +49,7 @@ public:
             HexNumber,
             OctNumber,
             FloatNumber,
+            Char,
             String,
             Comment = 50
         };

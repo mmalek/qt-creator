@@ -42,6 +42,7 @@ QByteArray toByteArray(TokenType tokenType)
     case TokenType::Keyword: return "Keyword";
     case TokenType::Operator: return "Operator";
     case TokenType::Identifier: return "Identifier";
+    case TokenType::Char: return "Char";
     case TokenType::String: return "String";
     case TokenType::Number: return "Number";
     case TokenType::Symbol: return "Symbol";
@@ -256,6 +257,30 @@ void LexerTest::floating4()
     QCOMPARE(lexer.next(), (Token{18, 7, TokenType::Number}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{26, 7, TokenType::Unknown}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::charLiteral()
+{
+    const QString buffer{QLatin1String{" 'b' '\\x7D' '\\u{3DF}' '\\n' '\\r' '\\t' '\\0' '\\\\'"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{1, 3, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{5, 6, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{12, 9, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{22, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{27, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{32, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{37, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{42, 4, TokenType::Char}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }

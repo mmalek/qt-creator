@@ -34,6 +34,7 @@ enum class TokenType {
     Keyword,
     Operator,
     Identifier,
+    Char,
     String,
     Number,
     Symbol,
