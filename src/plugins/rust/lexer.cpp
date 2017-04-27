@@ -26,12 +26,20 @@
 #include "lexer.h"
 #include "token.h"
 
+#include <algorithm>
 #include <array>
 
 namespace Rust {
 namespace Internal {
 
 namespace {
+
+enum class CharState {
+    Start,
+    EscapeStart,
+    AboutToEnd,
+    End
+};
 
 constexpr std::array<const char*, 52> KEYWORDS =
 {
@@ -121,6 +129,26 @@ bool isFloatSuffix(QStringRef text)
 {
     const auto isEqual = [&text](const char* keyword) { return QLatin1String(keyword) == text; };
     return std::any_of(FLOATSUFFIXES.begin(), FLOATSUFFIXES.end(), isEqual);
+}
+
+constexpr std::array<ushort, 5> ESCAPED_CHARS =
+{
+    0x0030, 0x005C, 0x006E, 0x0072, 0x0074
+};
+
+bool isEscapedChar(const QChar c)
+{
+    return std::binary_search(ESCAPED_CHARS.begin(), ESCAPED_CHARS.end(), c.unicode());
+}
+
+constexpr std::array<ushort, 4> UNPRINTABLE_CHARS =
+{
+    0x0000, 0x0009, 0x000A, 0x000D
+};
+
+bool isUnprintableChar(const QChar c)
+{
+    return std::binary_search(UNPRINTABLE_CHARS.begin(), UNPRINTABLE_CHARS.end(), c.unicode());
 }
 
 } // namespace
@@ -224,6 +252,75 @@ Token Lexer::next()
         }
     };
 
+    auto processChar = [&] {
+        if (m_buf[m_pos].unicode() != 0x0027) {
+            return false;
+        }
+
+        CharState chState = CharState::Start;
+
+        int curPos = m_pos + 1;
+        for (; curPos >= 0 && curPos < m_buf.size(); ++curPos) {
+            const QChar character = m_buf[curPos];
+            if (isUnprintableChar(character)) {
+                break;
+            } else if (chState == CharState::Start) {
+                if (character.unicode() == 0x005C) {
+                    chState = CharState::EscapeStart;
+                } else {
+                    chState = CharState::AboutToEnd;
+                }
+            } else if (chState == CharState::AboutToEnd) {
+                if (character.unicode() == 0x0027) {
+                    ++curPos;
+                    chState = CharState::End;
+                }
+                break;
+            } else if (chState == CharState::EscapeStart) {
+                if (character.unicode() == 0x0078) {
+                    const int posAfterHexDigits = skipWhile(curPos + 1, m_buf, &isHexDigit);
+                    if (posAfterHexDigits - curPos == 3) {
+                        curPos = posAfterHexDigits - 1;
+                        chState = CharState::AboutToEnd;
+                    } else {
+                        break;
+                    }
+                } else if (character.unicode() == 0x0075) {
+                    ++curPos;
+                    if (curPos >= m_buf.size() || m_buf[curPos].unicode() != 0x007B) {
+                        break;
+                    }
+
+                    const int posAfterHexDigits = skipWhile(curPos, m_buf, &isHexDigit);
+                    const int numberOfDigits = posAfterHexDigits - curPos;
+                    if (numberOfDigits < 1 || numberOfDigits > 6) {
+                        break;
+                    }
+
+                    curPos = posAfterHexDigits;
+                    if (curPos >= m_buf.size() || m_buf[curPos].unicode() != 0x007D) {
+                        break;
+                    }
+
+                    chState = CharState::AboutToEnd;
+                } else if (isEscapedChar(character)) {
+                    chState = CharState::AboutToEnd;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        if (chState == CharState::End) {
+            state.setType(State::Char);
+            begin = m_pos;
+            m_pos = curPos;
+            return true;
+        } else {
+            return false;
+        }
+    };
+
     for (; m_pos >= 0 && m_pos < m_buf.size(); ++m_pos) {
         const QChar character = m_buf[m_pos];
 
@@ -234,6 +331,8 @@ Token Lexer::next()
             } else if (character.isNumber()) {
                 begin = m_pos;
                 state.setType(character.digitValue() == 0 ? State::Zero : State::DecNumber);
+            } else if (processChar()) {
+                break;
             }
         } else if (state.type() == State::IdentOrKeyword) {
             if (!isXidContinue(character)) {
@@ -283,6 +382,9 @@ Token Lexer::next()
         case State::OctNumber:
         case State::FloatNumber:
             tokenType = TokenType::Number;
+            break;
+        case State::Char:
+            tokenType = TokenType::Char;
             break;
         case State::String:
             tokenType = TokenType::String;
