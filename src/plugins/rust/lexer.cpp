@@ -131,17 +131,17 @@ bool isFloatSuffix(QStringRef text)
     return std::any_of(FLOATSUFFIXES.begin(), FLOATSUFFIXES.end(), isEqual);
 }
 
-constexpr std::array<ushort, 5> ESCAPED_CHARS =
+constexpr std::array<QChar, 7> ESCAPED_CHARS =
 {
-    0x0030, 0x005C, 0x006E, 0x0072, 0x0074
+    0x0022, 0x0027, 0x0030, 0x005C, 0x006E, 0x0072, 0x0074
 };
 
 bool isEscapedChar(const QChar c)
 {
-    return std::binary_search(ESCAPED_CHARS.begin(), ESCAPED_CHARS.end(), c.unicode());
+    return std::binary_search(ESCAPED_CHARS.begin(), ESCAPED_CHARS.end(), c);
 }
 
-constexpr std::array<ushort, 4> UNPRINTABLE_CHARS =
+constexpr std::array<QChar, 4> UNPRINTABLE_CHARS =
 {
     0x0000, 0x0009, 0x000A, 0x000D
 };
@@ -267,6 +267,8 @@ Token Lexer::next()
             } else if (chState == CharState::Start) {
                 if (character.unicode() == 0x005C) {
                     chState = CharState::EscapeStart;
+                } else if (character.unicode() == 0x0027) {
+                    break;
                 } else {
                     chState = CharState::AboutToEnd;
                 }
