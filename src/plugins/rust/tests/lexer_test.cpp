@@ -261,9 +261,9 @@ void LexerTest::floating4()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::charLiteral()
+void LexerTest::charLiteral1()
 {
-    const QString buffer{QLatin1String{" 'b' '\\x7D' '\\u{3DF}' '\\n' '\\r' '\\t' '\\0' '\\\\'"}};
+    const QString buffer{QLatin1String{" 'b' '\\x7D' '\\u{3DF}' '\\n' '\\r' '\\t' '\\0' '\\\\' '\\\'' '\\\"'"}};
     Lexer lexer{&buffer};
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{1, 3, TokenType::Char}));
@@ -281,6 +281,20 @@ void LexerTest::charLiteral()
     QCOMPARE(lexer.next(), (Token{37, 4, TokenType::Char}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{42, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{47, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{52, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::charLiteral2()
+{
+    const QString buffer{QLatin1String{" '\"' ''' "}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{1, 3, TokenType::Char}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }
