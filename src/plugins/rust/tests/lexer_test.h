@@ -55,6 +55,8 @@ private slots:
     void charLiteral1();
     void charLiteral2();
     void string();
+    void multiLineString();
+    void multiLineStringEscapedEol();
 };
 
 } // namespace Internal
