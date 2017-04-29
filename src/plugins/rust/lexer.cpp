@@ -412,6 +412,9 @@ Token Lexer::next()
             break;
         case State::String:
             tokenType = TokenType::String;
+            if (m_pos == begin && m_multiLineState.type() == State::String) {
+                m_multiLineState.setType(State::Default);
+            }
             break;
         case State::Comment:
             tokenType = TokenType::Comment;

@@ -85,6 +85,8 @@ void LexerTest::state()
 {
     Lexer lexer{QStringRef(), Lexer::State::String};
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::String);
+    QCOMPARE(lexer.next(), (Token{0, 0, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
