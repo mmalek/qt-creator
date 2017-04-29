@@ -299,5 +299,17 @@ void LexerTest::charLiteral2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
+void LexerTest::string()
+{
+    const QString buffer{QLatin1String{"\"abc\" \"unicode char 4A5: \\u{4A5}\""}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 5, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{6, 27, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
 } // namespace Internal
 } // namespace Rust

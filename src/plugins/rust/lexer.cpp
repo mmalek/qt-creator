@@ -317,7 +317,7 @@ Token Lexer::next()
             } else if (character.isNumber()) {
                 begin = m_pos;
                 state.setType(character.digitValue() == 0 ? State::Zero : State::DecNumber);
-            } else if (m_buf[m_pos].unicode() == 0x0027) {
+            } else if (character.unicode() == 0x0027) {
                 const int posAfterChar = processChar(m_pos+1, m_buf, QChar(0x0027));
 
                 begin = m_pos;
@@ -327,6 +327,9 @@ Token Lexer::next()
                     m_pos = posAfterChar + 1;
                     break;
                 }
+            } else if (character.unicode() == 0x0022) {
+                state.setType(State::String);
+                begin = m_pos;
             }
         } else if (state.type() == State::IdentOrKeyword) {
             if (!isXidContinue(character)) {
@@ -356,6 +359,19 @@ Token Lexer::next()
         } else if (state.type() == State::FloatNumber) {
             if (processFloatNumber(character))
                 break;
+        } else if (state.type() == State::String) {
+            if (character.unicode() == 0x0022) {
+                ++m_pos;
+                break;
+            } else {
+                const int posAfterChar = processChar(m_pos, m_buf, QChar(0x0022));
+                if (posAfterChar - m_pos > 0) {
+                    m_pos = posAfterChar - 1;
+                } else {
+                    state.setType(State::Unknown);
+                    break;
+                }
+            }
         }
     }
 
@@ -393,19 +409,6 @@ Token Lexer::next()
             tokenType = TokenType::None;
             break;
         }
-    }
-
-    switch (state.type()) {
-    case State::String:
-        m_multiLineState.setType(State::String);
-        break;
-    case State::Comment:
-        m_multiLineState.setType(State::Comment);
-        m_multiLineState.setCommentDepth(state.commentDepth());
-        break;
-    default:
-        m_multiLineState.setType(State::Default);
-        break;
     }
 
     return Token{begin, m_pos - begin, tokenType};
