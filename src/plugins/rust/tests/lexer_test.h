@@ -54,6 +54,7 @@ private slots:
     void floating4();
     void charLiteral1();
     void charLiteral2();
+    void string();
 };
 
 } // namespace Internal
