@@ -37,7 +37,6 @@ namespace {
 enum class CharState {
     Start,
     EscapeStart,
-    AboutToEnd,
     End
 };
 
@@ -151,6 +150,62 @@ bool isUnprintableChar(const QChar c)
     return std::binary_search(UNPRINTABLE_CHARS.begin(), UNPRINTABLE_CHARS.end(), c.unicode());
 }
 
+int processChar(int pos, QStringRef buf, const QChar quote)
+{
+    CharState chState = CharState::Start;
+
+    int begin = pos;
+
+    for (; pos >= 0 && pos < buf.size() && chState != CharState::End; ++pos) {
+        const QChar character = buf[pos];
+        if (isUnprintableChar(character)) {
+            break;
+        } else if (chState == CharState::Start) {
+            if (character.unicode() == 0x005C) {
+                chState = CharState::EscapeStart;
+            } else if (character == quote) {
+                break;
+            } else {
+                chState = CharState::End;
+            }
+        } else if (chState == CharState::EscapeStart) {
+            if (character.unicode() == 0x0078) {
+                const int posAfterHexDigits = skipWhile(pos + 1, buf, &isHexDigit);
+                if (posAfterHexDigits - pos == 3) {
+                    pos = posAfterHexDigits - 1;
+                    chState = CharState::End;
+                } else {
+                    break;
+                }
+            } else if (character.unicode() == 0x0075) {
+                ++pos;
+                if (pos >= buf.size() || buf[pos].unicode() != 0x007B) {
+                    break;
+                }
+
+                const int posAfterHexDigits = skipWhile(pos, buf, &isHexDigit);
+                const int numberOfDigits = posAfterHexDigits - pos;
+                if (numberOfDigits < 1 || numberOfDigits > 6) {
+                    break;
+                }
+
+                pos = posAfterHexDigits;
+                if (pos >= buf.size() || buf[pos].unicode() != 0x007D) {
+                    break;
+                }
+
+                chState = CharState::End;
+            } else if (isEscapedChar(character)) {
+                chState = CharState::End;
+            } else {
+                break;
+            }
+        }
+    }
+
+    return (chState == CharState::End) ? pos : begin;
+};
+
 } // namespace
 
 Lexer::Lexer(QStringRef buffer, State multiLineState)
@@ -252,77 +307,6 @@ Token Lexer::next()
         }
     };
 
-    auto processChar = [&] {
-        if (m_buf[m_pos].unicode() != 0x0027) {
-            return false;
-        }
-
-        CharState chState = CharState::Start;
-
-        int curPos = m_pos + 1;
-        for (; curPos >= 0 && curPos < m_buf.size(); ++curPos) {
-            const QChar character = m_buf[curPos];
-            if (isUnprintableChar(character)) {
-                break;
-            } else if (chState == CharState::Start) {
-                if (character.unicode() == 0x005C) {
-                    chState = CharState::EscapeStart;
-                } else if (character.unicode() == 0x0027) {
-                    break;
-                } else {
-                    chState = CharState::AboutToEnd;
-                }
-            } else if (chState == CharState::AboutToEnd) {
-                if (character.unicode() == 0x0027) {
-                    ++curPos;
-                    chState = CharState::End;
-                }
-                break;
-            } else if (chState == CharState::EscapeStart) {
-                if (character.unicode() == 0x0078) {
-                    const int posAfterHexDigits = skipWhile(curPos + 1, m_buf, &isHexDigit);
-                    if (posAfterHexDigits - curPos == 3) {
-                        curPos = posAfterHexDigits - 1;
-                        chState = CharState::AboutToEnd;
-                    } else {
-                        break;
-                    }
-                } else if (character.unicode() == 0x0075) {
-                    ++curPos;
-                    if (curPos >= m_buf.size() || m_buf[curPos].unicode() != 0x007B) {
-                        break;
-                    }
-
-                    const int posAfterHexDigits = skipWhile(curPos, m_buf, &isHexDigit);
-                    const int numberOfDigits = posAfterHexDigits - curPos;
-                    if (numberOfDigits < 1 || numberOfDigits > 6) {
-                        break;
-                    }
-
-                    curPos = posAfterHexDigits;
-                    if (curPos >= m_buf.size() || m_buf[curPos].unicode() != 0x007D) {
-                        break;
-                    }
-
-                    chState = CharState::AboutToEnd;
-                } else if (isEscapedChar(character)) {
-                    chState = CharState::AboutToEnd;
-                } else {
-                    break;
-                }
-            }
-        }
-
-        if (chState == CharState::End) {
-            state.setType(State::Char);
-            begin = m_pos;
-            m_pos = curPos;
-            return true;
-        } else {
-            return false;
-        }
-    };
-
     for (; m_pos >= 0 && m_pos < m_buf.size(); ++m_pos) {
         const QChar character = m_buf[m_pos];
 
@@ -333,8 +317,16 @@ Token Lexer::next()
             } else if (character.isNumber()) {
                 begin = m_pos;
                 state.setType(character.digitValue() == 0 ? State::Zero : State::DecNumber);
-            } else if (processChar()) {
-                break;
+            } else if (m_buf[m_pos].unicode() == 0x0027) {
+                const int posAfterChar = processChar(m_pos+1, m_buf, QChar(0x0027));
+
+                begin = m_pos;
+                if (posAfterChar - m_pos - 1 > 0 && posAfterChar < m_buf.size() &&
+                        m_buf[posAfterChar].unicode() == 0x0027) {
+                    state.setType(State::Char);
+                    m_pos = posAfterChar + 1;
+                    break;
+                }
             }
         } else if (state.type() == State::IdentOrKeyword) {
             if (!isXidContinue(character)) {
