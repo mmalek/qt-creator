@@ -311,5 +311,29 @@ void LexerTest::string()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
+void LexerTest::multiLineString()
+{
+    const QString buffer{QLatin1String{"\"abc\ndef\""}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 5, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::String);
+    QCOMPARE(lexer.next(), (Token{5, 4, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::multiLineStringEscapedEol()
+{
+    const QString buffer{QLatin1String{"\"abc\\\ndef\""}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 4, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::String);
+    QCOMPARE(lexer.next(), (Token{6, 4, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
 } // namespace Internal
 } // namespace Rust

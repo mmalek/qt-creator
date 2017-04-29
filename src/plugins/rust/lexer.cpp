@@ -140,14 +140,14 @@ bool isEscapedChar(const QChar c)
     return std::binary_search(ESCAPED_CHARS.begin(), ESCAPED_CHARS.end(), c);
 }
 
-constexpr std::array<QChar, 4> UNPRINTABLE_CHARS =
+constexpr bool isEol(const QChar c)
 {
-    0x0000, 0x0009, 0x000A, 0x000D
-};
+    return c.unicode() == 0x000A || c.unicode() == 0x000D;
+}
 
-bool isUnprintableChar(const QChar c)
+constexpr bool isUnprintableChar(const QChar c)
 {
-    return std::binary_search(UNPRINTABLE_CHARS.begin(), UNPRINTABLE_CHARS.end(), c.unicode());
+    return isEol(c) || c.unicode() == 0x0000 || c.unicode() == 0x0009;
 }
 
 int processChar(int pos, QStringRef buf, const QChar quote)
@@ -219,7 +219,13 @@ Token Lexer::next()
 {
     State state = m_multiLineState;
 
-    int begin = -1;
+    if (state.type() == State::String &&
+            m_pos < m_buf.size() && m_buf[m_pos].unicode() == 0x005C &&
+            m_pos+1 < m_buf.size() && isEol(m_buf[m_pos+1])) {
+        m_pos = skipWhile(m_pos, m_buf, &isEol);
+    }
+
+    int begin = (state.type() != State::Default) ? m_pos : -1;
 
     auto processNumSuffix = [&]() {
         bool shouldBreak = false;
@@ -329,6 +335,7 @@ Token Lexer::next()
                 }
             } else if (character.unicode() == 0x0022) {
                 state.setType(State::String);
+                m_multiLineState.setType(State::String);
                 begin = m_pos;
             }
         } else if (state.type() == State::IdentOrKeyword) {
@@ -362,6 +369,13 @@ Token Lexer::next()
         } else if (state.type() == State::String) {
             if (character.unicode() == 0x0022) {
                 ++m_pos;
+                m_multiLineState.setType(State::Default);
+                break;
+            } else if (character.unicode() == 0x005C && m_pos+1 < m_buf.size() &&
+                       isEol(m_buf[m_pos+1])) {
+                break;
+            } else if (isEol(character)) {
+                m_pos = skipWhile(m_pos, m_buf, &isEol);
                 break;
             } else {
                 const int posAfterChar = processChar(m_pos, m_buf, QChar(0x0022));
