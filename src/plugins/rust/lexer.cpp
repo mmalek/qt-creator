@@ -40,12 +40,37 @@ enum class CharState {
     End
 };
 
+constexpr QChar CHAR_NUL = 0x0000; // \0
+constexpr QChar CHAR_HT = 0x0009; // \t
+constexpr QChar CHAR_LF = 0x000A; // \n
+constexpr QChar CHAR_CR = 0x000D; // \r
 constexpr QChar CHAR_DOUBLE_QUOTE = 0x0022; // "
 constexpr QChar CHAR_HASH = 0x0023; // #
-constexpr QChar CHAR_POINT = 0x002E; // .
 constexpr QChar CHAR_SINGLE_QUOTE = 0x0027; // '
+constexpr QChar CHAR_PLUS = 0x002B; // +
+constexpr QChar CHAR_POINT = 0x002E; // .
+constexpr QChar CHAR_0 = 0x0030; // 0
+constexpr QChar CHAR_1 = 0x0031; // 1
+constexpr QChar CHAR_7 = 0x0037; // 7
+constexpr QChar CHAR_9 = 0x0039; // 9
+constexpr QChar CHAR_A_UPPER = 0x0041; // A
+constexpr QChar CHAR_E_UPPER = 0x0045; // E
+constexpr QChar CHAR_F_UPPER = 0x0046; // F
+constexpr QChar CHAR_BACKSLASH = 0x005C;
 constexpr QChar CHAR_UNDERSCORE = 0x005F; // _
-constexpr QChar CHAR_R = 0x0072; // r
+constexpr QChar CHAR_A_LOWER = 0x0061; // a
+constexpr QChar CHAR_B_LOWER = 0x0062; // b
+constexpr QChar CHAR_E_LOWER = 0x0065; // e
+constexpr QChar CHAR_F_LOWER = 0x0066; // f
+constexpr QChar CHAR_H_LOWER = 0x0068; // f
+constexpr QChar CHAR_N_LOWER = 0x006E; // n
+constexpr QChar CHAR_O_LOWER = 0x006F; // o
+constexpr QChar CHAR_R_LOWER = 0x0072; // r
+constexpr QChar CHAR_T_LOWER = 0x0074; // t
+constexpr QChar CHAR_U_LOWER = 0x0075; // u
+constexpr QChar CHAR_X_LOWER = 0x0078; // x
+constexpr QChar CHAR_BRACE_LEFT = 0x007B; // {
+constexpr QChar CHAR_BRACE_RIGHT = 0x007D; // }
 
 constexpr std::array<const char*, 52> KEYWORDS =
 {
@@ -68,7 +93,7 @@ bool isKeyword(QStringRef text)
                        [&text](const char* keyword) { return QLatin1String(keyword) == text; });
 }
 
-constexpr bool isXidStart(QChar c)
+constexpr bool isXidStart(const QChar c)
 {
     return c.isLetter() || c == CHAR_UNDERSCORE;
 }
@@ -89,19 +114,19 @@ int skipWhile(int pos, QStringRef buf, bool (*predicate)(QChar))
 
 constexpr bool isBinDigit(const QChar c)
 {
-    return c.unicode() == 0x0030 || c.unicode() == 0x0031;
+    return c == CHAR_0 || c == CHAR_1;
 }
 
 constexpr bool isHexDigit(const QChar c)
 {
-    return (c.unicode() >= 0x0030 && c.unicode() <= 0x0039) ||
-           (c.unicode() >= 0x0041 && c.unicode() <= 0x0046) ||
-           (c.unicode() >= 0x0061 && c.unicode() <= 0x0066);
+    return (c >= CHAR_0 && c <= CHAR_9) ||
+           (c >= CHAR_A_UPPER && c <= CHAR_F_UPPER) ||
+           (c >= CHAR_A_LOWER && c <= CHAR_F_LOWER);
 }
 
 constexpr bool isOctDigit(const QChar c)
 {
-    return c.unicode() >= 0x0030 && c.unicode() <= 0x0037;
+    return c >= CHAR_0 && c <= CHAR_7;
 }
 
 constexpr std::array<const char*, 10> INTSUFFIXES =
@@ -126,24 +151,26 @@ bool isFloatSuffix(QStringRef text)
     return std::any_of(FLOATSUFFIXES.begin(), FLOATSUFFIXES.end(), isEqual);
 }
 
-constexpr std::array<QChar, 7> ESCAPED_CHARS =
-{
-    CHAR_DOUBLE_QUOTE, CHAR_SINGLE_QUOTE, 0x0030, 0x005C, 0x006E, CHAR_R, 0x0074
-};
-
 bool isEscapedChar(const QChar c)
 {
-    return std::binary_search(ESCAPED_CHARS.begin(), ESCAPED_CHARS.end(), c);
+    return
+        c == CHAR_DOUBLE_QUOTE ||
+        c == CHAR_SINGLE_QUOTE ||
+        c == CHAR_0 ||
+        c == CHAR_BACKSLASH ||
+        c == CHAR_N_LOWER ||
+        c == CHAR_R_LOWER ||
+        c == CHAR_T_LOWER;
 }
 
 constexpr bool isEol(const QChar c)
 {
-    return c.unicode() == 0x000A || c.unicode() == 0x000D;
+    return c == CHAR_LF || c == CHAR_CR;
 }
 
 constexpr bool isUnprintableChar(const QChar c)
 {
-    return isEol(c) || c.unicode() == 0x0000 || c.unicode() == 0x0009;
+    return isEol(c) || c == CHAR_NUL || c == CHAR_HT;
 }
 
 int processChar(int pos, QStringRef buf, const QChar quote)
@@ -157,7 +184,7 @@ int processChar(int pos, QStringRef buf, const QChar quote)
         if (isUnprintableChar(character)) {
             break;
         } else if (chState == CharState::Start) {
-            if (character.unicode() == 0x005C) {
+            if (character == CHAR_BACKSLASH) {
                 chState = CharState::EscapeStart;
             } else if (character == quote) {
                 break;
@@ -165,7 +192,7 @@ int processChar(int pos, QStringRef buf, const QChar quote)
                 chState = CharState::End;
             }
         } else if (chState == CharState::EscapeStart) {
-            if (character.unicode() == 0x0078) {
+            if (character == CHAR_X_LOWER) {
                 const int posAfterHexDigits = skipWhile(pos + 1, buf, &isHexDigit);
                 if (posAfterHexDigits - pos == 3) {
                     pos = posAfterHexDigits - 1;
@@ -173,9 +200,9 @@ int processChar(int pos, QStringRef buf, const QChar quote)
                 } else {
                     break;
                 }
-            } else if (character.unicode() == 0x0075) {
+            } else if (character == CHAR_U_LOWER) {
                 ++pos;
-                if (pos >= buf.size() || buf[pos].unicode() != 0x007B) {
+                if (pos >= buf.size() || buf[pos] != CHAR_BRACE_LEFT) {
                     break;
                 }
 
@@ -186,7 +213,7 @@ int processChar(int pos, QStringRef buf, const QChar quote)
                 }
 
                 pos = posAfterHexDigits;
-                if (pos >= buf.size() || buf[pos].unicode() != 0x007D) {
+                if (pos >= buf.size() || buf[pos] != CHAR_BRACE_RIGHT) {
                     break;
                 }
 
@@ -216,7 +243,7 @@ Token Lexer::next()
     State state = m_multiLineState;
 
     if (state.type() == State::String &&
-            m_pos < m_buf.size() && m_buf[m_pos].unicode() == 0x005C &&
+            m_pos < m_buf.size() && m_buf[m_pos] == CHAR_BACKSLASH &&
             m_pos+1 < m_buf.size() && isEol(m_buf[m_pos+1])) {
         m_pos = skipWhile(m_pos, m_buf, &isEol);
     }
@@ -226,9 +253,9 @@ Token Lexer::next()
     auto processNumSuffix = [&]() {
         bool shouldBreak = false;
 
-        if (m_buf[m_pos].unicode() == 0x0045 || m_buf[m_pos].unicode() == 0x0065) {
+        if (m_buf[m_pos] == CHAR_E_UPPER || m_buf[m_pos] == CHAR_E_LOWER) {
             ++m_pos;
-            const bool plusPresent = m_pos < m_buf.size() && m_buf[m_pos].unicode() == 0x002B;
+            const bool plusPresent = m_pos < m_buf.size() && m_buf[m_pos] == CHAR_PLUS;
 
             m_pos = skipWhile(m_pos, m_buf, [](QChar c) { return c.isNumber(); });
 
@@ -313,7 +340,7 @@ Token Lexer::next()
         const QChar character = m_buf[m_pos];
 
         if (state.type() == State::Default) {
-            if (character.unicode() == CHAR_R && m_pos+1 < m_buf.size() &&
+            if (character == CHAR_R_LOWER && m_pos+1 < m_buf.size() &&
                     m_buf[m_pos+1] == CHAR_HASH) {
                 begin = m_pos;
                 m_pos = skipWhile(m_pos + 1, m_buf,
@@ -351,11 +378,11 @@ Token Lexer::next()
                 break;
             }
         } else if (state.type() == State::Zero) {
-            if (character.unicode() == 0x0062)
+            if (character == CHAR_B_LOWER)
                 state.setType(State::BinNumber);
-            else if (character.unicode() == 0x0068)
+            else if (character == CHAR_H_LOWER)
                 state.setType(State::HexNumber);
-            else if (character.unicode() == 0x006F)
+            else if (character == CHAR_O_LOWER)
                 state.setType(State::OctNumber);
             else if (processDecNumber(character))
                 break;
@@ -379,7 +406,7 @@ Token Lexer::next()
                 ++m_pos;
                 m_multiLineState.setType(State::Default);
                 break;
-            } else if (character.unicode() == 0x005C && m_pos+1 < m_buf.size() &&
+            } else if (character == CHAR_BACKSLASH && m_pos+1 < m_buf.size() &&
                        isEol(m_buf[m_pos+1])) {
                 break;
             } else if (isEol(character)) {
