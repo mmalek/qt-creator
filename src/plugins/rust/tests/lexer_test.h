@@ -57,6 +57,7 @@ private slots:
     void string();
     void multiLineString();
     void multiLineStringEscapedEol();
+    void rawString();
 };
 
 } // namespace Internal

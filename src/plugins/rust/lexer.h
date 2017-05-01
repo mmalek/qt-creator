@@ -51,23 +51,26 @@ public:
             FloatNumber,
             Char,
             String,
-            Comment = 50
+            RawString,
+            Comment,
+            EndOfTypes
         };
 
-        State(State::Type type) : m_value(type) {}
-        explicit State(int value) : m_value(value) {}
-        explicit operator int() { return m_value; }
+        State(State::Type type, int depth = 0) : m_type(type), m_depth(depth) {}
+        explicit State(int value) : m_type(static_cast<Type>(value & 0x3F)), m_depth(value >> 6) {}
+        explicit operator int() { return m_type | (m_depth << 6); }
 
-        void setType(Type type) { m_value = type; }
+        void setType(Type type) { m_type = type; }
 
-        Type type() const { return m_value < Comment ? static_cast<Type>(m_value) : Comment; }
+        Type type() const { return m_type; }
 
-        void setCommentDepth(int depth) { m_value = (depth <= 0) ? Default : Comment + depth; }
+        void setDepth(int depth) { m_depth = depth; }
 
-        int commentDepth() const { return m_value >= Comment ? (m_value - Comment + 1) : 0; }
+        int depth() const { return m_depth; }
 
     private:
-        int m_value;
+        Type m_type;
+        int m_depth;
     };
 
 public:

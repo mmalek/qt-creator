@@ -337,5 +337,20 @@ void LexerTest::multiLineStringEscapedEol()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
+void LexerTest::rawString()
+{
+    const QString buffer{QLatin1String{"r#\"abc\"#  r##\"def\nghi\"###"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 8, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{10, 8, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::RawString);
+    QCOMPARE(lexer.multiLineState().depth(), 2);
+    QCOMPARE(lexer.next(), (Token{18, 6, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
 } // namespace Internal
 } // namespace Rust
