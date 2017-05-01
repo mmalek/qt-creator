@@ -40,6 +40,13 @@ enum class CharState {
     End
 };
 
+constexpr QChar CHAR_DOUBLE_QUOTE = 0x0022; // "
+constexpr QChar CHAR_HASH = 0x0023; // #
+constexpr QChar CHAR_POINT = 0x002E; // .
+constexpr QChar CHAR_SINGLE_QUOTE = 0x0027; // '
+constexpr QChar CHAR_UNDERSCORE = 0x005F; // _
+constexpr QChar CHAR_R = 0x0072; // r
+
 constexpr std::array<const char*, 52> KEYWORDS =
 {
     "abstract", "alignof", "as", "become", "box",
@@ -61,24 +68,14 @@ bool isKeyword(QStringRef text)
                        [&text](const char* keyword) { return QLatin1String(keyword) == text; });
 }
 
-constexpr bool isUnderscore(const QChar c)
-{
-    return c.unicode() == 0x005F;
-}
-
-constexpr bool isPoint(const QChar c)
-{
-    return c.unicode() == 0x002E;
-}
-
 constexpr bool isXidStart(QChar c)
 {
-    return c.isLetter() || isUnderscore(c);
+    return c.isLetter() || c == CHAR_UNDERSCORE;
 }
 
 constexpr bool isXidContinue(QChar c)
 {
-    return c.isLetterOrNumber() || isUnderscore(c);
+    return c.isLetterOrNumber() || c == CHAR_UNDERSCORE;
 }
 
 int skipWhile(int pos, QStringRef buf, bool (*predicate)(QChar))
@@ -89,7 +86,6 @@ int skipWhile(int pos, QStringRef buf, bool (*predicate)(QChar))
     } while (pos < buf.size() && predicate(buf[pos]));
     return pos;
 }
-
 
 constexpr bool isBinDigit(const QChar c)
 {
@@ -132,7 +128,7 @@ bool isFloatSuffix(QStringRef text)
 
 constexpr std::array<QChar, 7> ESCAPED_CHARS =
 {
-    0x0022, 0x0027, 0x0030, 0x005C, 0x006E, 0x0072, 0x0074
+    CHAR_DOUBLE_QUOTE, CHAR_SINGLE_QUOTE, 0x0030, 0x005C, 0x006E, CHAR_R, 0x0074
 };
 
 bool isEscapedChar(const QChar c)
@@ -258,7 +254,7 @@ Token Lexer::next()
     };
 
     auto processBinNumber = [&](QChar character) -> bool {
-        if (isBinDigit(character) || isUnderscore(character)) {
+        if (isBinDigit(character) || character == CHAR_UNDERSCORE) {
             return false;
         } else {
             processNumSuffix();
@@ -267,7 +263,7 @@ Token Lexer::next()
     };
 
     auto processHexNumber = [&](QChar character) -> bool {
-        if (isHexDigit(character) || isUnderscore(character)) {
+        if (isHexDigit(character) || character == CHAR_UNDERSCORE) {
             return false;
         } else {
             processNumSuffix();
@@ -276,7 +272,7 @@ Token Lexer::next()
     };
 
     auto processOctNumber = [&](QChar character) -> bool {
-        if (isOctDigit(character) || isUnderscore(character)) {
+        if (isOctDigit(character) || character == CHAR_UNDERSCORE) {
             return false;
         } else {
             processNumSuffix();
@@ -285,12 +281,12 @@ Token Lexer::next()
     };
 
     auto processDecNumber = [&](QChar character) -> bool {
-        if (character.isNumber() || isUnderscore(character)) {
+        if (character.isNumber() || character == CHAR_UNDERSCORE) {
             if (state.type() == State::Zero) {
                 state.setType(State::DecNumber);
             }
             return false;
-        } else if (isPoint(character)) {
+        } else if (character == CHAR_POINT) {
             const int nextPos = m_pos + 1;
             if (nextPos >= m_buf.size() || m_buf[nextPos].isDigit() || m_buf[nextPos].isSpace()) {
                 state.setType(State::FloatNumber);
@@ -305,7 +301,7 @@ Token Lexer::next()
     };
 
     auto processFloatNumber = [&](QChar character) -> bool {
-        if (character.isNumber() || isUnderscore(character)) {
+        if (character.isNumber() || character == CHAR_UNDERSCORE) {
             return false;
         } else {
             processNumSuffix();
@@ -317,23 +313,35 @@ Token Lexer::next()
         const QChar character = m_buf[m_pos];
 
         if (state.type() == State::Default) {
-            if (isXidStart(character)) {
+            if (character.unicode() == CHAR_R && m_pos+1 < m_buf.size() &&
+                    m_buf[m_pos+1] == CHAR_HASH) {
+                begin = m_pos;
+                m_pos = skipWhile(m_pos + 1, m_buf,
+                                  [](const QChar c){ return c == CHAR_HASH; });
+                if (m_buf[m_pos] == CHAR_DOUBLE_QUOTE) {
+                    state.setType(State::RawString);
+                    m_multiLineState.setType(State::RawString);
+                    m_multiLineState.setDepth(m_pos - begin - 1);
+                } else {
+                    state.setType(State::Unknown);
+                }
+            } else if (isXidStart(character)) {
                 begin = m_pos;
                 state.setType(State::IdentOrKeyword);
             } else if (character.isNumber()) {
                 begin = m_pos;
                 state.setType(character.digitValue() == 0 ? State::Zero : State::DecNumber);
-            } else if (character.unicode() == 0x0027) {
-                const int posAfterChar = processChar(m_pos+1, m_buf, QChar(0x0027));
+            } else if (character == CHAR_SINGLE_QUOTE) {
+                const int posAfterChar = processChar(m_pos+1, m_buf, CHAR_SINGLE_QUOTE);
 
                 begin = m_pos;
                 if (posAfterChar - m_pos - 1 > 0 && posAfterChar < m_buf.size() &&
-                        m_buf[posAfterChar].unicode() == 0x0027) {
+                        m_buf[posAfterChar] == CHAR_SINGLE_QUOTE) {
                     state.setType(State::Char);
                     m_pos = posAfterChar + 1;
                     break;
                 }
-            } else if (character.unicode() == 0x0022) {
+            } else if (character == CHAR_DOUBLE_QUOTE) {
                 state.setType(State::String);
                 m_multiLineState.setType(State::String);
                 begin = m_pos;
@@ -367,7 +375,7 @@ Token Lexer::next()
             if (processFloatNumber(character))
                 break;
         } else if (state.type() == State::String) {
-            if (character.unicode() == 0x0022) {
+            if (character == CHAR_DOUBLE_QUOTE) {
                 ++m_pos;
                 m_multiLineState.setType(State::Default);
                 break;
@@ -378,13 +386,27 @@ Token Lexer::next()
                 m_pos = skipWhile(m_pos, m_buf, &isEol);
                 break;
             } else {
-                const int posAfterChar = processChar(m_pos, m_buf, QChar(0x0022));
+                const int posAfterChar = processChar(m_pos, m_buf, CHAR_DOUBLE_QUOTE);
                 if (posAfterChar - m_pos > 0) {
                     m_pos = posAfterChar - 1;
                 } else {
                     state.setType(State::Unknown);
                     break;
                 }
+            }
+        } else if (state.type() == State::RawString) {
+            if (character == CHAR_DOUBLE_QUOTE) {
+                const int posAfterHashes = skipWhile(m_pos + 1, m_buf,
+                                                     [](const QChar c){ return c == CHAR_HASH; });
+                if (posAfterHashes - m_pos - 1 >= m_multiLineState.depth()) {
+                    m_pos += m_multiLineState.depth() + 1;
+                    m_multiLineState.setType(State::Default);
+                    m_multiLineState.setDepth(0);
+                    break;
+                }
+            } else if (isEol(character)) {
+                m_pos = skipWhile(m_pos, m_buf, &isEol);
+                break;
             }
         }
     }
@@ -411,6 +433,7 @@ Token Lexer::next()
             tokenType = TokenType::Char;
             break;
         case State::String:
+        case State::RawString:
             tokenType = TokenType::String;
             if (m_pos == begin && m_multiLineState.type() == State::String) {
                 m_multiLineState.setType(State::Default);
