@@ -339,7 +339,7 @@ void LexerTest::multiLineStringEscapedEol()
 
 void LexerTest::rawString()
 {
-    const QString buffer{QLatin1String{"r#\"abc\"#  r##\"def\nghi\"###"}};
+    const QString buffer{QLatin1String{"r#\"abc\"#  r##\"def\nghi\"### r#\"ghi\" \"# "}};
     Lexer lexer{&buffer};
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{0, 8, TokenType::String}));
@@ -348,6 +348,8 @@ void LexerTest::rawString()
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::RawString);
     QCOMPARE(lexer.multiLineState().depth(), 2);
     QCOMPARE(lexer.next(), (Token{18, 6, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{26, 10, TokenType::String}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }
