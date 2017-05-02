@@ -301,6 +301,18 @@ void LexerTest::charLiteral2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
+void LexerTest::byte()
+{
+    const QString buffer{QLatin1String{" b'b' b'\\x7D'"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{1, 4, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{6, 7, TokenType::Char}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
 void LexerTest::string()
 {
     const QString buffer{QLatin1String{"\"abc\" \"unicode char 4A5: \\u{4A5}\""}};
@@ -309,6 +321,16 @@ void LexerTest::string()
     QCOMPARE(lexer.next(), (Token{0, 5, TokenType::String}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{6, 27, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::byteString()
+{
+    const QString buffer{QLatin1String{"b\"abc\""}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 6, TokenType::String}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }
@@ -350,6 +372,23 @@ void LexerTest::rawString()
     QCOMPARE(lexer.next(), (Token{18, 6, TokenType::String}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{26, 10, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::rawByteString()
+{
+    const QString buffer{QLatin1String{"br#\"abc\"#  br##\"def\nghi\"### br#\"ghi\" \"# "}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 9, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{11, 9, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::RawString);
+    QCOMPARE(lexer.multiLineState().depth(), 2);
+    QCOMPARE(lexer.next(), (Token{20, 6, TokenType::String}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{28, 11, TokenType::String}));
     QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }

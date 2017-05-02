@@ -72,6 +72,12 @@ constexpr QChar CHAR_X_LOWER = 0x0078; // x
 constexpr QChar CHAR_BRACE_LEFT = 0x007B; // {
 constexpr QChar CHAR_BRACE_RIGHT = 0x007D; // }
 
+constexpr QLatin1String BYTE_START{"b\'"};
+constexpr QLatin1String BYTE_STRING_START{"b\""};
+constexpr QLatin1String RAW_STRING_START{"r#"};
+constexpr QLatin1String RAW_STRING_END{"\"#"};
+constexpr QLatin1String RAW_BYTE_STRING_START{"br#"};
+
 constexpr std::array<const char*, 52> KEYWORDS =
 {
     "abstract", "alignof", "as", "become", "box",
@@ -338,30 +344,33 @@ Token Lexer::next()
 
     for (; m_pos >= 0 && m_pos < m_buf.size(); ++m_pos) {
         const QChar character = m_buf[m_pos];
+        const QStringRef slice = m_buf.mid(m_pos);
 
         if (state.type() == State::Default) {
-            if (character == CHAR_R_LOWER && m_pos+1 < m_buf.size() &&
-                    m_buf[m_pos+1] == CHAR_HASH) {
+            if (slice.startsWith(RAW_STRING_START) || slice.startsWith(RAW_BYTE_STRING_START)) {
                 begin = m_pos;
-                m_pos = skipWhile(m_pos + 1, m_buf,
-                                  [](const QChar c){ return c == CHAR_HASH; });
+                const int posAfterPrefix = skipWhile(m_pos, m_buf,
+                    [](const QChar c){ return c == CHAR_B_LOWER || c == CHAR_R_LOWER; });
+                m_pos = skipWhile(posAfterPrefix, m_buf, [](const QChar c){ return c == CHAR_HASH; });
                 if (m_buf[m_pos] == CHAR_DOUBLE_QUOTE) {
                     state.setType(State::RawString);
                     m_multiLineState.setType(State::RawString);
-                    m_multiLineState.setDepth(m_pos - begin - 1);
+                    m_multiLineState.setDepth(m_pos - posAfterPrefix);
                 } else {
                     state.setType(State::Unknown);
                 }
-            } else if (isXidStart(character)) {
-                begin = m_pos;
-                state.setType(State::IdentOrKeyword);
             } else if (character.isNumber()) {
                 begin = m_pos;
                 state.setType(character.digitValue() == 0 ? State::Zero : State::DecNumber);
-            } else if (character == CHAR_SINGLE_QUOTE) {
+            } else if (character == CHAR_SINGLE_QUOTE || slice.startsWith(BYTE_START)) {
+                begin = m_pos;
+
+                if (character == CHAR_B_LOWER) {
+                    ++m_pos;
+                }
+
                 const int posAfterChar = processChar(m_pos+1, m_buf, CHAR_SINGLE_QUOTE);
 
-                begin = m_pos;
                 if (posAfterChar - m_pos - 1 > 0 && posAfterChar < m_buf.size() &&
                         m_buf[posAfterChar] == CHAR_SINGLE_QUOTE) {
                     state.setType(State::Char);
@@ -372,6 +381,14 @@ Token Lexer::next()
                 state.setType(State::String);
                 m_multiLineState.setType(State::String);
                 begin = m_pos;
+            } else if (slice.startsWith(BYTE_STRING_START)) {
+                state.setType(State::String);
+                m_multiLineState.setType(State::String);
+                begin = m_pos;
+                ++m_pos;
+            } else if (isXidStart(character)) {
+                begin = m_pos;
+                state.setType(State::IdentOrKeyword);
             }
         } else if (state.type() == State::IdentOrKeyword) {
             if (!isXidContinue(character)) {
@@ -422,8 +439,7 @@ Token Lexer::next()
                 }
             }
         } else if (state.type() == State::RawString) {
-            if (character == CHAR_DOUBLE_QUOTE && m_pos+1 < m_buf.size() &&
-                    m_buf[m_pos+1] == CHAR_HASH) {
+            if (slice.startsWith(RAW_STRING_END)) {
                 const int posAfterHashes = skipWhile(m_pos + 1, m_buf,
                                                      [](const QChar c){ return c == CHAR_HASH; });
                 if (posAfterHashes - m_pos - 1 >= m_multiLineState.depth()) {
