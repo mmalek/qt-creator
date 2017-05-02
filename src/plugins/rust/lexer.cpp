@@ -77,6 +77,9 @@ constexpr QLatin1String BYTE_STRING_START{"b\""};
 constexpr QLatin1String RAW_STRING_START{"r#"};
 constexpr QLatin1String RAW_STRING_END{"\"#"};
 constexpr QLatin1String RAW_BYTE_STRING_START{"br#"};
+constexpr QLatin1String ONE_LINE_COMMENT_START{"//"};
+constexpr QLatin1String MULTI_LINE_COMMENT_START{"/*"};
+constexpr QLatin1String MULTI_LINE_COMMENT_END{"*/"};
 
 constexpr std::array<const char*, 52> KEYWORDS =
 {
@@ -386,6 +389,14 @@ Token Lexer::next()
                 m_multiLineState.setType(State::String);
                 begin = m_pos;
                 ++m_pos;
+            } else if (slice.startsWith(ONE_LINE_COMMENT_START)) {
+                state.setType(State::OneLineComment);
+                begin = m_pos;
+            } else if (slice.startsWith(MULTI_LINE_COMMENT_START)) {
+                state.setType(State::MultiLineComment);
+                m_multiLineState.setType(State::MultiLineComment);
+                m_multiLineState.setDepth(1);
+                begin = m_pos;
             } else if (isXidStart(character)) {
                 begin = m_pos;
                 state.setType(State::IdentOrKeyword);
@@ -452,6 +463,27 @@ Token Lexer::next()
                 m_pos = skipWhile(m_pos, m_buf, &isEol);
                 break;
             }
+        } else if (state.type() == State::OneLineComment) {
+            if (isEol(character)) {
+                m_pos = skipWhile(m_pos, m_buf, &isEol);
+                break;
+            }
+        } else if (state.type() == State::MultiLineComment) {
+            if (slice.startsWith(MULTI_LINE_COMMENT_START)) {
+                m_multiLineState.setDepth(m_multiLineState.depth() + 1);
+                m_pos += MULTI_LINE_COMMENT_START.size() - 1;
+            } else if (slice.startsWith(MULTI_LINE_COMMENT_END)) {
+                m_pos += MULTI_LINE_COMMENT_END.size() - 1;
+                m_multiLineState.setDepth(m_multiLineState.depth() - 1);
+                if (m_multiLineState.depth() <= 0) {
+                    ++m_pos;
+                    m_multiLineState.setType(State::Default);
+                    break;
+                }
+            } else if (isEol(character)) {
+                m_pos = skipWhile(m_pos, m_buf, &isEol);
+                break;
+            }
         }
     }
 
@@ -483,7 +515,8 @@ Token Lexer::next()
                 m_multiLineState.setType(State::Default);
             }
             break;
-        case State::Comment:
+        case State::MultiLineComment:
+        case State::OneLineComment:
             tokenType = TokenType::Comment;
             break;
         case State::Unknown:

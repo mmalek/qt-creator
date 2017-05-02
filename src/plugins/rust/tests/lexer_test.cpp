@@ -393,5 +393,30 @@ void LexerTest::rawByteString()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
+void LexerTest::oneLineComment()
+{
+    const QString buffer{QLatin1String{"// abc\n\rdef"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 8, TokenType::Comment}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{8, 3, TokenType::Identifier}));
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::multiLineComment()
+{
+    const QString buffer{QLatin1String{"/* abc\n\rdef*/ghi"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 8, TokenType::Comment}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::MultiLineComment);
+    QCOMPARE(lexer.multiLineState().depth(), 1);
+    QCOMPARE(lexer.next(), (Token{8, 5, TokenType::Comment}));
+    QCOMPARE(lexer.multiLineState().type(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{13, 3, TokenType::Identifier}));
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
 } // namespace Internal
 } // namespace Rust
