@@ -54,10 +54,13 @@ private slots:
     void floating4();
     void charLiteral1();
     void charLiteral2();
+    void byte();
     void string();
+    void byteString();
     void multiLineString();
     void multiLineStringEscapedEol();
     void rawString();
+    void rawByteString();
 };
 
 } // namespace Internal
