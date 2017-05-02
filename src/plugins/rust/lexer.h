@@ -36,47 +36,32 @@ struct Token;
 class Lexer final
 {
 public:
-    class State {
-    public:
-        enum Type
-        {
-            Default = 0,
-            Unknown = 1,
-            IdentOrKeyword,
-            Zero,
-            BinNumber,
-            DecNumber,
-            HexNumber,
-            OctNumber,
-            FloatNumber,
-            Char,
-            String,
-            RawString,
-            OneLineComment,
-            MultiLineComment
-        };
-
-        State(State::Type type, int depth = 0) : m_type(type), m_depth(depth) {}
-        explicit State(int value) : m_type(static_cast<Type>(value & 0x3F)), m_depth(value >> 6) {}
-        explicit operator int() { return m_type | (m_depth << 6); }
-
-        void setType(Type type) { m_type = type; }
-
-        Type type() const { return m_type; }
-
-        void setDepth(int depth) { m_depth = depth; }
-
-        int depth() const { return m_depth; }
-
-    private:
-        Type m_type;
-        int m_depth;
+    enum class State {
+        Default = 0,
+        Unknown = 1,
+        IdentOrKeyword,
+        Zero,
+        BinNumber,
+        DecNumber,
+        HexNumber,
+        OctNumber,
+        FloatNumber,
+        Char,
+        String,
+        RawString,
+        OneLineComment,
+        MultiLineComment
     };
 
 public:
-    explicit Lexer(QStringRef buffer, State multiLineState = State::Default);
+    Lexer(QStringRef buffer, State multiLineState, int multiLineDepth);
+    explicit Lexer(QStringRef buffer, int multiLineState = 0);
+
+    explicit operator int();
 
     State multiLineState() const { return m_multiLineState; }
+
+    int multiLineDepth() const { return m_multiLineDepth; }
 
     Token next();
 
@@ -84,6 +69,7 @@ private:
     QStringRef m_buf;
     int m_pos;
     State m_multiLineState;
+    int m_multiLineDepth;
 };
 
 } // namespace Internal
