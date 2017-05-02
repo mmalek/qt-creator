@@ -422,7 +422,8 @@ Token Lexer::next()
                 }
             }
         } else if (state.type() == State::RawString) {
-            if (character == CHAR_DOUBLE_QUOTE) {
+            if (character == CHAR_DOUBLE_QUOTE && m_pos+1 < m_buf.size() &&
+                    m_buf[m_pos+1] == CHAR_HASH) {
                 const int posAfterHashes = skipWhile(m_pos + 1, m_buf,
                                                      [](const QChar c){ return c == CHAR_HASH; });
                 if (posAfterHashes - m_pos - 1 >= m_multiLineState.depth()) {
