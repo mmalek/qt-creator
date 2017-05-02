@@ -52,8 +52,8 @@ public:
             Char,
             String,
             RawString,
-            Comment,
-            EndOfTypes
+            OneLineComment,
+            MultiLineComment
         };
 
         State(State::Type type, int depth = 0) : m_type(type), m_depth(depth) {}
