@@ -41,6 +41,8 @@ QtcPlugin {
         "rustcparser.hpp",
         "rusteditorfactory.cpp",
         "rusteditorfactory.h",
+        "syntaxhighlighter.cpp",
+        "syntaxhighlighter.h",
         "token.h",
     ]
 

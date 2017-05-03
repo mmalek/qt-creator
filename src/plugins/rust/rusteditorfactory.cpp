@@ -25,8 +25,9 @@
 
 #include "rusteditorfactory.h"
 #include "editors.h"
-#include "racercompletionassist.h"
 #include "mimetypes.h"
+#include "racercompletionassist.h"
+#include "syntaxhighlighter.h"
 
 #include <texteditor/basehoverhandler.h>
 #include <texteditor/normalindenter.h>
@@ -37,29 +38,31 @@
 namespace Rust {
 namespace Internal {
 
-using namespace TextEditor;
-
 RustEditorFactory::RustEditorFactory()
 {
     setId(Editors::RUST);
     setDisplayName(tr("Rust Editor"));
     addMimeType(MimeTypes::RUST_SOURCE);
-    addHoverHandler(new BaseHoverHandler);
+    addHoverHandler(new TextEditor::BaseHoverHandler);
 
-    setEditorActionHandlers(TextEditorActionHandler::Format
-                            | TextEditorActionHandler::UnCommentSelection
-                            | TextEditorActionHandler::UnCollapseAll);
+    setEditorActionHandlers(TextEditor::TextEditorActionHandler::Format |
+                            TextEditor::TextEditorActionHandler::UnCommentSelection |
+                            TextEditor::TextEditorActionHandler::UnCollapseAll);
+
+    setSyntaxHighlighterCreator([]() {
+        return new SyntaxHighlighter;
+    });
 
     setCommentStyle(Utils::CommentDefinition::CppStyle);
     setCompletionAssistProvider(new RacerCompletionAssistProvider);
     setDocumentCreator([]{
-        auto document = new TextDocument(Editors::RUST);
+        auto document = new TextEditor::TextDocument(Editors::RUST);
         document->setMimeType(QLatin1String(MimeTypes::RUST_SOURCE));
         return document;
     });
 
-    setIndenterCreator([]() { return new NormalIndenter; });
-    setUseGenericHighlighter(true);
+    setIndenterCreator([]() { return new TextEditor::NormalIndenter; });
+//    setUseGenericHighlighter(true);
 }
 
 } // namespace Internal
