@@ -23,53 +23,45 @@
 **
 ****************************************************************************/
 
-#pragma once
-
-#include <QStringRef>
+#include "syntaxhighlighter.h"
+#include "lexer.h"
+#include "token.h"
 
 namespace Rust {
 namespace Internal {
 
-struct Token;
-
-class Lexer final
+SyntaxHighlighter::SyntaxHighlighter()
 {
-public:
-    enum class State {
-        Default = 0,
-        Unknown = 1,
-        IdentOrKeyword,
-        Zero,
-        BinNumber,
-        DecNumber,
-        HexNumber,
-        OctNumber,
-        FloatNumber,
-        Char,
-        String,
-        RawString,
-        OneLineComment,
-        MultiLineComment
-    };
+    setTextFormatCategories({
+                                TextEditor::C_TEXT,
+                                TextEditor::C_TEXT,
+                                TextEditor::C_KEYWORD,
+                                TextEditor::C_OPERATOR,
+                                TextEditor::C_TEXT,
+                                TextEditor::C_STRING,
+                                TextEditor::C_STRING,
+                                TextEditor::C_NUMBER,
+                                TextEditor::C_TEXT,
+                                TextEditor::C_COMMENT
+                            });
+}
 
-public:
-    Lexer(QStringRef buffer, State multiLineState, int multiLineDepth = 0);
-    explicit Lexer(QStringRef buffer, int multiLineState = 0);
+void SyntaxHighlighter::highlightBlock(const QString &text)
+{
+    Lexer lexer(&text, previousBlockState());
 
-    explicit operator int();
+    while (true)
+    {
+        Token token = lexer.next();
+        if (token.type != TokenType::None) {
+            setFormat(token.begin, token.length, formatForCategory(static_cast<int>(token.type)));
+        } else {
+            break;
+        }
+    }
 
-    State multiLineState() const { return m_multiLineState; }
-
-    int multiLineDepth() const { return m_multiLineDepth; }
-
-    Token next();
-
-private:
-    QStringRef m_buf;
-    int m_pos;
-    State m_multiLineState;
-    int m_multiLineDepth;
-};
+    setCurrentBlockState(static_cast<int>(lexer));
+}
 
 } // namespace Internal
 } // namespace Rust

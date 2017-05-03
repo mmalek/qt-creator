@@ -25,50 +25,20 @@
 
 #pragma once
 
-#include <QStringRef>
+#include <texteditor/syntaxhighlighter.h>
 
 namespace Rust {
 namespace Internal {
 
-struct Token;
-
-class Lexer final
+class SyntaxHighlighter : public TextEditor::SyntaxHighlighter
 {
-public:
-    enum class State {
-        Default = 0,
-        Unknown = 1,
-        IdentOrKeyword,
-        Zero,
-        BinNumber,
-        DecNumber,
-        HexNumber,
-        OctNumber,
-        FloatNumber,
-        Char,
-        String,
-        RawString,
-        OneLineComment,
-        MultiLineComment
-    };
+    Q_OBJECT
 
 public:
-    Lexer(QStringRef buffer, State multiLineState, int multiLineDepth = 0);
-    explicit Lexer(QStringRef buffer, int multiLineState = 0);
+    SyntaxHighlighter();
 
-    explicit operator int();
-
-    State multiLineState() const { return m_multiLineState; }
-
-    int multiLineDepth() const { return m_multiLineDepth; }
-
-    Token next();
-
-private:
-    QStringRef m_buf;
-    int m_pos;
-    State m_multiLineState;
-    int m_multiLineDepth;
+protected:
+    void highlightBlock(const QString &text) override;
 };
 
 } // namespace Internal

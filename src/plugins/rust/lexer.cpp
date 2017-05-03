@@ -345,8 +345,9 @@ Lexer::Lexer(QStringRef buffer, State multiLineState, int multiLineDepth)
 Lexer::Lexer(QStringRef buffer, int multiLineState)
     : m_buf(buffer),
       m_pos(0),
-      m_multiLineState(static_cast<State>(multiLineState & 0x3F)),
-      m_multiLineDepth(multiLineState >> 6)
+      m_multiLineState(multiLineState < 0 ? State::Default
+                                          : static_cast<State>(multiLineState & 0x3F)),
+      m_multiLineDepth(multiLineState < 0 ? 0 : (multiLineState >> 6))
 {
 }
 
@@ -377,12 +378,10 @@ Token Lexer::next()
                 const int posAfterPrefix = skipWhile(m_pos, m_buf,
                     [](const QChar c){ return c == CHAR_B_LOWER || c == CHAR_R_LOWER; });
                 m_pos = skipWhile(posAfterPrefix, m_buf, [](const QChar c){ return c == CHAR_HASH; });
-                if (m_buf[m_pos] == CHAR_DOUBLE_QUOTE) {
-                    state = State::RawString;
+                state = State::RawString;
+                if (m_pos < m_buf.size() && m_buf[m_pos] == CHAR_DOUBLE_QUOTE) {
                     m_multiLineState = State::RawString;
                     m_multiLineDepth = m_pos - posAfterPrefix;
-                } else {
-                    state = State::Unknown;
                 }
             } else if (character.isNumber()) {
                 begin = m_pos;
@@ -533,7 +532,7 @@ Token Lexer::next()
 
     TokenType tokenType;
 
-    if (begin < 0) {
+    if (begin == m_pos) {
         tokenType = TokenType::None;
     } else {
         switch (state) {

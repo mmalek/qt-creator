@@ -57,12 +57,20 @@ private slots:
     void byte();
     void string();
     void byteString();
-    void multiLineString();
+    void multiLineString1();
+    void multiLineString2();
+    void multiLineString3();
     void multiLineStringEscapedEol();
-    void rawString();
-    void rawByteString();
+    void rawString1();
+    void rawString2();
+    void rawString3();
+    void rawByteString1();
+    void rawByteString2();
+    void rawByteString3();
     void oneLineComment();
-    void multiLineComment();
+    void multiLineComment1();
+    void multiLineComment2();
+    void multiLineComment3();
 };
 
 } // namespace Internal
