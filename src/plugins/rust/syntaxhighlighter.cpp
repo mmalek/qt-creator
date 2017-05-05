@@ -29,22 +29,67 @@
 
 namespace Rust {
 namespace Internal {
+namespace {
+enum class Category {
+    NoFormatting = -1,
+    Keyword = 0,
+    Operator,
+    String,
+    Number,
+    Comment,
+    DocComment,
+    PrimitiveType,
+    Type,
+    NumCategories
+};
+
+Category toCategory(TokenType tokenType)
+{
+    static_assert(static_cast<int>(Category::NumCategories) == 8,
+                  "Number of categories changed, update the code below");
+
+    switch (tokenType) {
+    case TokenType::Keyword:
+        return Category::Keyword;
+    case TokenType::Operator:
+        return Category::Operator;
+    case TokenType::Char:
+    case TokenType::String:
+        return Category::String;
+    case TokenType::Number:
+        return Category::Number;
+    case TokenType::Comment:
+        return Category::Comment;
+    case TokenType::DocComment:
+        return Category::DocComment;
+    case TokenType::PrimitiveType:
+        return Category::PrimitiveType;
+    case TokenType::Type:
+        return Category::Type;
+    default:
+        return Category::NoFormatting;
+    }
+}
+
+} // namespace
 
 SyntaxHighlighter::SyntaxHighlighter()
 {
-    setTextFormatCategories({
-                                TextEditor::C_LABEL,
-                                TextEditor::C_WARNING,
-                                TextEditor::C_KEYWORD,
-                                TextEditor::C_OPERATOR,
-                                TextEditor::C_LABEL,
-                                TextEditor::C_STRING,
-                                TextEditor::C_STRING,
-                                TextEditor::C_NUMBER,
-                                TextEditor::C_COMMENT,
-                                TextEditor::C_PRIMITIVE_TYPE,
-                                TextEditor::C_TYPE
-                            });
+    static_assert(static_cast<int>(Category::NumCategories) == 8,
+                  "Number of categories changed, update the code below");
+
+    static QVector<TextEditor::TextStyle> categories{
+                TextEditor::C_KEYWORD,
+                TextEditor::C_OPERATOR,
+                TextEditor::C_STRING,
+                TextEditor::C_NUMBER,
+                TextEditor::C_COMMENT,
+                TextEditor::C_DOXYGEN_COMMENT,
+                TextEditor::C_PRIMITIVE_TYPE,
+                TextEditor::C_TYPE
+    };
+
+    setTextFormatCategories(categories);
 }
 
 void SyntaxHighlighter::highlightBlock(const QString &text)
@@ -56,8 +101,11 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
         const Token token = lexer.next();
         if (token.type == TokenType::None) {
             break;
-        } else if (token.type != TokenType::Identifier) {
-            setFormat(token.begin, token.length, formatForCategory(static_cast<int>(token.type)));
+        } else {
+            const Category category = toCategory(token.type);
+            if (category != Category::NoFormatting) {
+                setFormat(token.begin, token.length, formatForCategory(static_cast<int>(category)));
+            }
         }
     }
 

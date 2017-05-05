@@ -30,7 +30,7 @@
 namespace Rust {
 namespace Internal {
 
-class SyntaxHighlighter : public TextEditor::SyntaxHighlighter
+class SyntaxHighlighter final : public TextEditor::SyntaxHighlighter
 {
     Q_OBJECT
 

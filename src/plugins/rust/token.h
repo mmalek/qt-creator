@@ -29,7 +29,7 @@ namespace Rust {
 namespace Internal {
 
 enum class TokenType {
-    None, // No token found
+    None = 0, // No token found
     Unknown, // Unidentified token found
     Keyword,
     Operator,
@@ -38,8 +38,12 @@ enum class TokenType {
     String,
     Number,
     Comment,
+    DocComment,
     PrimitiveType,
-    Type
+    Type,
+    BraceLeft,
+    BraceRight,
+    NumTokenTypes
 };
 
 struct Token
