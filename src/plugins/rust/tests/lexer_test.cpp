@@ -45,8 +45,9 @@ QByteArray toByteArray(TokenType tokenType)
     case TokenType::Char: return "Char";
     case TokenType::String: return "String";
     case TokenType::Number: return "Number";
-    case TokenType::Symbol: return "Symbol";
     case TokenType::Comment: return "Comment";
+    case TokenType::PrimitiveType: return "PrimitiveType";
+    case TokenType::Type: return "Type";
     case TokenType::None: return "None";
     case TokenType::Unknown:
     default: return "Unknown";

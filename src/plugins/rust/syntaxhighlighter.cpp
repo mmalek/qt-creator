@@ -33,16 +33,17 @@ namespace Internal {
 SyntaxHighlighter::SyntaxHighlighter()
 {
     setTextFormatCategories({
-                                TextEditor::C_TEXT,
-                                TextEditor::C_TEXT,
+                                TextEditor::C_LABEL,
+                                TextEditor::C_WARNING,
                                 TextEditor::C_KEYWORD,
                                 TextEditor::C_OPERATOR,
-                                TextEditor::C_TEXT,
+                                TextEditor::C_LABEL,
                                 TextEditor::C_STRING,
                                 TextEditor::C_STRING,
                                 TextEditor::C_NUMBER,
-                                TextEditor::C_TEXT,
-                                TextEditor::C_COMMENT
+                                TextEditor::C_COMMENT,
+                                TextEditor::C_PRIMITIVE_TYPE,
+                                TextEditor::C_TYPE
                             });
 }
 
@@ -52,11 +53,11 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
 
     while (true)
     {
-        Token token = lexer.next();
-        if (token.type != TokenType::None) {
-            setFormat(token.begin, token.length, formatForCategory(static_cast<int>(token.type)));
-        } else {
+        const Token token = lexer.next();
+        if (token.type == TokenType::None) {
             break;
+        } else if (token.type != TokenType::Identifier) {
+            setFormat(token.begin, token.length, formatForCategory(static_cast<int>(token.type)));
         }
     }
 
