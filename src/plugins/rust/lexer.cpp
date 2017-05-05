@@ -82,25 +82,107 @@ constexpr QLatin1String ONE_LINE_COMMENT_START{"//"};
 constexpr QLatin1String MULTI_LINE_COMMENT_START{"/*"};
 constexpr QLatin1String MULTI_LINE_COMMENT_END{"*/"};
 
-constexpr std::array<const char*, 52> KEYWORDS =
+constexpr std::array<QLatin1String, 52> KEYWORDS =
 {
-    "abstract", "alignof", "as", "become", "box",
-    "break", "const", "continue", "crate", "do",
-    "else", "enum", "extern", "false", "final",
-    "fn", "for", "if", "impl", "in",
-    "let", "loop", "macro", "match", "mod",
-    "move", "mut", "offsetof", "override", "priv",
-    "proc", "pub", "pure", "ref", "return",
-    "Self", "self", "sizeof", "static", "struct",
-    "super", "trait", "true", "type", "typeof",
-    "unsafe", "unsized", "use", "virtual", "where",
-    "while", "yield"
+    QLatin1String("abstract"),
+    QLatin1String("alignof"),
+    QLatin1String("as"),
+    QLatin1String("become"),
+    QLatin1String("box"),
+    QLatin1String("break"),
+    QLatin1String("const"),
+    QLatin1String("continue"),
+    QLatin1String("crate"),
+    QLatin1String("do"),
+    QLatin1String("else"),
+    QLatin1String("enum"),
+    QLatin1String("extern"),
+    QLatin1String("false"),
+    QLatin1String("final"),
+    QLatin1String("fn"),
+    QLatin1String("for"),
+    QLatin1String("if"),
+    QLatin1String("impl"),
+    QLatin1String("in"),
+    QLatin1String("let"),
+    QLatin1String("loop"),
+    QLatin1String("macro"),
+    QLatin1String("match"),
+    QLatin1String("mod"),
+    QLatin1String("move"),
+    QLatin1String("mut"),
+    QLatin1String("offsetof"),
+    QLatin1String("override"),
+    QLatin1String("priv"),
+    QLatin1String("proc"),
+    QLatin1String("pub"),
+    QLatin1String("pure"),
+    QLatin1String("ref"),
+    QLatin1String("return"),
+    QLatin1String("Self"),
+    QLatin1String("self"),
+    QLatin1String("sizeof"),
+    QLatin1String("static"),
+    QLatin1String("struct"),
+    QLatin1String("super"),
+    QLatin1String("trait"),
+    QLatin1String("true"),
+    QLatin1String("type"),
+    QLatin1String("typeof"),
+    QLatin1String("unsafe"),
+    QLatin1String("unsized"),
+    QLatin1String("use"),
+    QLatin1String("virtual"),
+    QLatin1String("where"),
+    QLatin1String("while"),
+    QLatin1String("yield")
 };
+
+constexpr std::array<QLatin1String, 10> INT_TYPES =
+{
+    QLatin1String("i16"),
+    QLatin1String("i32"),
+    QLatin1String("i64"),
+    QLatin1String("i8"),
+    QLatin1String("isize"),
+    QLatin1String("u16"),
+    QLatin1String("u32"),
+    QLatin1String("u64"),
+    QLatin1String("u8"),
+    QLatin1String("usize")
+};
+
+constexpr std::array<QLatin1String, 2> FLOAT_TYPES =
+{
+    QLatin1String("f32"),
+    QLatin1String("f64")
+};
+
+constexpr std::array<QLatin1String, 3> OTHER_PRIMITIVE_TYPES =
+{
+    QLatin1String("bool"),
+    QLatin1String("char"),
+    QLatin1String("str")
+};
+
+constexpr std::array<QLatin1String, 5> STD_TYPES =
+{
+    QLatin1String("Box"),
+    QLatin1String("Option"),
+    QLatin1String("Result"),
+    QLatin1String("String"),
+    QLatin1String("Vec")
+};
+
+template<typename Container>
+bool binarySearch(const Container& cont, QStringRef text)
+{
+    return std::binary_search(cont.begin(), cont.end(), text);
+}
 
 bool isKeyword(QStringRef text)
 {
-    return std::any_of(KEYWORDS.begin(), KEYWORDS.end(),
-                       [&text](const char* keyword) { return QLatin1String(keyword) == text; });
+    return binarySearch(KEYWORDS, text);
 }
 
 constexpr bool isXidStart(const QChar c)
@@ -139,26 +221,24 @@ constexpr bool isOctDigit(const QChar c)
     return c >= CHAR_0 && c <= CHAR_7;
 }
 
-constexpr std::array<const char*, 10> INTSUFFIXES =
+bool isIntType(QStringRef text)
 {
-    "i8", "u8", "i16", "u16", "i32", "u32", "i64", "u64", "isize", "usize"
-};
-
-bool isIntSuffix(QStringRef text)
-{
-    const auto isEqual = [&text](const char* keyword) { return QLatin1String(keyword) == text; };
-    return std::any_of(INTSUFFIXES.begin(), INTSUFFIXES.end(), isEqual);
+    return binarySearch(INT_TYPES, text);
 }
 
-constexpr std::array<const char*, 2> FLOATSUFFIXES =
+bool isFloatType(QStringRef text)
 {
-    "f32", "f64"
-};
+    return binarySearch(FLOAT_TYPES, text);
+}
 
-bool isFloatSuffix(QStringRef text)
+bool isPrimitiveType(QStringRef text)
 {
-    const auto isEqual = [&text](const char* keyword) { return QLatin1String(keyword) == text; };
-    return std::any_of(FLOATSUFFIXES.begin(), FLOATSUFFIXES.end(), isEqual);
+    return isIntType(text) || isFloatType(text) || binarySearch(OTHER_PRIMITIVE_TYPES, text);
+}
+
+bool isStdType(QStringRef text)
+{
+    return binarySearch(STD_TYPES, text);
 }
 
 bool isEscapedChar(const QChar c)
@@ -240,8 +320,6 @@ int processChar(QStringRef buf, const QChar quote)
     return (chState == CharState::End) ? pos : begin;
 }
 
-using State = Lexer::State;
-
 std::tuple<Lexer::State, int>
 processNumSuffix(QStringRef buf, Lexer::State state)
 {
@@ -253,26 +331,26 @@ processNumSuffix(QStringRef buf, Lexer::State state)
 
         pos = skipWhile(pos, buf, [](QChar c) { return c.isNumber(); });
 
-        state = plusPresent ? State::FloatNumber : State::Unknown;
+        state = plusPresent ? Lexer::State::FloatNumber : Lexer::State::Unknown;
     }
 
     if (isXidContinue(buf[pos])) {
         const int suffixBegin = pos;
         pos = skipWhile(pos, buf, &isXidContinue);
 
-        if (((state != State::Zero && state != State::DecNumber) ||
-             !isIntSuffix(buf.mid(suffixBegin, pos - suffixBegin))) &&
-            (state != State::FloatNumber ||
-             !isFloatSuffix(buf.mid(suffixBegin, pos - suffixBegin)))) {
-            state = State::Unknown;
+        if (((state != Lexer::State::Zero && state != Lexer::State::DecNumber) ||
+             !isIntType(buf.mid(suffixBegin, pos - suffixBegin))) &&
+            (state != Lexer::State::FloatNumber ||
+             !isFloatType(buf.mid(suffixBegin, pos - suffixBegin)))) {
+            state = Lexer::State::Unknown;
         }
     }
 
     return std::make_tuple(state, pos);
 }
 
-std::tuple<State, int, bool>
-processBinNumber(QChar character, QStringRef buf, State state)
+std::tuple<Lexer::State, int, bool>
+processBinNumber(QChar character, QStringRef buf, Lexer::State state)
 {
     if (isBinDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -281,8 +359,8 @@ processBinNumber(QChar character, QStringRef buf, State state)
     }
 }
 
-std::tuple<State, int, bool>
-processHexNumber(QChar character, QStringRef buf, State state)
+std::tuple<Lexer::State, int, bool>
+processHexNumber(QChar character, QStringRef buf, Lexer::State state)
 {
     if (isHexDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -291,8 +369,8 @@ processHexNumber(QChar character, QStringRef buf, State state)
     }
 }
 
-std::tuple<State, int, bool>
-processOctNumber(QChar character, QStringRef buf, State state)
+std::tuple<Lexer::State, int, bool>
+processOctNumber(QChar character, QStringRef buf, Lexer::State state)
 {
     if (isOctDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -301,18 +379,18 @@ processOctNumber(QChar character, QStringRef buf, State state)
     }
 }
 
-std::tuple<State, int, bool>
-processDecNumber(QChar character, QStringRef buf, State state)
+std::tuple<Lexer::State, int, bool>
+processDecNumber(QChar character, QStringRef buf, Lexer::State state)
 {
     if (character.isNumber() || character == CHAR_UNDERSCORE) {
-        if (state == State::Zero) {
-            state = State::DecNumber;
+        if (state == Lexer::State::Zero) {
+            state = Lexer::State::DecNumber;
         }
         return std::make_tuple(state, 0, false);
     } else if (character == CHAR_POINT) {
         const int nextPos = 1;
         if (nextPos >= buf.size() || buf[nextPos].isDigit() || buf[nextPos].isSpace()) {
-            state = State::FloatNumber;
+            state = Lexer::State::FloatNumber;
             return std::make_tuple(state, 0, false);
         } else {
             return std::make_tuple(state, 0, true);
@@ -322,8 +400,8 @@ processDecNumber(QChar character, QStringRef buf, State state)
     }
 }
 
-std::tuple<State, int, bool>
-processFloatNumber(QChar character, QStringRef buf, State state)
+std::tuple<Lexer::State, int, bool>
+processFloatNumber(QChar character, QStringRef buf, Lexer::State state)
 {
     if (character.isNumber() || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -537,8 +615,15 @@ Token Lexer::next()
     } else {
         switch (state) {
         case State::IdentOrKeyword:
-            tokenType = isKeyword(m_buf.mid(begin, m_pos - begin)) ? TokenType::Keyword
-                                                                   : TokenType::Identifier;
+            if (isKeyword(m_buf.mid(begin, m_pos - begin))) {
+                tokenType = TokenType::Keyword;
+            } else if (isPrimitiveType(m_buf.mid(begin, m_pos - begin))) {
+                tokenType = TokenType::PrimitiveType;
+            } else if (isStdType(m_buf.mid(begin, m_pos - begin))) {
+                tokenType = TokenType::Type;
+            } else {
+                tokenType = TokenType::Identifier;
+            }
             break;
         case State::Zero:
         case State::BinNumber:

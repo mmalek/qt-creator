@@ -37,8 +37,9 @@ enum class TokenType {
     Char,
     String,
     Number,
-    Symbol,
-    Comment
+    Comment,
+    PrimitiveType,
+    Type
 };
 
 struct Token
