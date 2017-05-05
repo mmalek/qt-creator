@@ -465,6 +465,26 @@ void LexerTest::oneLineComment()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
+void LexerTest::oneLineDocComment1()
+{
+    const QString buffer{QLatin1String{"/// abc"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 7, TokenType::DocComment}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::oneLineDocComment2()
+{
+    const QString buffer{QLatin1String{"//! abc"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 7, TokenType::DocComment}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
 void LexerTest::multiLineComment1()
 {
     const QString buffer{QLatin1String{"/* abc\n\rdef*/ghi"}};
@@ -500,6 +520,46 @@ void LexerTest::multiLineComment3()
     QCOMPARE(lexer.next(), (Token{0, 6, TokenType::Comment}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{6, 3, TokenType::Identifier}));
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::multiLineDocComment1()
+{
+    const QString buffer{QLatin1String{"/** abc */ "}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 10, TokenType::DocComment}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::multiLineDocComment2()
+{
+    const QString buffer{QLatin1String{"/*! abc */ "}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 10, TokenType::DocComment}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::braces()
+{
+    const QString buffer{QLatin1String{"struct My{ a: i32; }"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 6, TokenType::Keyword}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{7, 2, TokenType::Identifier}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{9, 1, TokenType::BraceLeft}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{11, 1, TokenType::Identifier}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{14, 3, TokenType::PrimitiveType}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{19, 1, TokenType::BraceRight}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 

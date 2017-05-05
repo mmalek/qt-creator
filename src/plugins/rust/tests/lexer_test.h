@@ -68,9 +68,14 @@ private slots:
     void rawByteString2();
     void rawByteString3();
     void oneLineComment();
+    void oneLineDocComment1();
+    void oneLineDocComment2();
     void multiLineComment1();
     void multiLineComment2();
     void multiLineComment3();
+    void multiLineDocComment1();
+    void multiLineDocComment2();
+    void braces();
 };
 
 } // namespace Internal

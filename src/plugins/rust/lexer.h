@@ -49,7 +49,11 @@ public:
         String,
         RawString,
         OneLineComment,
-        MultiLineComment
+        MultiLineComment,
+        OneLineDocComment,
+        MultiLineDocComment,
+        BraceLeft,
+        BraceRight
     };
 
 public:

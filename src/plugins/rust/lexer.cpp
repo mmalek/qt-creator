@@ -45,11 +45,14 @@ constexpr QChar CHAR_NUL = 0x0000; // \0
 constexpr QChar CHAR_HT = 0x0009; // \t
 constexpr QChar CHAR_LF = 0x000A; // \n
 constexpr QChar CHAR_CR = 0x000D; // \r
+constexpr QChar CHAR_EXCLAMATION = 0x0021; // !
 constexpr QChar CHAR_DOUBLE_QUOTE = 0x0022; // "
 constexpr QChar CHAR_HASH = 0x0023; // #
 constexpr QChar CHAR_SINGLE_QUOTE = 0x0027; // '
+constexpr QChar CHAR_ASTERISK = 0x002A; // *
 constexpr QChar CHAR_PLUS = 0x002B; // +
 constexpr QChar CHAR_POINT = 0x002E; // .
+constexpr QChar CHAR_SLASH = 0x002F; // /
 constexpr QChar CHAR_0 = 0x0030; // 0
 constexpr QChar CHAR_1 = 0x0031; // 1
 constexpr QChar CHAR_7 = 0x0037; // 7
@@ -79,7 +82,11 @@ constexpr QLatin1String RAW_STRING_START{"r#"};
 constexpr QLatin1String RAW_STRING_END{"\"#"};
 constexpr QLatin1String RAW_BYTE_STRING_START{"br#"};
 constexpr QLatin1String ONE_LINE_COMMENT_START{"//"};
+constexpr QLatin1String ONE_LINE_DOC1_COMMENT_START{"///"};
+constexpr QLatin1String ONE_LINE_DOC2_COMMENT_START{"//!"};
 constexpr QLatin1String MULTI_LINE_COMMENT_START{"/*"};
+constexpr QLatin1String MULTI_LINE_DOC1_COMMENT_START{"/**"};
+constexpr QLatin1String MULTI_LINE_DOC2_COMMENT_START{"/*!"};
 constexpr QLatin1String MULTI_LINE_COMMENT_END{"*/"};
 
 constexpr std::array<QLatin1String, 52> KEYWORDS =
@@ -484,8 +491,18 @@ Token Lexer::next()
                 m_multiLineState = State::String;
                 begin = m_pos;
                 ++m_pos;
+            } else if (slice.startsWith(ONE_LINE_DOC1_COMMENT_START) ||
+                       slice.startsWith(ONE_LINE_DOC2_COMMENT_START)) {
+                state = State::OneLineDocComment;
+                begin = m_pos;
             } else if (slice.startsWith(ONE_LINE_COMMENT_START)) {
                 state = State::OneLineComment;
+                begin = m_pos;
+            } else if (slice.startsWith(MULTI_LINE_DOC1_COMMENT_START) ||
+                       slice.startsWith(MULTI_LINE_DOC2_COMMENT_START)) {
+                state = State::MultiLineDocComment;
+                m_multiLineState = State::MultiLineDocComment;
+                m_multiLineDepth = 1;
                 begin = m_pos;
             } else if (slice.startsWith(MULTI_LINE_COMMENT_START)) {
                 state = State::MultiLineComment;
@@ -495,6 +512,16 @@ Token Lexer::next()
             } else if (isXidStart(character)) {
                 begin = m_pos;
                 state = State::IdentOrKeyword;
+            } else if (character == CHAR_BRACE_LEFT) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::BraceLeft;
+                break;
+            } else if (character == CHAR_BRACE_RIGHT) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::BraceRight;
+                break;
             }
         } else if (state == State::IdentOrKeyword) {
             if (!isXidContinue(character)) {
@@ -584,12 +611,12 @@ Token Lexer::next()
                 m_pos = skipWhile(m_pos, m_buf, &isEol);
                 break;
             }
-        } else if (state == State::OneLineComment) {
+        } else if (state == State::OneLineComment || state == State::OneLineDocComment) {
             if (isEol(character)) {
                 m_pos = skipWhile(m_pos, m_buf, &isEol);
                 break;
             }
-        } else if (state == State::MultiLineComment) {
+        } else if (state == State::MultiLineComment || state == State::MultiLineDocComment) {
             if (slice.startsWith(MULTI_LINE_COMMENT_START)) {
                 ++m_multiLineDepth;
                 m_pos += MULTI_LINE_COMMENT_START.size() - 1;
@@ -646,6 +673,16 @@ Token Lexer::next()
         case State::MultiLineComment:
         case State::OneLineComment:
             tokenType = TokenType::Comment;
+            break;
+        case State::MultiLineDocComment:
+        case State::OneLineDocComment:
+            tokenType = TokenType::DocComment;
+            break;
+        case State::BraceLeft:
+            tokenType = TokenType::BraceLeft;
+            break;
+        case State::BraceRight:
+            tokenType = TokenType::BraceRight;
             break;
         case State::Unknown:
             tokenType = TokenType::Unknown;
