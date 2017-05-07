@@ -75,6 +75,8 @@ private slots:
     void multiLineComment3();
     void multiLineDocComment1();
     void multiLineDocComment2();
+    void parentheses();
+    void squareBrackets();
     void braces();
 };
 

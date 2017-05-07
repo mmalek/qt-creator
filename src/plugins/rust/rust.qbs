@@ -18,6 +18,8 @@ QtcPlugin {
         "buildstep.h",
         "buildstepconfigwidget.ui",
         "editors.h",
+        "indenter.cpp",
+        "indenter.h",
         "lexer.cpp",
         "lexer.h",
         "mimetypes.h",

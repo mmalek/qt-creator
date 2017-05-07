@@ -25,12 +25,12 @@
 
 #include "rusteditorfactory.h"
 #include "editors.h"
+#include "indenter.h"
 #include "mimetypes.h"
 #include "racercompletionassist.h"
 #include "syntaxhighlighter.h"
 
 #include <texteditor/basehoverhandler.h>
-#include <texteditor/normalindenter.h>
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditoractionhandler.h>
 #include <utils/uncommentselection.h>
@@ -49,20 +49,18 @@ RustEditorFactory::RustEditorFactory()
                             TextEditor::TextEditorActionHandler::UnCommentSelection |
                             TextEditor::TextEditorActionHandler::UnCollapseAll);
 
-    setSyntaxHighlighterCreator([]() {
-        return new SyntaxHighlighter;
-    });
+    setSyntaxHighlighterCreator([](){ return new SyntaxHighlighter; });
 
     setCommentStyle(Utils::CommentDefinition::CppStyle);
     setCompletionAssistProvider(new RacerCompletionAssistProvider);
-    setDocumentCreator([]{
+    setDocumentCreator([](){
         auto document = new TextEditor::TextDocument(Editors::RUST);
         document->setMimeType(QLatin1String(MimeTypes::RUST_SOURCE));
         return document;
     });
 
-    setIndenterCreator([]() { return new TextEditor::NormalIndenter; });
-//    setUseGenericHighlighter(true);
+    setIndenterCreator([](){ return new Indenter; });
+    setParenthesesMatchingEnabled(true);
 }
 
 } // namespace Internal
