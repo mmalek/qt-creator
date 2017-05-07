@@ -37,6 +37,9 @@ namespace {
 
 QByteArray toByteArray(TokenType tokenType)
 {
+    static_assert(static_cast<int>(TokenType::NumTokenTypes) == 20,
+                  "Number of tokens changed, update the code below");
+
     switch(tokenType)
     {
     case TokenType::Keyword: return "Keyword";
@@ -48,6 +51,12 @@ QByteArray toByteArray(TokenType tokenType)
     case TokenType::Comment: return "Comment";
     case TokenType::PrimitiveType: return "PrimitiveType";
     case TokenType::Type: return "Type";
+    case TokenType::Colon: return "Colon";
+    case TokenType::Semicolon: return "Semicolon";
+    case TokenType::SquareBracketLeft: return "SquareBracketLeft";
+    case TokenType::SquareBracketRight: return "SquareBracketRight";
+    case TokenType::ParenthesesLeft: return "ParenthesesLeft";
+    case TokenType::ParenthesesRight: return "ParenthesesRight";
     case TokenType::None: return "None";
     case TokenType::Unknown:
     default: return "Unknown";
@@ -543,6 +552,52 @@ void LexerTest::multiLineDocComment2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
+void LexerTest::parentheses()
+{
+    const QString buffer{QLatin1String{"fn foo(bar: i64);"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 2, TokenType::Keyword}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{3, 3, TokenType::Identifier}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{6, 1, TokenType::ParenthesesLeft}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{7, 3, TokenType::Identifier}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{10, 1, TokenType::Colon}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{12, 3, TokenType::PrimitiveType}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{15, 1, TokenType::ParenthesesRight}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{16, 1, TokenType::Semicolon}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
+void LexerTest::squareBrackets()
+{
+    const QString buffer{QLatin1String{"let v = [1, 2];"}};
+    Lexer lexer{&buffer};
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{0, 3, TokenType::Keyword}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{4, 1, TokenType::Identifier}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{8, 1, TokenType::SquareBracketLeft}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{9, 1, TokenType::Number}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{12, 1, TokenType::Number}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{13, 1, TokenType::SquareBracketRight}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{14, 1, TokenType::Semicolon}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next().type, TokenType::None);
+}
+
 void LexerTest::braces()
 {
     const QString buffer{QLatin1String{"struct My{ a: i32; }"}};
@@ -556,7 +611,11 @@ void LexerTest::braces()
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{11, 1, TokenType::Identifier}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{12, 1, TokenType::Colon}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{14, 3, TokenType::PrimitiveType}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{17, 1, TokenType::Semicolon}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{19, 1, TokenType::BraceRight}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);

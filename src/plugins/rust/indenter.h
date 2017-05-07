@@ -25,60 +25,22 @@
 
 #pragma once
 
-#include <QStringRef>
+#include <texteditor/indenter.h>
 
 namespace Rust {
 namespace Internal {
 
-struct Token;
-
-class Lexer final
+class Indenter final : public TextEditor::Indenter
 {
 public:
-    enum class State {
-        Default = 0,
-        Unknown = 1,
-        IdentOrKeyword,
-        Zero,
-        BinNumber,
-        DecNumber,
-        HexNumber,
-        OctNumber,
-        FloatNumber,
-        Char,
-        String,
-        RawString,
-        OneLineComment,
-        MultiLineComment,
-        OneLineDocComment,
-        MultiLineDocComment,
-        Colon,
-        Semicolon,
-        ParenthesesLeft,
-        ParenthesesRight,
-        SquareBracketLeft,
-        SquareBracketRight,
-        BraceLeft,
-        BraceRight
-    };
+    bool isElectricCharacter(const QChar &ch) const override;
 
-public:
-    Lexer(QStringRef buffer, State multiLineState, int multiLineDepth = 0);
-    explicit Lexer(QStringRef buffer, int multiLineState = 0);
+    void indentBlock(QTextDocument *doc,
+                     const QTextBlock &block,
+                     const QChar &typedChar,
+                     const TextEditor::TabSettings &tabSettings) override;
 
-    explicit operator int();
-
-    State multiLineState() const { return m_multiLineState; }
-
-    int multiLineDepth() const { return m_multiLineDepth; }
-
-    Token next();
-
-private:
-    QStringRef m_buf;
-    int m_pos;
-    State m_multiLineState;
-    int m_multiLineDepth;
+    int indentFor(const QTextBlock &block, const TextEditor::TabSettings &tabSettings) override;
 };
 
 } // namespace Internal

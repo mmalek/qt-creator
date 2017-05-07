@@ -41,12 +41,18 @@ enum class TokenType {
     DocComment,
     PrimitiveType,
     Type,
+    Colon,
+    Semicolon,
+    ParenthesesLeft,
+    ParenthesesRight,
+    SquareBracketLeft,
+    SquareBracketRight,
     BraceLeft,
     BraceRight,
     NumTokenTypes
 };
 
-struct Token
+struct Token final
 {
     int begin;
     int length;
@@ -55,6 +61,11 @@ struct Token
     bool operator==(const Token &rhs) const
     {
         return begin == rhs.begin && length == rhs.length && type == rhs.type;
+    }
+
+    operator bool() const
+    {
+        return type != TokenType::None;
     }
 
     Token() = delete;

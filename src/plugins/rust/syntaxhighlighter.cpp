@@ -96,16 +96,11 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
 {
     Lexer lexer(&text, previousBlockState());
 
-    while (true)
+    while (const Token token = lexer.next())
     {
-        const Token token = lexer.next();
-        if (token.type == TokenType::None) {
-            break;
-        } else {
-            const Category category = toCategory(token.type);
-            if (category != Category::NoFormatting) {
-                setFormat(token.begin, token.length, formatForCategory(static_cast<int>(category)));
-            }
+        const Category category = toCategory(token.type);
+        if (category != Category::NoFormatting) {
+            setFormat(token.begin, token.length, formatForCategory(static_cast<int>(category)));
         }
     }
 

@@ -49,6 +49,8 @@ constexpr QChar CHAR_EXCLAMATION = 0x0021; // !
 constexpr QChar CHAR_DOUBLE_QUOTE = 0x0022; // "
 constexpr QChar CHAR_HASH = 0x0023; // #
 constexpr QChar CHAR_SINGLE_QUOTE = 0x0027; // '
+constexpr QChar CHAR_PARENTHESES_LEFT = 0x0028; // (
+constexpr QChar CHAR_PARENTHESES_RIGHT = 0x0029; // )
 constexpr QChar CHAR_ASTERISK = 0x002A; // *
 constexpr QChar CHAR_PLUS = 0x002B; // +
 constexpr QChar CHAR_POINT = 0x002E; // .
@@ -57,9 +59,13 @@ constexpr QChar CHAR_0 = 0x0030; // 0
 constexpr QChar CHAR_1 = 0x0031; // 1
 constexpr QChar CHAR_7 = 0x0037; // 7
 constexpr QChar CHAR_9 = 0x0039; // 9
+constexpr QChar CHAR_COLON = 0x003A; // :
+constexpr QChar CHAR_SEMICOLON = 0x003B; // ;
 constexpr QChar CHAR_A_UPPER = 0x0041; // A
 constexpr QChar CHAR_E_UPPER = 0x0045; // E
 constexpr QChar CHAR_F_UPPER = 0x0046; // F
+constexpr QChar CHAR_SQUARE_BRRACKET_LEFT = 0x005B; // [
+constexpr QChar CHAR_SQUARE_BRRACKET_RIGHT = 0x005D; // ]
 constexpr QChar CHAR_BACKSLASH = 0x005C;
 constexpr QChar CHAR_UNDERSCORE = 0x005F; // _
 constexpr QChar CHAR_A_LOWER = 0x0061; // a
@@ -512,6 +518,36 @@ Token Lexer::next()
             } else if (isXidStart(character)) {
                 begin = m_pos;
                 state = State::IdentOrKeyword;
+            } else if (character == CHAR_COLON) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::Colon;
+                break;
+            } else if (character == CHAR_SEMICOLON) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::Semicolon;
+                break;
+            } else if (character == CHAR_PARENTHESES_LEFT) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::ParenthesesLeft;
+                break;
+            } else if (character == CHAR_PARENTHESES_RIGHT) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::ParenthesesRight;
+                break;
+            } else if (character == CHAR_SQUARE_BRRACKET_LEFT) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::SquareBracketLeft;
+                break;
+            } else if (character == CHAR_SQUARE_BRRACKET_RIGHT) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::SquareBracketRight;
+                break;
             } else if (character == CHAR_BRACE_LEFT) {
                 begin = m_pos;
                 ++m_pos;
@@ -635,63 +671,62 @@ Token Lexer::next()
         }
     }
 
-    TokenType tokenType;
-
-    if (begin == m_pos) {
-        tokenType = TokenType::None;
-    } else {
-        switch (state) {
-        case State::IdentOrKeyword:
-            if (isKeyword(m_buf.mid(begin, m_pos - begin))) {
-                tokenType = TokenType::Keyword;
-            } else if (isPrimitiveType(m_buf.mid(begin, m_pos - begin))) {
-                tokenType = TokenType::PrimitiveType;
-            } else if (isStdType(m_buf.mid(begin, m_pos - begin))) {
-                tokenType = TokenType::Type;
-            } else {
-                tokenType = TokenType::Identifier;
+    TokenType tokenType = [] (const State state, const QStringRef text) {
+        if (text.isEmpty()) {
+            return TokenType::None;
+        } else {
+            switch (state) {
+            case State::IdentOrKeyword:
+                if (isKeyword(text)) {
+                    return TokenType::Keyword;
+                } else if (isPrimitiveType(text)) {
+                    return TokenType::PrimitiveType;
+                } else if (isStdType(text)) {
+                    return TokenType::Type;
+                } else {
+                    return TokenType::Identifier;
+                }
+            case State::Zero:
+            case State::BinNumber:
+            case State::DecNumber:
+            case State::HexNumber:
+            case State::OctNumber:
+            case State::FloatNumber:
+                return TokenType::Number;
+            case State::Char:
+                return TokenType::Char;
+            case State::String:
+            case State::RawString:
+                return TokenType::String;
+            case State::MultiLineComment:
+            case State::OneLineComment:
+                return TokenType::Comment;
+            case State::MultiLineDocComment:
+            case State::OneLineDocComment:
+                return TokenType::DocComment;
+            case State::Colon:
+                return TokenType::Colon;
+            case State::Semicolon:
+                return TokenType::Semicolon;
+            case State::ParenthesesLeft:
+                return TokenType::ParenthesesLeft;
+            case State::ParenthesesRight:
+                return TokenType::ParenthesesRight;
+            case State::SquareBracketLeft:
+                return TokenType::SquareBracketLeft;
+            case State::SquareBracketRight:
+                return TokenType::SquareBracketRight;
+            case State::BraceLeft:
+                return TokenType::BraceLeft;
+            case State::BraceRight:
+                return TokenType::BraceRight;
+            case State::Unknown:
+                return TokenType::Unknown;
+            default:
+                return TokenType::None;
             }
-            break;
-        case State::Zero:
-        case State::BinNumber:
-        case State::DecNumber:
-        case State::HexNumber:
-        case State::OctNumber:
-        case State::FloatNumber:
-            tokenType = TokenType::Number;
-            break;
-        case State::Char:
-            tokenType = TokenType::Char;
-            break;
-        case State::String:
-        case State::RawString:
-            tokenType = TokenType::String;
-            if (m_pos == begin && m_multiLineState == State::String) {
-                m_multiLineState = State::Default;
-            }
-            break;
-        case State::MultiLineComment:
-        case State::OneLineComment:
-            tokenType = TokenType::Comment;
-            break;
-        case State::MultiLineDocComment:
-        case State::OneLineDocComment:
-            tokenType = TokenType::DocComment;
-            break;
-        case State::BraceLeft:
-            tokenType = TokenType::BraceLeft;
-            break;
-        case State::BraceRight:
-            tokenType = TokenType::BraceRight;
-            break;
-        case State::Unknown:
-            tokenType = TokenType::Unknown;
-            break;
-        default:
-            tokenType = TokenType::None;
-            break;
         }
-    }
+    } (state, m_buf.mid(begin, m_pos - begin));
 
     return Token{begin, m_pos - begin, tokenType};
 }
