@@ -27,6 +27,8 @@
 #include "lexer.h"
 #include "token.h"
 
+#include <texteditor/textdocumentlayout.h>
+
 namespace Rust {
 namespace Internal {
 namespace {
@@ -107,15 +109,31 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
 {
     Lexer lexer(&text, previousBlockState());
 
+    TextEditor::Parentheses parentheses;
+
     while (const Token token = lexer.next())
     {
         const Category category = toCategory(token.type);
         if (category != Category::NoFormatting) {
             setFormat(token.begin, token.length, formatForCategory(static_cast<int>(category)));
         }
+
+        if (token.type == TokenType::ParenthesisLeft ||
+            token.type == TokenType::BraceLeft ||
+            token.type == TokenType::SquareBracketLeft) {
+            parentheses.push_back(TextEditor::Parenthesis(TextEditor::Parenthesis::Opened,
+                                                          text[token.begin], token.begin));
+        } else if (token.type == TokenType::ParenthesisRight ||
+                   token.type == TokenType::BraceRight ||
+                   token.type == TokenType::SquareBracketRight) {
+           parentheses.push_back(TextEditor::Parenthesis(TextEditor::Parenthesis::Closed,
+                                                         text[token.begin], token.begin));
+        }
     }
 
     setCurrentBlockState(static_cast<int>(lexer));
+
+    TextEditor::TextDocumentLayout::setParentheses(currentBlock(), parentheses);
 
     highlightWhitespace(text);
 }
