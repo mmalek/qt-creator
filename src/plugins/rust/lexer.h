@@ -61,6 +61,7 @@ public:
         BraceLeft,
         BraceRight,
         Operator,
+        Attribute,
     };
 
 public:

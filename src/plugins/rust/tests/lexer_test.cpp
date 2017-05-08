@@ -37,7 +37,7 @@ namespace {
 
 QByteArray toByteArray(TokenType tokenType)
 {
-    static_assert(static_cast<int>(TokenType::NumTokenTypes) == 20,
+    static_assert(static_cast<int>(TokenType::NumTokenTypes) == 21,
                   "Number of tokens changed, update the code below");
 
     switch(tokenType)
@@ -49,14 +49,18 @@ QByteArray toByteArray(TokenType tokenType)
     case TokenType::String: return "String";
     case TokenType::Number: return "Number";
     case TokenType::Comment: return "Comment";
+    case TokenType::DocComment: return "DocComment";
     case TokenType::PrimitiveType: return "PrimitiveType";
     case TokenType::Type: return "Type";
     case TokenType::Colon: return "Colon";
     case TokenType::Semicolon: return "Semicolon";
-    case TokenType::SquareBracketLeft: return "SquareBracketLeft";
-    case TokenType::SquareBracketRight: return "SquareBracketRight";
     case TokenType::ParenthesesLeft: return "ParenthesesLeft";
     case TokenType::ParenthesesRight: return "ParenthesesRight";
+    case TokenType::SquareBracketLeft: return "SquareBracketLeft";
+    case TokenType::SquareBracketRight: return "SquareBracketRight";
+    case TokenType::BraceLeft: return "BraceLeft";
+    case TokenType::BraceRight: return "BraceRight";
+    case TokenType::Attribute: return "Attribute";
     case TokenType::None: return "None";
     case TokenType::Unknown:
     default: return "Unknown";
