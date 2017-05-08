@@ -187,6 +187,32 @@ constexpr std::array<QLatin1String, 5> STD_TYPES =
     QLatin1String("Vec")
 };
 
+constexpr QLatin1String SHORT_OPERATORS{"=!?+-*/%&|^<>,."};
+
+constexpr std::array<QLatin1String, 20> LONG_OPERATORS =
+{
+    QLatin1String(".."),
+    QLatin1String("<<"),
+    QLatin1String(">>"),
+    QLatin1String("&&"),
+    QLatin1String("||"),
+    QLatin1String("=="),
+    QLatin1String("!="),
+    QLatin1String("<="),
+    QLatin1String(">="),
+    QLatin1String("=>"),
+    QLatin1String("+="),
+    QLatin1String("-="),
+    QLatin1String("*="),
+    QLatin1String("/="),
+    QLatin1String("%="),
+    QLatin1String("&="),
+    QLatin1String("|="),
+    QLatin1String("^="),
+    QLatin1String("<<="),
+    QLatin1String(">>=")
+};
+
 template<typename Container>
 bool binarySearch(const Container& cont, QStringRef text)
 {
@@ -274,6 +300,28 @@ constexpr bool isEol(const QChar c)
 constexpr bool isUnprintableChar(const QChar c)
 {
     return isEol(c) || c == CHAR_NUL || c == CHAR_HT;
+}
+
+bool isShortOperator(const QChar c)
+{
+    for (int i = 0; i < SHORT_OPERATORS.size(); ++i) {
+        if (SHORT_OPERATORS[i] == c) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int isLongOperator(QStringRef text)
+{
+    for (const QLatin1String& s : LONG_OPERATORS) {
+        if (text.startsWith(s)) {
+            return s.size();
+        }
+    }
+
+    return 0;
 }
 
 int processChar(QStringRef buf, const QChar quote)
@@ -558,9 +606,27 @@ Token Lexer::next()
                 ++m_pos;
                 state = State::BraceRight;
                 break;
+            } else if (const int size = isLongOperator(slice)) {
+                begin = m_pos;
+                m_pos += size;
+                state = State::Operator;
+                break;
+            } else if (isShortOperator(character)) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::Operator;
+                break;
+            } else if (!character.isSpace()) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::Unknown;
+                break;
             }
         } else if (state == State::IdentOrKeyword) {
-            if (!isXidContinue(character)) {
+            if (character == CHAR_EXCLAMATION) {
+                ++m_pos;
+                break;
+            } else if (!isXidContinue(character)) {
                 break;
             }
         } else if (state == State::Zero) {
@@ -720,6 +786,8 @@ Token Lexer::next()
                 return TokenType::BraceLeft;
             case State::BraceRight:
                 return TokenType::BraceRight;
+            case State::Operator:
+                return TokenType::Operator;
             case State::Unknown:
                 return TokenType::Unknown;
             default:
