@@ -40,12 +40,13 @@ enum class Category {
     DocComment,
     PrimitiveType,
     Type,
+    Whitespace,
     NumCategories
 };
 
 Category toCategory(TokenType tokenType)
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 8,
+    static_assert(static_cast<int>(Category::NumCategories) == 9,
                   "Number of categories changed, update the code below");
 
     switch (tokenType) {
@@ -75,7 +76,7 @@ Category toCategory(TokenType tokenType)
 
 SyntaxHighlighter::SyntaxHighlighter()
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 8,
+    static_assert(static_cast<int>(Category::NumCategories) == 9,
                   "Number of categories changed, update the code below");
 
     static QVector<TextEditor::TextStyle> categories{
@@ -86,7 +87,8 @@ SyntaxHighlighter::SyntaxHighlighter()
                 TextEditor::C_COMMENT,
                 TextEditor::C_DOXYGEN_COMMENT,
                 TextEditor::C_PRIMITIVE_TYPE,
-                TextEditor::C_TYPE
+                TextEditor::C_TYPE,
+                TextEditor::C_VISUAL_WHITESPACE
     };
 
     setTextFormatCategories(categories);
@@ -105,6 +107,29 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
     }
 
     setCurrentBlockState(static_cast<int>(lexer));
+
+    highlightWhitespace(text);
+}
+
+void SyntaxHighlighter::highlightWhitespace(const QString &text)
+{
+    int beginWhitespace = -1;
+
+    for (int i = 0; i < text.size(); ++i) {
+        const bool isWhitespace = text[i].isSpace();
+        if (isWhitespace && beginWhitespace < 0) {
+            beginWhitespace = i;
+        } else if (!isWhitespace && beginWhitespace >= 0) {
+            setFormat(beginWhitespace, i - beginWhitespace,
+                      formatForCategory(static_cast<int>(Category::Whitespace)));
+            beginWhitespace = -1;
+        }
+    }
+
+    if (beginWhitespace > 0 && beginWhitespace < text.size()) {
+        setFormat(beginWhitespace, text.size() - beginWhitespace,
+                  formatForCategory(static_cast<int>(Category::Whitespace)));
+    }
 }
 
 } // namespace Internal
