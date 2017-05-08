@@ -94,6 +94,7 @@ constexpr QLatin1String MULTI_LINE_COMMENT_START{"/*"};
 constexpr QLatin1String MULTI_LINE_DOC1_COMMENT_START{"/**"};
 constexpr QLatin1String MULTI_LINE_DOC2_COMMENT_START{"/*!"};
 constexpr QLatin1String MULTI_LINE_COMMENT_END{"*/"};
+constexpr QLatin1String ATTRIBUTE_START{"#["};
 
 constexpr std::array<QLatin1String, 52> KEYWORDS =
 {
@@ -606,6 +607,9 @@ Token Lexer::next()
                 ++m_pos;
                 state = State::BraceRight;
                 break;
+            } else if (slice.startsWith(ATTRIBUTE_START)) {
+                begin = m_pos;
+                state = State::Attribute;
             } else if (const int size = isLongOperator(slice)) {
                 begin = m_pos;
                 m_pos += size;
@@ -734,6 +738,11 @@ Token Lexer::next()
                 m_pos = skipWhile(m_pos, m_buf, &isEol);
                 break;
             }
+        } else if (state == State::Attribute) {
+            if (character == CHAR_SQUARE_BRRACKET_RIGHT) {
+                ++m_pos;
+                break;
+            }
         }
     }
 
@@ -788,6 +797,8 @@ Token Lexer::next()
                 return TokenType::BraceRight;
             case State::Operator:
                 return TokenType::Operator;
+            case State::Attribute:
+                return TokenType::Attribute;
             case State::Unknown:
                 return TokenType::Unknown;
             default:

@@ -49,6 +49,7 @@ enum class TokenType {
     SquareBracketRight,
     BraceLeft,
     BraceRight,
+    Attribute,
     NumTokenTypes
 };
 

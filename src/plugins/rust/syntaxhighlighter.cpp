@@ -40,6 +40,7 @@ enum class Category {
     DocComment,
     PrimitiveType,
     Type,
+    Attribute,
     Whitespace,
     Error,
 
@@ -48,7 +49,7 @@ enum class Category {
 
 Category toCategory(TokenType tokenType)
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 10,
+    static_assert(static_cast<int>(Category::NumCategories) == 11,
                   "Number of categories changed, update the code below");
 
     switch (tokenType) {
@@ -69,6 +70,8 @@ Category toCategory(TokenType tokenType)
         return Category::PrimitiveType;
     case TokenType::Type:
         return Category::Type;
+    case TokenType::Attribute:
+        return Category::Attribute;
     case TokenType::Unknown:
         return Category::Error;
     default:
@@ -80,7 +83,7 @@ Category toCategory(TokenType tokenType)
 
 SyntaxHighlighter::SyntaxHighlighter()
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 10,
+    static_assert(static_cast<int>(Category::NumCategories) == 11,
                   "Number of categories changed, update the code below");
 
     static QVector<TextEditor::TextStyle> categories{
@@ -92,6 +95,7 @@ SyntaxHighlighter::SyntaxHighlighter()
                 TextEditor::C_DOXYGEN_COMMENT,
                 TextEditor::C_PRIMITIVE_TYPE,
                 TextEditor::C_TYPE,
+                TextEditor::C_PREPROCESSOR,
                 TextEditor::C_VISUAL_WHITESPACE,
                 TextEditor::C_ERROR
     };
