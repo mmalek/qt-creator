@@ -580,12 +580,12 @@ Token Lexer::next()
             } else if (character == CHAR_PARENTHESES_LEFT) {
                 begin = m_pos;
                 ++m_pos;
-                state = State::ParenthesesLeft;
+                state = State::ParenthesisLeft;
                 break;
             } else if (character == CHAR_PARENTHESES_RIGHT) {
                 begin = m_pos;
                 ++m_pos;
-                state = State::ParenthesesRight;
+                state = State::ParenthesisRight;
                 break;
             } else if (character == CHAR_SQUARE_BRRACKET_LEFT) {
                 begin = m_pos;
@@ -783,10 +783,10 @@ Token Lexer::next()
                 return TokenType::Colon;
             case State::Semicolon:
                 return TokenType::Semicolon;
-            case State::ParenthesesLeft:
-                return TokenType::ParenthesesLeft;
-            case State::ParenthesesRight:
-                return TokenType::ParenthesesRight;
+            case State::ParenthesisLeft:
+                return TokenType::ParenthesisLeft;
+            case State::ParenthesisRight:
+                return TokenType::ParenthesisRight;
             case State::SquareBracketLeft:
                 return TokenType::SquareBracketLeft;
             case State::SquareBracketRight:

@@ -54,8 +54,8 @@ QByteArray toByteArray(TokenType tokenType)
     case TokenType::Type: return "Type";
     case TokenType::Colon: return "Colon";
     case TokenType::Semicolon: return "Semicolon";
-    case TokenType::ParenthesesLeft: return "ParenthesesLeft";
-    case TokenType::ParenthesesRight: return "ParenthesesRight";
+    case TokenType::ParenthesisLeft: return "ParenthesisLeft";
+    case TokenType::ParenthesisRight: return "ParenthesisRight";
     case TokenType::SquareBracketLeft: return "SquareBracketLeft";
     case TokenType::SquareBracketRight: return "SquareBracketRight";
     case TokenType::BraceLeft: return "BraceLeft";
@@ -569,7 +569,7 @@ void LexerTest::parentheses()
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{3, 3, TokenType::Identifier}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
-    QCOMPARE(lexer.next(), (Token{6, 1, TokenType::ParenthesesLeft}));
+    QCOMPARE(lexer.next(), (Token{6, 1, TokenType::ParenthesisLeft}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{7, 3, TokenType::Identifier}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
@@ -577,7 +577,7 @@ void LexerTest::parentheses()
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{12, 3, TokenType::PrimitiveType}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
-    QCOMPARE(lexer.next(), (Token{15, 1, TokenType::ParenthesesRight}));
+    QCOMPARE(lexer.next(), (Token{15, 1, TokenType::ParenthesisRight}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{16, 1, TokenType::Semicolon}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);

@@ -83,11 +83,11 @@ int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &
                 letWithoutEnd = false;
             } else if (token.type == TokenType::BraceLeft ||
                 token.type == TokenType::SquareBracketLeft ||
-                token.type == TokenType::ParenthesesLeft) {
+                token.type == TokenType::ParenthesisLeft) {
                 ++delta;
             } else if (token.type == TokenType::BraceRight ||
                        token.type == TokenType::SquareBracketRight ||
-                       token.type == TokenType::ParenthesesRight) {
+                       token.type == TokenType::ParenthesisRight) {
                 --delta;
             }
         }
