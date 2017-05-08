@@ -41,12 +41,14 @@ enum class Category {
     PrimitiveType,
     Type,
     Whitespace,
+    Error,
+
     NumCategories
 };
 
 Category toCategory(TokenType tokenType)
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 9,
+    static_assert(static_cast<int>(Category::NumCategories) == 10,
                   "Number of categories changed, update the code below");
 
     switch (tokenType) {
@@ -67,6 +69,8 @@ Category toCategory(TokenType tokenType)
         return Category::PrimitiveType;
     case TokenType::Type:
         return Category::Type;
+    case TokenType::Unknown:
+        return Category::Error;
     default:
         return Category::NoFormatting;
     }
@@ -76,7 +80,7 @@ Category toCategory(TokenType tokenType)
 
 SyntaxHighlighter::SyntaxHighlighter()
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 9,
+    static_assert(static_cast<int>(Category::NumCategories) == 10,
                   "Number of categories changed, update the code below");
 
     static QVector<TextEditor::TextStyle> categories{
@@ -88,7 +92,8 @@ SyntaxHighlighter::SyntaxHighlighter()
                 TextEditor::C_DOXYGEN_COMMENT,
                 TextEditor::C_PRIMITIVE_TYPE,
                 TextEditor::C_TYPE,
-                TextEditor::C_VISUAL_WHITESPACE
+                TextEditor::C_VISUAL_WHITESPACE,
+                TextEditor::C_ERROR
     };
 
     setTextFormatCategories(categories);
@@ -126,7 +131,7 @@ void SyntaxHighlighter::highlightWhitespace(const QString &text)
         }
     }
 
-    if (beginWhitespace > 0 && beginWhitespace < text.size()) {
+    if (beginWhitespace >= 0 && beginWhitespace < text.size()) {
         setFormat(beginWhitespace, text.size() - beginWhitespace,
                   formatForCategory(static_cast<int>(Category::Whitespace)));
     }

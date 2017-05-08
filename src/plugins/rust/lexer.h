@@ -59,7 +59,8 @@ public:
         SquareBracketLeft,
         SquareBracketRight,
         BraceLeft,
-        BraceRight
+        BraceRight,
+        Operator,
     };
 
 public:

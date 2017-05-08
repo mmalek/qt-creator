@@ -399,6 +399,8 @@ void LexerTest::rawString1()
     QCOMPARE(lexer.multiLineDepth(), 2);
     QCOMPARE(lexer.next(), (Token{18, 6, TokenType::String}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{24, 1, TokenType::Unknown}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{26, 10, TokenType::String}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
@@ -436,6 +438,8 @@ void LexerTest::rawByteString1()
     QCOMPARE(lexer.multiLineState(), Lexer::State::RawString);
     QCOMPARE(lexer.multiLineDepth(), 2);
     QCOMPARE(lexer.next(), (Token{20, 6, TokenType::String}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{26, 1, TokenType::Unknown}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{28, 11, TokenType::String}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
@@ -585,9 +589,13 @@ void LexerTest::squareBrackets()
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{4, 1, TokenType::Identifier}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{6, 1, TokenType::Operator}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{8, 1, TokenType::SquareBracketLeft}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{9, 1, TokenType::Number}));
+    QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
+    QCOMPARE(lexer.next(), (Token{10, 1, TokenType::Operator}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{12, 1, TokenType::Number}));
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
