@@ -53,6 +53,7 @@ constexpr QChar CHAR_PARENTHESES_LEFT = 0x0028; // (
 constexpr QChar CHAR_PARENTHESES_RIGHT = 0x0029; // )
 constexpr QChar CHAR_ASTERISK = 0x002A; // *
 constexpr QChar CHAR_PLUS = 0x002B; // +
+constexpr QChar CHAR_MINUS = 0x002D; // -
 constexpr QChar CHAR_POINT = 0x002E; // .
 constexpr QChar CHAR_SLASH = 0x002F; // /
 constexpr QChar CHAR_0 = 0x0030; // 0
@@ -389,11 +390,12 @@ processNumSuffix(QStringRef buf, Lexer::State state)
 
     if (buf[pos] == CHAR_E_UPPER || buf[pos] == CHAR_E_LOWER) {
         ++pos;
-        const bool plusPresent = pos < buf.size() && buf[pos] == CHAR_PLUS;
+        const bool signPresent = pos < buf.size() &&
+                                 (buf[pos] == CHAR_PLUS || buf[pos] == CHAR_MINUS);
 
         pos = skipWhile(pos, buf, [](QChar c) { return c.isNumber(); });
 
-        state = plusPresent ? Lexer::State::FloatNumber : Lexer::State::Unknown;
+        state = signPresent ? Lexer::State::FloatNumber : Lexer::State::Unknown;
     }
 
     if (isXidContinue(buf[pos])) {

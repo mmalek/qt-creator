@@ -261,7 +261,7 @@ void LexerTest::floating3()
 
 void LexerTest::floating4()
 {
-    const QString buffer{QLatin1String{"678401.3E+4 5e+10 6e+1f64 6e+1i64"}};
+    const QString buffer{QLatin1String{"678401.3E+4 5e+10 6e-1f64 6e+1i64"}};
     Lexer lexer{&buffer};
     QCOMPARE(lexer.multiLineState(), Lexer::State::Default);
     QCOMPARE(lexer.next(), (Token{0, 11, TokenType::Number}));
