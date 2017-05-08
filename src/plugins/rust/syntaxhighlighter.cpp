@@ -135,28 +135,7 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
 
     TextEditor::TextDocumentLayout::setParentheses(currentBlock(), parentheses);
 
-    highlightWhitespace(text);
-}
-
-void SyntaxHighlighter::highlightWhitespace(const QString &text)
-{
-    int beginWhitespace = -1;
-
-    for (int i = 0; i < text.size(); ++i) {
-        const bool isWhitespace = text[i].isSpace();
-        if (isWhitespace && beginWhitespace < 0) {
-            beginWhitespace = i;
-        } else if (!isWhitespace && beginWhitespace >= 0) {
-            setFormat(beginWhitespace, i - beginWhitespace,
-                      formatForCategory(static_cast<int>(Category::Whitespace)));
-            beginWhitespace = -1;
-        }
-    }
-
-    if (beginWhitespace >= 0 && beginWhitespace < text.size()) {
-        setFormat(beginWhitespace, text.size() - beginWhitespace,
-                  formatForCategory(static_cast<int>(Category::Whitespace)));
-    }
+    applyFormatToSpaces(text, formatForCategory(static_cast<int>(Category::Whitespace)));
 }
 
 } // namespace Internal

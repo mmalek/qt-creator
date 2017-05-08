@@ -39,8 +39,6 @@ public:
 
 protected:
     void highlightBlock(const QString &text) override;
-
-    void highlightWhitespace(const QString& text);
 };
 
 } // namespace Internal
