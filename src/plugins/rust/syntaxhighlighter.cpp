@@ -26,6 +26,7 @@
 #include "syntaxhighlighter.h"
 #include "lexer.h"
 #include "token.h"
+#include "rustsourcelayout.h"
 
 #include <texteditor/textdocumentlayout.h>
 
@@ -107,7 +108,15 @@ SyntaxHighlighter::SyntaxHighlighter()
 
 void SyntaxHighlighter::highlightBlock(const QString &text)
 {
-    Lexer lexer(&text, previousBlockState());
+    QTextBlock block = currentBlock();
+    QTextBlock previousBlock = block.previous();
+
+    const int currentDepth = SourceLayout::braceDepth(previousBlock);
+
+    Lexer lexer(&text,
+                SourceLayout::multiLineState(previousBlock),
+                SourceLayout::multiLineParam(previousBlock),
+                currentDepth);
 
     TextEditor::Parentheses parentheses;
 
@@ -131,11 +140,12 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
         }
     }
 
-    setCurrentBlockState(static_cast<int>(lexer));
-
-    TextEditor::TextDocumentLayout::setParentheses(currentBlock(), parentheses);
-
     applyFormatToSpaces(text, formatForCategory(static_cast<int>(Category::Whitespace)));
+
+    SourceLayout::saveLexerState(block, lexer);
+
+    TextEditor::TextDocumentLayout::setParentheses(block, parentheses);
+    TextEditor::TextDocumentLayout::setFoldingIndent(block, currentDepth);
 }
 
 } // namespace Internal

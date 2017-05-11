@@ -23,53 +23,38 @@
 **
 ****************************************************************************/
 
-#pragma once
-
-#include <QStringRef>
-#include <QtGlobal>
+#include "rustsourcelayout.h"
+#include "lexer.h"
+#include <texteditor/textdocumentlayout.h>
+#include <QTextBlock>
 
 namespace Rust {
 namespace Internal {
+namespace SourceLayout {
 
-struct Token;
-
-class Lexer final
+Lexer::MultiLineState multiLineState(const QTextBlock &block)
 {
-public:
-    enum class MultiLineState : quint8 {
-        Default,
-        Comment,
-        DocComment,
-        String
-    };
+    const int userState = block.userState();
+    return static_cast<Lexer::MultiLineState>(qMax(userState, 0) & 0xFF);
+}
 
-public:
-    explicit Lexer(QStringRef buffer,
-                   MultiLineState multiLineState = MultiLineState::Default,
-                   quint8 multiLineParam = 0,
-                   int depth = 0)
-        : m_buf(buffer),
-          m_pos(0),
-          m_multiLineState(multiLineState),
-          m_multiLineParam(multiLineParam),
-          m_depth(depth)
-    {}
+quint8 multiLineParam(const QTextBlock &block)
+{
+    return TextEditor::TextDocumentLayout::lexerState(block);
+}
 
-    MultiLineState multiLineState() const { return m_multiLineState; }
+quint8 braceDepth(const QTextBlock &block)
+{
+    const int userState = block.userState();
+    return userState > 0 ? (userState >> 8) : 0;
+}
 
-    quint8 multiLineParam() const { return m_multiLineParam; }
+void saveLexerState(QTextBlock &block, const Lexer& lexer)
+{
+    TextEditor::TextDocumentLayout::setLexerState(block, lexer.multiLineParam());
+    block.setUserState((lexer.depth() << 8) | (static_cast<int>(lexer.multiLineState()) & 0xFF));
+}
 
-    int depth() const { return m_depth; }
-
-    Token next();
-
-private:
-    QStringRef m_buf;
-    int m_pos;
-    MultiLineState m_multiLineState;
-    quint8 m_multiLineParam;
-    int m_depth;
-};
-
+} // namespace SourceLayout
 } // namespace Internal
 } // namespace Rust

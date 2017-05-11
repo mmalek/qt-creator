@@ -61,6 +61,7 @@ RustEditorFactory::RustEditorFactory()
 
     setIndenterCreator([](){ return new Indenter; });
     setParenthesesMatchingEnabled(true);
+    setCodeFoldingSupported(true);
 }
 
 } // namespace Internal

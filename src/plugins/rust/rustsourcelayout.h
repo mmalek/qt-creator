@@ -25,51 +25,26 @@
 
 #pragma once
 
-#include <QStringRef>
+#include "lexer.h"
 #include <QtGlobal>
+
+class QTextBlock;
 
 namespace Rust {
 namespace Internal {
 
-struct Token;
+class Lexer;
 
-class Lexer final
-{
-public:
-    enum class MultiLineState : quint8 {
-        Default,
-        Comment,
-        DocComment,
-        String
-    };
+namespace SourceLayout {
 
-public:
-    explicit Lexer(QStringRef buffer,
-                   MultiLineState multiLineState = MultiLineState::Default,
-                   quint8 multiLineParam = 0,
-                   int depth = 0)
-        : m_buf(buffer),
-          m_pos(0),
-          m_multiLineState(multiLineState),
-          m_multiLineParam(multiLineParam),
-          m_depth(depth)
-    {}
+quint8 braceDepth(const QTextBlock &block);
 
-    MultiLineState multiLineState() const { return m_multiLineState; }
+Lexer::MultiLineState multiLineState(const QTextBlock &block);
 
-    quint8 multiLineParam() const { return m_multiLineParam; }
+quint8 multiLineParam(const QTextBlock &block);
 
-    int depth() const { return m_depth; }
+void saveLexerState(QTextBlock &block, const Lexer& lexer);
 
-    Token next();
-
-private:
-    QStringRef m_buf;
-    int m_pos;
-    MultiLineState m_multiLineState;
-    quint8 m_multiLineParam;
-    int m_depth;
-};
-
+} // namespace SourceLayout
 } // namespace Internal
 } // namespace Rust

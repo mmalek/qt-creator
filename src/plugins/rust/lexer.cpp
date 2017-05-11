@@ -35,6 +35,49 @@ namespace Internal {
 
 namespace {
 
+enum class State {
+    Default = 0,
+    Unknown = 1,
+    IdentOrKeyword,
+    Zero,
+    BinNumber,
+    DecNumber,
+    HexNumber,
+    OctNumber,
+    FloatNumber,
+    Char,
+    String,
+    RawString,
+    OneLineComment,
+    MultiLineComment,
+    OneLineDocComment,
+    MultiLineDocComment,
+    Colon,
+    Semicolon,
+    ParenthesisLeft,
+    ParenthesisRight,
+    SquareBracketLeft,
+    SquareBracketRight,
+    BraceLeft,
+    BraceRight,
+    Operator,
+    Attribute,
+};
+
+State toState(Lexer::MultiLineState multiLineState, quint8 multiLineParam)
+{
+    switch (multiLineState) {
+    case Lexer::MultiLineState::Comment:
+        return State::MultiLineComment;
+    case Lexer::MultiLineState::DocComment:
+        return State::MultiLineDocComment;
+    case Lexer::MultiLineState::String:
+        return (multiLineParam == 0) ? State::String : State::RawString;
+    default:
+        return State::Default;
+    }
+}
+
 enum class CharState {
     Start,
     EscapeStart,
@@ -383,8 +426,8 @@ int processChar(QStringRef buf, const QChar quote)
     return (chState == CharState::End) ? pos : begin;
 }
 
-std::tuple<Lexer::State, int>
-processNumSuffix(QStringRef buf, Lexer::State state)
+std::tuple<State, int>
+processNumSuffix(QStringRef buf, State state)
 {
     int pos = 0;
 
@@ -395,26 +438,26 @@ processNumSuffix(QStringRef buf, Lexer::State state)
 
         pos = skipWhile(pos, buf, [](QChar c) { return c.isNumber(); });
 
-        state = signPresent ? Lexer::State::FloatNumber : Lexer::State::Unknown;
+        state = signPresent ? State::FloatNumber : State::Unknown;
     }
 
     if (isXidContinue(buf[pos])) {
         const int suffixBegin = pos;
         pos = skipWhile(pos, buf, &isXidContinue);
 
-        if (((state != Lexer::State::Zero && state != Lexer::State::DecNumber) ||
+        if (((state != State::Zero && state != State::DecNumber) ||
              !isIntType(buf.mid(suffixBegin, pos - suffixBegin))) &&
-            (state != Lexer::State::FloatNumber ||
+            (state != State::FloatNumber ||
              !isFloatType(buf.mid(suffixBegin, pos - suffixBegin)))) {
-            state = Lexer::State::Unknown;
+            state = State::Unknown;
         }
     }
 
     return std::make_tuple(state, pos);
 }
 
-std::tuple<Lexer::State, int, bool>
-processBinNumber(QChar character, QStringRef buf, Lexer::State state)
+std::tuple<State, int, bool>
+processBinNumber(QChar character, QStringRef buf, State state)
 {
     if (isBinDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -423,8 +466,8 @@ processBinNumber(QChar character, QStringRef buf, Lexer::State state)
     }
 }
 
-std::tuple<Lexer::State, int, bool>
-processHexNumber(QChar character, QStringRef buf, Lexer::State state)
+std::tuple<State, int, bool>
+processHexNumber(QChar character, QStringRef buf, State state)
 {
     if (isHexDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -433,8 +476,8 @@ processHexNumber(QChar character, QStringRef buf, Lexer::State state)
     }
 }
 
-std::tuple<Lexer::State, int, bool>
-processOctNumber(QChar character, QStringRef buf, Lexer::State state)
+std::tuple<State, int, bool>
+processOctNumber(QChar character, QStringRef buf, State state)
 {
     if (isOctDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -443,18 +486,18 @@ processOctNumber(QChar character, QStringRef buf, Lexer::State state)
     }
 }
 
-std::tuple<Lexer::State, int, bool>
-processDecNumber(QChar character, QStringRef buf, Lexer::State state)
+std::tuple<State, int, bool>
+processDecNumber(QChar character, QStringRef buf, State state)
 {
     if (character.isNumber() || character == CHAR_UNDERSCORE) {
-        if (state == Lexer::State::Zero) {
-            state = Lexer::State::DecNumber;
+        if (state == State::Zero) {
+            state = State::DecNumber;
         }
         return std::make_tuple(state, 0, false);
     } else if (character == CHAR_POINT) {
         const int nextPos = 1;
         if (nextPos >= buf.size() || buf[nextPos].isDigit() || buf[nextPos].isSpace()) {
-            state = Lexer::State::FloatNumber;
+            state = State::FloatNumber;
             return std::make_tuple(state, 0, false);
         } else {
             return std::make_tuple(state, 0, true);
@@ -464,8 +507,8 @@ processDecNumber(QChar character, QStringRef buf, Lexer::State state)
     }
 }
 
-std::tuple<Lexer::State, int, bool>
-processFloatNumber(QChar character, QStringRef buf, Lexer::State state)
+std::tuple<State, int, bool>
+processFloatNumber(QChar character, QStringRef buf, State state)
 {
     if (character.isNumber() || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -476,31 +519,9 @@ processFloatNumber(QChar character, QStringRef buf, Lexer::State state)
 
 } // namespace
 
-Lexer::Lexer(QStringRef buffer, State multiLineState, int multiLineDepth)
-    : m_buf(buffer),
-      m_pos(0),
-      m_multiLineState(multiLineState),
-      m_multiLineDepth(multiLineDepth)
-{
-}
-
-Lexer::Lexer(QStringRef buffer, int multiLineState)
-    : m_buf(buffer),
-      m_pos(0),
-      m_multiLineState(multiLineState < 0 ? State::Default
-                                          : static_cast<State>(multiLineState & 0x3F)),
-      m_multiLineDepth(multiLineState < 0 ? 0 : (multiLineState >> 6))
-{
-}
-
-Lexer::operator int()
-{
-    return static_cast<int>(m_multiLineState) | (m_multiLineDepth << 6);
-}
-
 Token Lexer::next()
 {
-    State state = m_multiLineState;
+    State state = toState(m_multiLineState, m_multiLineParam);
 
     if (state == State::String &&
             m_pos < m_buf.size() && m_buf[m_pos] == CHAR_BACKSLASH &&
@@ -522,8 +543,9 @@ Token Lexer::next()
                 m_pos = skipWhile(posAfterPrefix, m_buf, [](const QChar c){ return c == CHAR_HASH; });
                 state = State::RawString;
                 if (m_pos < m_buf.size() && m_buf[m_pos] == CHAR_DOUBLE_QUOTE) {
-                    m_multiLineState = State::RawString;
-                    m_multiLineDepth = m_pos - posAfterPrefix;
+                    m_multiLineState = MultiLineState::String;
+                    m_multiLineParam = m_pos - posAfterPrefix;
+                    ++m_depth;
                 }
             } else if (character.isNumber()) {
                 begin = m_pos;
@@ -541,11 +563,15 @@ Token Lexer::next()
                 }
             } else if (character == CHAR_DOUBLE_QUOTE) {
                 state = State::String;
-                m_multiLineState = State::String;
+                m_multiLineState = MultiLineState::String;
+                m_multiLineParam = 0;
+                ++m_depth;
                 begin = m_pos;
             } else if (slice.startsWith(BYTE_STRING_START)) {
                 state = State::String;
-                m_multiLineState = State::String;
+                m_multiLineState = MultiLineState::String;
+                m_multiLineParam = 0;
+                ++m_depth;
                 begin = m_pos;
                 ++m_pos;
             } else if (slice.startsWith(ONE_LINE_DOC1_COMMENT_START) ||
@@ -558,13 +584,15 @@ Token Lexer::next()
             } else if (slice.startsWith(MULTI_LINE_DOC1_COMMENT_START) ||
                        slice.startsWith(MULTI_LINE_DOC2_COMMENT_START)) {
                 state = State::MultiLineDocComment;
-                m_multiLineState = State::MultiLineDocComment;
-                m_multiLineDepth = 1;
+                m_multiLineState = MultiLineState::DocComment;
+                m_multiLineParam = 1;
+                ++m_depth;
                 begin = m_pos;
             } else if (slice.startsWith(MULTI_LINE_COMMENT_START)) {
                 state = State::MultiLineComment;
-                m_multiLineState = State::MultiLineComment;
-                m_multiLineDepth = 1;
+                m_multiLineState = MultiLineState::Comment;
+                m_multiLineParam = 1;
+                ++m_depth;
                 begin = m_pos;
             } else if (isXidStart(character)) {
                 begin = m_pos;
@@ -603,11 +631,15 @@ Token Lexer::next()
                 begin = m_pos;
                 ++m_pos;
                 state = State::BraceLeft;
+                ++m_depth;
                 break;
             } else if (character == CHAR_BRACE_RIGHT) {
                 begin = m_pos;
                 ++m_pos;
                 state = State::BraceRight;
+                if (m_depth > 0) {
+                    --m_depth;
+                }
                 break;
             } else if (slice.startsWith(ATTRIBUTE_START)) {
                 begin = m_pos;
@@ -688,7 +720,9 @@ Token Lexer::next()
         } else if (state == State::String) {
             if (character == CHAR_DOUBLE_QUOTE) {
                 ++m_pos;
-                m_multiLineState = State::Default;
+                m_multiLineState = MultiLineState::Default;
+                m_multiLineParam = 0;
+                --m_depth;
                 break;
             } else if (character == CHAR_BACKSLASH && m_pos+1 < m_buf.size() &&
                        isEol(m_buf[m_pos+1])) {
@@ -709,10 +743,11 @@ Token Lexer::next()
             if (slice.startsWith(RAW_STRING_END)) {
                 const int posAfterHashes = skipWhile(m_pos + 1, m_buf,
                                                      [](const QChar c){ return c == CHAR_HASH; });
-                if (posAfterHashes - m_pos - 1 >= m_multiLineDepth) {
-                    m_pos += m_multiLineDepth + 1;
-                    m_multiLineState = State::Default;
-                    m_multiLineDepth = 0;
+                if (posAfterHashes - m_pos - 1 >= m_multiLineParam) {
+                    m_pos += m_multiLineParam + 1;
+                    m_multiLineState = MultiLineState::Default;
+                    m_multiLineParam = 0;
+                    --m_depth;
                     break;
                 }
             } else if (isEol(character)) {
@@ -726,14 +761,19 @@ Token Lexer::next()
             }
         } else if (state == State::MultiLineComment || state == State::MultiLineDocComment) {
             if (slice.startsWith(MULTI_LINE_COMMENT_START)) {
-                ++m_multiLineDepth;
+                ++m_multiLineParam;
+                ++m_depth;
                 m_pos += MULTI_LINE_COMMENT_START.size() - 1;
             } else if (slice.startsWith(MULTI_LINE_COMMENT_END)) {
                 m_pos += MULTI_LINE_COMMENT_END.size() - 1;
-                --m_multiLineDepth;
-                if (m_multiLineDepth <= 0) {
+                --m_multiLineParam;
+                if (m_depth > 0) {
+                    --m_depth;
+                }
+                if (m_multiLineParam == 0) {
                     ++m_pos;
-                    m_multiLineState = State::Default;
+                    m_multiLineState = MultiLineState::Default;
+                    m_multiLineParam = 0;
                     break;
                 }
             } else if (isEol(character)) {
