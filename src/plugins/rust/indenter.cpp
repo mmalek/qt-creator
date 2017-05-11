@@ -26,6 +26,7 @@
 #include "indenter.h"
 #include "lexer.h"
 #include "token.h"
+#include "rustsourcelayout.h"
 #include <texteditor/tabsettings.h>
 
 namespace Rust {
@@ -63,13 +64,16 @@ void Indenter::indentBlock(QTextDocument *doc,
 
 int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &tabSettings)
 {
-    QTextBlock previous = block.previous();
-    if (previous.isValid()) {
-        const QString previousText = previous.text();
+    QTextBlock previousBlock = block.previous();
+    if (previousBlock.isValid()) {
+        const QString previousText = previousBlock.text();
 
         const int indent = tabSettings.indentationColumn(previousText);
 
-        Lexer prevLexer(&previousText, previous.userState());
+        Lexer prevLexer(&previousText,
+                        SourceLayout::multiLineState(previousBlock),
+                        SourceLayout::multiLineParam(previousBlock),
+                        SourceLayout::braceDepth(previousBlock));
 
         bool letWithoutEnd = false;
 
@@ -98,7 +102,10 @@ int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &
 
         delta -= [&block] {
             const QString text = block.text();
-            Lexer lexer(&text, block.userState());
+            Lexer lexer(&text,
+                        SourceLayout::multiLineState(block  ),
+                        SourceLayout::multiLineParam(block),
+                        SourceLayout::braceDepth(block));
             const Token token = lexer.next();
             return (token && token.type == TokenType::BraceRight) ? 1 : 0;
         } ();
