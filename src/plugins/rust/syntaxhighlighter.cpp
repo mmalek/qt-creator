@@ -146,6 +146,10 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
 
     TextEditor::TextDocumentLayout::setParentheses(block, parentheses);
     TextEditor::TextDocumentLayout::setFoldingIndent(block, currentDepth);
+
+    if (TextEditor::TextBlockUserData* data = TextEditor::TextDocumentLayout::userData(block)) {
+        data->setFoldingEndIncluded(true);
+    }
 }
 
 } // namespace Internal

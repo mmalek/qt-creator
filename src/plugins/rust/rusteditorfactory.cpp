@@ -28,6 +28,7 @@
 #include "indenter.h"
 #include "mimetypes.h"
 #include "racercompletionassist.h"
+#include "rustautocompleter.h"
 #include "syntaxhighlighter.h"
 
 #include <texteditor/basehoverhandler.h>
@@ -58,6 +59,7 @@ RustEditorFactory::RustEditorFactory()
         document->setMimeType(QLatin1String(MimeTypes::RUST_SOURCE));
         return document;
     });
+    setAutoCompleterCreator([](){ return new RustAutoCompleter; });
 
     setIndenterCreator([](){ return new Indenter; });
     setParenthesesMatchingEnabled(true);
