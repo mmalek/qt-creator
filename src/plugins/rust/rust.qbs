@@ -39,6 +39,8 @@ QtcPlugin {
         "projectmanager.cpp",
         "projectnode.h",
         "projectnode.cpp",
+        "rustautocompleter.cpp",
+        "rustautocompleter.h",
         "rustcparser.cpp",
         "rustcparser.hpp",
         "rusteditorfactory.cpp",

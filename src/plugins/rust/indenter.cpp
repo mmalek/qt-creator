@@ -28,23 +28,24 @@
 #include "token.h"
 #include "rustsourcelayout.h"
 #include <texteditor/tabsettings.h>
+#include <texteditor/textdocumentlayout.h>
 
 namespace Rust {
 namespace Internal {
+namespace {
 
-constexpr bool isOpenBracket(const QChar c)
+bool hasCloseBraceAtTheBeginning(const QTextBlock& block)
 {
-    return c == QLatin1Char('{') || c == QLatin1Char('(') || c == QLatin1Char('[');
+    const QString text = block.text();
+    const int pos = TextEditor::TabSettings::firstNonSpace(text);
+    return pos < text.size() && text[pos] == QLatin1Char('}');
 }
 
-constexpr bool isCloseBracket(const QChar c)
-{
-    return c == QLatin1Char('}') || c == QLatin1Char(')') || c == QLatin1Char(']');
-}
+} // namespace
 
 bool Indenter::isElectricCharacter(const QChar &ch) const
 {
-    return isOpenBracket(ch) || isCloseBracket(ch) || ch == QLatin1Char(';');
+    return ch == QLatin1Char('}');
 }
 
 void Indenter::indentBlock(QTextDocument *doc,
@@ -52,12 +53,12 @@ void Indenter::indentBlock(QTextDocument *doc,
                            const QChar &typedChar,
                            const TextEditor::TabSettings &tabSettings)
 {
-    Q_UNUSED(doc)
-    Q_UNUSED(typedChar)
+    Q_UNUSED(doc);
+    Q_UNUSED(typedChar);
 
     int indent = indentFor(block, tabSettings);
 
-    if (indent > 0) {
+    if (indent >= 0) {
         tabSettings.indentLine(block, indent);
     }
 }
@@ -66,52 +67,38 @@ int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &
 {
     QTextBlock previousBlock = block.previous();
     if (previousBlock.isValid()) {
+        int depth = TextEditor::TextDocumentLayout::braceDepth(previousBlock);
+        if (hasCloseBraceAtTheBeginning(block)) {
+            --depth;
+        }
+
+        QTextBlock prevPrevBlock = previousBlock.previous();
+        const int previousDepth = TextEditor::TextDocumentLayout::braceDepth(prevPrevBlock);
         const QString previousText = previousBlock.text();
-
-        const int indent = tabSettings.indentationColumn(previousText);
-
         Lexer prevLexer(&previousText,
-                        SourceLayout::multiLineState(previousBlock),
-                        SourceLayout::multiLineParam(previousBlock),
-                        SourceLayout::braceDepth(previousBlock));
+                        SourceLayout::multiLineState(prevPrevBlock),
+                        SourceLayout::multiLineParam(prevPrevBlock),
+                        SourceLayout::braceDepth(prevPrevBlock));
 
         bool letWithoutEnd = false;
 
-        int delta = 0;
         while (const Token token = prevLexer.next()) {
             if (token.type == TokenType::Keyword) {
-                if (previousText.midRef(token.begin, token.length) == QLatin1String("let")) {
+                const QStringRef text = previousText.midRef(token.begin, token.length);
+                if (text == QLatin1String("let") || text == QLatin1String("const")) {
                     letWithoutEnd = true;
                 }
             } else if (token.type == TokenType::Semicolon) {
                 letWithoutEnd = false;
-            } else if (token.type == TokenType::BraceLeft ||
-                token.type == TokenType::SquareBracketLeft ||
-                token.type == TokenType::ParenthesisLeft) {
-                ++delta;
-            } else if (token.type == TokenType::BraceRight ||
-                       token.type == TokenType::SquareBracketRight ||
-                       token.type == TokenType::ParenthesisRight) {
-                --delta;
             }
         }
 
-        if (delta <= 0 && letWithoutEnd) {
-            delta = 1;
+        if (depth <= previousDepth && letWithoutEnd) {
+            ++depth;
         }
 
-        delta -= [&block] {
-            const QString text = block.text();
-            Lexer lexer(&text,
-                        SourceLayout::multiLineState(block  ),
-                        SourceLayout::multiLineParam(block),
-                        SourceLayout::braceDepth(block));
-            const Token token = lexer.next();
-            return (token && token.type == TokenType::BraceRight) ? 1 : 0;
-        } ();
-
-        const int adjust = delta * tabSettings.m_indentSize;
-        return qMax(0, indent + adjust);
+        const int adjust = depth * tabSettings.m_indentSize;
+        return qMax(0, adjust);
     } else {
         return 0;
     }
