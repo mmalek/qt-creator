@@ -23,7 +23,7 @@
 **
 ****************************************************************************/
 
-#include "cargo.h"
+#include "rustcargo.h"
 
 #include <utils/environment.h>
 

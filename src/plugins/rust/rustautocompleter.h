@@ -30,7 +30,7 @@
 namespace Rust {
 namespace Internal {
 
-class RustAutoCompleter : public TextEditor::AutoCompleter
+class AutoCompleter : public TextEditor::AutoCompleter
 {
 public:
     bool contextAllowsAutoBrackets(const QTextCursor &cursor,

@@ -25,8 +25,8 @@
 
 #include "rustautocompleter.h"
 #include "rustsourcelayout.h"
-#include "lexer.h"
-#include "token.h"
+#include "rustlexer.h"
+#include "rusttoken.h"
 
 #include <QTextBlock>
 #include <QTextCursor>
@@ -75,44 +75,44 @@ constexpr bool isCommentOrString(const TokenType t)
 
 } // namespace
 
-bool RustAutoCompleter::contextAllowsAutoBrackets(const QTextCursor &cursor, const QString &textToInsert) const
+bool AutoCompleter::contextAllowsAutoBrackets(const QTextCursor &cursor, const QString &textToInsert) const
 {
     Q_UNUSED(textToInsert);
     return !isIn(cursor, &isCommentOrString);
 }
 
-bool RustAutoCompleter::contextAllowsAutoQuotes(const QTextCursor &cursor, const QString &textToInsert) const
+bool AutoCompleter::contextAllowsAutoQuotes(const QTextCursor &cursor, const QString &textToInsert) const
 {
     Q_UNUSED(textToInsert);
     return !isIn(cursor, &isCommentOrString);
 }
 
-bool RustAutoCompleter::contextAllowsElectricCharacters(const QTextCursor &cursor) const
+bool AutoCompleter::contextAllowsElectricCharacters(const QTextCursor &cursor) const
 {
     return !isIn(cursor, &isCommentOrString);
 }
 
-bool RustAutoCompleter::isInComment(const QTextCursor &cursor) const
+bool AutoCompleter::isInComment(const QTextCursor &cursor) const
 {
     return isIn(cursor, &isComment);
 }
 
-bool RustAutoCompleter::isInString(const QTextCursor &cursor) const
+bool AutoCompleter::isInString(const QTextCursor &cursor) const
 {
     return isIn(cursor, &isString);
 }
 
-QString RustAutoCompleter::insertMatchingBrace(const QTextCursor &cursor, const QString &text, QChar lookAhead, bool skipChars, int *skippedChars) const
+QString AutoCompleter::insertMatchingBrace(const QTextCursor &cursor, const QString &text, QChar lookAhead, bool skipChars, int *skippedChars) const
 {
     return TextEditor::AutoCompleter::insertMatchingBrace(cursor, text, lookAhead, skipChars, skippedChars);
 }
 
-QString RustAutoCompleter::insertMatchingQuote(const QTextCursor &cursor, const QString &text, QChar lookAhead, bool skipChars, int *skippedChars) const
+QString AutoCompleter::insertMatchingQuote(const QTextCursor &cursor, const QString &text, QChar lookAhead, bool skipChars, int *skippedChars) const
 {
     return TextEditor::AutoCompleter::insertMatchingQuote(cursor, text, lookAhead, skipChars, skippedChars);
 }
 
-QString RustAutoCompleter::insertParagraphSeparator(const QTextCursor &cursor) const
+QString AutoCompleter::insertParagraphSeparator(const QTextCursor &cursor) const
 {
     return TextEditor::AutoCompleter::insertParagraphSeparator(cursor);
 }

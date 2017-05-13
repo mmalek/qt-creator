@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "lexer.h"
+#include "rustlexer.h"
 #include <QtGlobal>
 
 class QTextBlock;

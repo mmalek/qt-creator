@@ -23,23 +23,27 @@
 **
 ****************************************************************************/
 
-#pragma once
-
-#include <texteditor/syntaxhighlighter.h>
+#include "rustprojectmanager.h"
+#include "rustmimetypes.h"
+#include "rustproject.h"
 
 namespace Rust {
 namespace Internal {
 
-class SyntaxHighlighter final : public TextEditor::SyntaxHighlighter
+QString ProjectManager::mimeType() const
 {
-    Q_OBJECT
+    return QLatin1String(MimeTypes::CARGO_MANIFEST);
+}
 
-public:
-    SyntaxHighlighter();
+ProjectExplorer::Project *ProjectManager::openProject(const QString &fileName, QString *errorString)
+{
+    if (!QFileInfo(fileName).isFile()) {
+        *errorString = tr("Cannot open Cargo manifest \"%1\": not a file.").arg(fileName);
+        return nullptr;
+    }
 
-protected:
-    void highlightBlock(const QString &text) override;
-};
+    return new Project(this, fileName);
+}
 
 } // namespace Internal
 } // namespace Rust

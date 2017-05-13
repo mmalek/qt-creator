@@ -24,9 +24,9 @@
 **
 ****************************************************************************/
 
-#include "project.h"
-#include "projectnode.h"
-#include "projectmanager.h"
+#include "rustproject.h"
+#include "rustprojectnode.h"
+#include "rustprojectmanager.h"
 
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/kit.h>

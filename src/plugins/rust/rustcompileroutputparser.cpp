@@ -23,7 +23,7 @@
 **
 ****************************************************************************/
 
-#include "rustcparser.hpp"
+#include "rustcompileroutputparser.h"
 
 #include <projectexplorer/projectexplorerconstants.h>
 #include <projectexplorer/task.h>
@@ -39,7 +39,7 @@
 namespace Rust {
 namespace Internal {
 
-void RustcParser::stdOutput(const QString &line)
+void CompilerOutputParser::stdOutput(const QString &line)
 {
     if (line.startsWith(QLatin1Char('{'))/* && line.endsWith(QLatin1Char('}'))*/) {
         QJsonParseError parseError;
@@ -63,7 +63,7 @@ void RustcParser::stdOutput(const QString &line)
     }
 }
 
-void RustcParser::parseMessage(const QJsonObject& message)
+void CompilerOutputParser::parseMessage(const QJsonObject& message)
 {
     QString description = message.value("message").toString();
 
@@ -139,7 +139,7 @@ void RustcParser::parseMessage(const QJsonObject& message)
     parseCode(message.value("code").toObject(), primaryFileName, primaryFileNameLine);
 }
 
-void RustcParser::parseCode(const QJsonObject& code, const Utils::FileName &file, int line)
+void CompilerOutputParser::parseCode(const QJsonObject& code, const Utils::FileName &file, int line)
 {
     if (code.isEmpty()) {
         return;

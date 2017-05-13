@@ -26,7 +26,7 @@
 
 #pragma once
 
-#include "product.h"
+#include "rustproduct.h"
 
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectnodes.h>

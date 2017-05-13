@@ -23,8 +23,8 @@
 **
 ****************************************************************************/
 
-#include "runconfiguration.h"
-#include "project.h"
+#include "rustrunconfiguration.h"
+#include "rustproject.h"
 
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/runconfigurationaspects.h>
