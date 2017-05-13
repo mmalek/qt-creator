@@ -724,8 +724,9 @@ Token Lexer::next()
                 m_multiLineParam = 0;
                 --m_depth;
                 break;
-            } else if (character == CHAR_BACKSLASH && m_pos+1 < m_buf.size() &&
-                       isEol(m_buf[m_pos+1])) {
+            } else if (character == CHAR_BACKSLASH &&
+                       (m_pos+1 >= m_buf.size() || isEol(m_buf[m_pos+1]))) {
+                m_pos = skipWhile(m_pos, m_buf, &isEol);
                 break;
             } else if (isEol(character)) {
                 m_pos = skipWhile(m_pos, m_buf, &isEol);
