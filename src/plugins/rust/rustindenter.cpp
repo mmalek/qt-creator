@@ -24,8 +24,6 @@
 ****************************************************************************/
 
 #include "rustindenter.h"
-#include "rustlexer.h"
-#include "rusttoken.h"
 #include "rustsourcelayout.h"
 #include <texteditor/tabsettings.h>
 #include <texteditor/textdocumentlayout.h>
@@ -48,21 +46,6 @@ bool Indenter::isElectricCharacter(const QChar &ch) const
     return ch == QLatin1Char('}');
 }
 
-void Indenter::indentBlock(QTextDocument *doc,
-                           const QTextBlock &block,
-                           const QChar &typedChar,
-                           const TextEditor::TabSettings &tabSettings)
-{
-    Q_UNUSED(doc);
-    Q_UNUSED(typedChar);
-
-    int indent = indentFor(block, tabSettings);
-
-    if (indent >= 0) {
-        tabSettings.indentLine(block, indent);
-    }
-}
-
 int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &tabSettings)
 {
     QTextBlock previousBlock = block.previous();
@@ -74,31 +57,13 @@ int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &
 
         QTextBlock prevPrevBlock = previousBlock.previous();
         const int previousDepth = TextEditor::TextDocumentLayout::braceDepth(prevPrevBlock);
-        const QString previousText = previousBlock.text();
-        Lexer prevLexer(&previousText,
-                        SourceLayout::multiLineState(prevPrevBlock),
-                        SourceLayout::multiLineParam(prevPrevBlock),
-                        SourceLayout::braceDepth(prevPrevBlock));
 
-        bool letWithoutEnd = false;
-
-        while (const Token token = prevLexer.next()) {
-            if (token.type == TokenType::Keyword) {
-                const QStringRef text = previousText.midRef(token.begin, token.length);
-                if (text == QLatin1String("let") || text == QLatin1String("const")) {
-                    letWithoutEnd = true;
-                }
-            } else if (token.type == TokenType::Semicolon) {
-                letWithoutEnd = false;
-            }
+        if (depth != previousDepth) {
+            const int indent = depth * tabSettings.m_indentSize;
+            return qMax(0, indent);
+        } else {
+            return tabSettings.indentationColumn(previousBlock.text());
         }
-
-        if (depth <= previousDepth && letWithoutEnd) {
-            ++depth;
-        }
-
-        const int adjust = depth * tabSettings.m_indentSize;
-        return qMax(0, adjust);
     } else {
         return 0;
     }

@@ -35,11 +35,6 @@ class Indenter final : public TextEditor::Indenter
 public:
     bool isElectricCharacter(const QChar &ch) const override;
 
-    void indentBlock(QTextDocument *doc,
-                     const QTextBlock &block,
-                     const QChar &typedChar,
-                     const TextEditor::TabSettings &tabSettings) override;
-
     int indentFor(const QTextBlock &block, const TextEditor::TabSettings &tabSettings) override;
 };
 
