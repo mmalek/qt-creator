@@ -60,9 +60,9 @@ IAssistProposal *RacerCompletionAssistProcessor::perform(const AssistInterface *
     QTextCursor cursor(interface->textDocument());
     cursor.setPosition(interface->position());
 
-    QTextBlock block = cursor.block();
+    const QTextBlock block = cursor.block();
     const int line = block.blockNumber() + 1;
-    const int column = cursor.position() - block.position();
+    int column = cursor.positionInBlock();
 
     QTemporaryFile file;
     if (file.open()) {
@@ -104,7 +104,7 @@ IAssistProposal *RacerCompletionAssistProcessor::perform(const AssistInterface *
                 }
             }
 
-            Keywords keywords(variables, {}, {});
+            Keywords keywords(variables, functions, {});
             setKeywords(keywords);
         }
     }
@@ -125,6 +125,16 @@ bool RacerCompletionAssistProvider::supportsEditor(Core::Id editorId) const
 IAssistProcessor *RacerCompletionAssistProvider::createProcessor() const
 {
     return new RacerCompletionAssistProcessor;
+}
+
+int RacerCompletionAssistProvider::activationCharSequenceLength() const
+{
+    return 2;
+}
+
+bool RacerCompletionAssistProvider::isActivationCharSequence(const QString &sequence) const
+{
+    return sequence.endsWith(QLatin1Char('.')) || sequence == QLatin1String("::");
 }
 
 } // namespace Internal
