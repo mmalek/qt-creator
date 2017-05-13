@@ -388,7 +388,7 @@ void LexerTest::multiLineStringEscapedEol()
     const QString buffer{QLatin1String{"\"abc\\\ndef\""}};
     Lexer lexer{&buffer};
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
-    QCOMPARE(lexer.next(), (Token{0, 4, TokenType::String}));
+    QCOMPARE(lexer.next(), (Token{0, 6, TokenType::String}));
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::String);
     QCOMPARE(lexer.multiLineParam(), (quint8)0);
     QCOMPARE(lexer.next(), (Token{6, 4, TokenType::String}));
