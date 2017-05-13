@@ -23,9 +23,9 @@
 **
 ****************************************************************************/
 
-#include "buildstep.h"
-#include "rustcparser.hpp"
-#include "ui_buildstepconfigwidget.h"
+#include "rustbuildstep.h"
+#include "rustcompileroutputparser.h"
+#include "ui_rustbuildstepconfigwidget.h"
 
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/buildsteplist.h>
@@ -71,7 +71,7 @@ bool CargoStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
         processParameters()->setArguments(mainArgs().trimmed());
     }
 
-    setOutputParser(new RustcParser);
+    setOutputParser(new CompilerOutputParser);
 
     return AbstractProcessStep::init(earlierSteps);
 }

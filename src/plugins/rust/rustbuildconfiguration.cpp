@@ -23,11 +23,11 @@
 **
 ****************************************************************************/
 
-#include "buildconfiguration.h"
-#include "buildstep.h"
-#include "mimetypes.h"
-#include "project.h"
-#include "ui_buildconfigurationwidget.h"
+#include "rustbuildconfiguration.h"
+#include "rustbuildstep.h"
+#include "rustmimetypes.h"
+#include "rustproject.h"
+#include "ui_rustbuildconfigurationwidget.h"
 
 #include <projectexplorer/buildinfo.h>
 #include <projectexplorer/buildsteplist.h>

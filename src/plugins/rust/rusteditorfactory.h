@@ -30,12 +30,12 @@
 namespace Rust {
 namespace Internal {
 
-class RustEditorFactory : public TextEditor::TextEditorFactory
+class EditorFactory : public TextEditor::TextEditorFactory
 {
     Q_OBJECT
 
 public:
-    RustEditorFactory();
+    EditorFactory();
 };
 
 } // namespace Internal

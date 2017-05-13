@@ -23,8 +23,8 @@
 **
 ****************************************************************************/
 
-#include "lexer.h"
-#include "token.h"
+#include "rustlexer.h"
+#include "rusttoken.h"
 
 #include <algorithm>
 #include <array>

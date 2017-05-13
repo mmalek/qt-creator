@@ -23,9 +23,9 @@
 **
 ****************************************************************************/
 
-#include "indenter.h"
-#include "lexer.h"
-#include "token.h"
+#include "rustindenter.h"
+#include "rustlexer.h"
+#include "rusttoken.h"
 #include "rustsourcelayout.h"
 #include <texteditor/tabsettings.h>
 #include <texteditor/textdocumentlayout.h>

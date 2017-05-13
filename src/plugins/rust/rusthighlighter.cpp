@@ -23,9 +23,9 @@
 **
 ****************************************************************************/
 
-#include "syntaxhighlighter.h"
-#include "lexer.h"
-#include "token.h"
+#include "rusthighlighter.h"
+#include "rustlexer.h"
+#include "rusttoken.h"
 #include "rustsourcelayout.h"
 
 #include <texteditor/textdocumentlayout.h>
@@ -84,7 +84,7 @@ Category toCategory(TokenType tokenType)
 
 } // namespace
 
-SyntaxHighlighter::SyntaxHighlighter()
+Highlighter::Highlighter()
 {
     static_assert(static_cast<int>(Category::NumCategories) == 11,
                   "Number of categories changed, update the code below");
@@ -106,7 +106,7 @@ SyntaxHighlighter::SyntaxHighlighter()
     setTextFormatCategories(categories);
 }
 
-void SyntaxHighlighter::highlightBlock(const QString &text)
+void Highlighter::highlightBlock(const QString &text)
 {
     QTextBlock block = currentBlock();
     QTextBlock previousBlock = block.previous();

@@ -25,31 +25,20 @@
 
 #pragma once
 
-#include <projectexplorer/ioutputparser.h>
-
-class QJsonObject;
-
-namespace Utils { class FileName; }
+#include <texteditor/syntaxhighlighter.h>
 
 namespace Rust {
 namespace Internal {
 
-class RustcParser : public ProjectExplorer::IOutputParser
+class Highlighter final : public TextEditor::SyntaxHighlighter
 {
     Q_OBJECT
 
 public:
-    void stdOutput(const QString &line) override;
+    Highlighter();
 
-private:
-    void parseMessage(const QJsonObject& message);
-    void parseCode(const QJsonObject& code, const Utils::FileName &file, int line);
-
-    void showJsonOnConsole(bool value) { m_showJsonOnConsole = value; }
-    bool showJsonOnConsole() const { return m_showJsonOnConsole; }
-
-private:
-    bool m_showJsonOnConsole = false;
+protected:
+    void highlightBlock(const QString &text) override;
 };
 
 } // namespace Internal

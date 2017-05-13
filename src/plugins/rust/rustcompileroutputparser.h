@@ -23,38 +23,34 @@
 **
 ****************************************************************************/
 
-#include "rustsourcelayout.h"
-#include "rustlexer.h"
-#include <texteditor/textdocumentlayout.h>
-#include <QTextBlock>
+#pragma once
+
+#include <projectexplorer/ioutputparser.h>
+
+class QJsonObject;
+
+namespace Utils { class FileName; }
 
 namespace Rust {
 namespace Internal {
-namespace SourceLayout {
 
-Lexer::MultiLineState multiLineState(const QTextBlock &block)
+class CompilerOutputParser : public ProjectExplorer::IOutputParser
 {
-    const int userState = block.userState();
-    return static_cast<Lexer::MultiLineState>(qMax(userState, 0) & 0xFF);
-}
+    Q_OBJECT
 
-quint8 multiLineParam(const QTextBlock &block)
-{
-    return TextEditor::TextDocumentLayout::lexerState(block);
-}
+public:
+    void stdOutput(const QString &line) override;
 
-quint8 braceDepth(const QTextBlock &block)
-{
-    const int userState = block.userState();
-    return userState > 0 ? (userState >> 8) : 0;
-}
+private:
+    void parseMessage(const QJsonObject& message);
+    void parseCode(const QJsonObject& code, const Utils::FileName &file, int line);
 
-void saveLexerState(QTextBlock &block, const Lexer& lexer)
-{
-    TextEditor::TextDocumentLayout::setLexerState(block, lexer.multiLineParam());
-    block.setUserState((lexer.depth() << 8) | (static_cast<int>(lexer.multiLineState()) & 0xFF));
-}
+    void showJsonOnConsole(bool value) { m_showJsonOnConsole = value; }
+    bool showJsonOnConsole() const { return m_showJsonOnConsole; }
 
-} // namespace SourceLayout
+private:
+    bool m_showJsonOnConsole = false;
+};
+
 } // namespace Internal
 } // namespace Rust

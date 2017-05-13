@@ -24,12 +24,12 @@
 ****************************************************************************/
 
 #include "rusteditorfactory.h"
-#include "editors.h"
-#include "indenter.h"
-#include "mimetypes.h"
-#include "racercompletionassist.h"
+#include "rusteditors.h"
+#include "rustindenter.h"
+#include "rustmimetypes.h"
+#include "rustracercompletionassist.h"
 #include "rustautocompleter.h"
-#include "syntaxhighlighter.h"
+#include "rusthighlighter.h"
 
 #include <texteditor/basehoverhandler.h>
 #include <texteditor/textdocument.h>
@@ -39,7 +39,7 @@
 namespace Rust {
 namespace Internal {
 
-RustEditorFactory::RustEditorFactory()
+EditorFactory::EditorFactory()
 {
     setId(Editors::RUST);
     setDisplayName(tr("Rust Editor"));
@@ -50,7 +50,7 @@ RustEditorFactory::RustEditorFactory()
                             TextEditor::TextEditorActionHandler::UnCommentSelection |
                             TextEditor::TextEditorActionHandler::UnCollapseAll);
 
-    setSyntaxHighlighterCreator([](){ return new SyntaxHighlighter; });
+    setSyntaxHighlighterCreator([](){ return new Highlighter; });
 
     setCommentStyle(Utils::CommentDefinition::CppStyle);
     setCompletionAssistProvider(new RacerCompletionAssistProvider);
@@ -59,7 +59,7 @@ RustEditorFactory::RustEditorFactory()
         document->setMimeType(QLatin1String(MimeTypes::RUST_SOURCE));
         return document;
     });
-    setAutoCompleterCreator([](){ return new RustAutoCompleter; });
+    setAutoCompleterCreator([](){ return new AutoCompleter; });
 
     setIndenterCreator([](){ return new Indenter; });
     setParenthesesMatchingEnabled(true);

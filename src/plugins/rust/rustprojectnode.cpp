@@ -23,26 +23,57 @@
 **
 ****************************************************************************/
 
-#include "projectmanager.h"
-#include "mimetypes.h"
-#include "project.h"
+#include "rustprojectnode.h"
+
+#include <projectexplorer/projectnodes.h>
 
 namespace Rust {
 namespace Internal {
 
-QString ProjectManager::mimeType() const
+ProjectNode::ProjectNode(const Utils::FileName &projectFilePath)
+    : ProjectExplorer::ProjectNode(projectFilePath)
+{}
+
+QList<ProjectExplorer::ProjectAction> ProjectNode::supportedActions(Node *node) const
 {
-    return QLatin1String(MimeTypes::CARGO_MANIFEST);
+    using namespace ProjectExplorer;
+
+    switch (node->nodeType()) {
+    case FileNodeType:
+        return { Rename, RemoveFile };
+    case FolderNodeType:
+    case ProjectNodeType:
+        return { AddNewFile, RemoveFile };
+    default:
+        return ProjectNode::supportedActions(node);
+    }
 }
 
-ProjectExplorer::Project *ProjectManager::openProject(const QString &fileName, QString *errorString)
+bool ProjectNode::addFiles(const QStringList &filePaths, QStringList *notAdded)
 {
-    if (!QFileInfo(fileName).isFile()) {
-        *errorString = tr("Cannot open Cargo manifest \"%1\": not a file.").arg(fileName);
-        return nullptr;
-    }
+    Q_UNUSED(filePaths)
+    Q_UNUSED(notAdded)
+    return true;
+}
 
-    return new Project(this, fileName);
+bool ProjectNode::removeFiles(const QStringList &filePaths, QStringList *notRemoved)
+{
+    Q_UNUSED(filePaths)
+    Q_UNUSED(notRemoved)
+    return true;
+}
+
+bool ProjectNode::deleteFiles(const QStringList &filePaths)
+{
+    Q_UNUSED(filePaths)
+    return true;
+}
+
+bool ProjectNode::renameFile(const QString &filePath, const QString &newFilePath)
+{
+    Q_UNUSED(filePath)
+    Q_UNUSED(newFilePath)
+    return true;
 }
 
 } // namespace Internal

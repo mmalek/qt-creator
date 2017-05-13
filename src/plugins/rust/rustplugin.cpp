@@ -23,57 +23,59 @@
 **
 ****************************************************************************/
 
-#include "projectnode.h"
+#include "rustplugin.h"
+#include "rustmimetypes.h"
+#include "rustprojectmanager.h"
+#include "rustbuildconfiguration.h"
+#include "rustbuildstep.h"
+#include "rustrunconfiguration.h"
+#include "rusteditorfactory.h"
 
-#include <projectexplorer/projectnodes.h>
+#include <coreplugin/fileiconprovider.h>
+#include <utils/mimetypes/mimedatabase.h>
+
+#include <QtPlugin>
 
 namespace Rust {
 namespace Internal {
 
-ProjectNode::ProjectNode(const Utils::FileName &projectFilePath)
-    : ProjectExplorer::ProjectNode(projectFilePath)
-{}
+static Plugin *m_instance = 0;
 
-QList<ProjectExplorer::ProjectAction> ProjectNode::supportedActions(Node *node) const
+Plugin::Plugin()
 {
-    using namespace ProjectExplorer;
+    m_instance = this;
+}
 
-    switch (node->nodeType()) {
-    case FileNodeType:
-        return { Rename, RemoveFile };
-    case FolderNodeType:
-    case ProjectNodeType:
-        return { AddNewFile, RemoveFile };
-    default:
-        return ProjectNode::supportedActions(node);
+Plugin::~Plugin()
+{
+    m_instance = 0;
+}
+
+bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
+{
+    Q_UNUSED(arguments)
+    Q_UNUSED(errorMessage)
+
+    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
+
+    addAutoReleasedObject(new ProjectManager);
+    addAutoReleasedObject(new BuildConfigurationFactory);
+    addAutoReleasedObject(new BuildStepFactory);
+    addAutoReleasedObject(new RunConfigurationFactory);
+    addAutoReleasedObject(new EditorFactory);
+
+    // Add MIME overlay icons (these icons displayed at Project dock panel)
+    const QIcon icon((QLatin1String(":/images/rust.svg")));
+    if (!icon.isNull()) {
+        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
+        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
     }
-}
 
-bool ProjectNode::addFiles(const QStringList &filePaths, QStringList *notAdded)
-{
-    Q_UNUSED(filePaths)
-    Q_UNUSED(notAdded)
     return true;
 }
 
-bool ProjectNode::removeFiles(const QStringList &filePaths, QStringList *notRemoved)
+void Plugin::extensionsInitialized()
 {
-    Q_UNUSED(filePaths)
-    Q_UNUSED(notRemoved)
-    return true;
-}
-
-bool ProjectNode::deleteFiles(const QStringList &filePaths)
-{
-    Q_UNUSED(filePaths)
-    return true;
-}
-
-bool ProjectNode::renameFile(const QString &filePath, const QString &newFilePath)
-{
-    Q_UNUSED(filePath)
-    Q_UNUSED(newFilePath)
-    return true;
 }
 
 } // namespace Internal

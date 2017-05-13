@@ -23,8 +23,8 @@
 **
 ****************************************************************************/
 
-#include "racercompletionassist.h"
-#include "editors.h"
+#include "rustracercompletionassist.h"
+#include "rusteditors.h"
 
 #include <coreplugin/id.h>
 #include <texteditor/codeassist/assistinterface.h>

@@ -23,10 +23,10 @@
 **
 ****************************************************************************/
 
-#include "lexer_test.h"
+#include "rustlexer_test.h"
 
-#include <rust/lexer.h>
-#include <rust/token.h>
+#include <rust/rustlexer.h>
+#include <rust/rusttoken.h>
 
 #include <QtTest>
 
