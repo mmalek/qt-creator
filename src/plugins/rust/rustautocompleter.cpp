@@ -25,8 +25,6 @@
 
 #include "rustautocompleter.h"
 #include "rustsourcelayout.h"
-#include "rustlexer.h"
-#include "rusttoken.h"
 
 #include <QTextBlock>
 #include <QTextCursor>
@@ -34,72 +32,31 @@
 namespace Rust {
 namespace Internal {
 
-namespace {
-
-bool isIn(const QTextCursor &cursor, bool (*predicate)(TokenType))
-{
-    const int cursorPos = cursor.positionInBlock();
-    const QTextBlock block = cursor.block();
-    const QTextBlock previousBlock = block.previous();
-    const QString text = block.text();
-
-    Lexer lexer(&text,
-                SourceLayout::multiLineState(previousBlock),
-                SourceLayout::multiLineParam(previousBlock),
-                SourceLayout::braceDepth(previousBlock));
-
-    while(Token token = lexer.next()) {
-        const int end = token.begin + token.length;
-        if (cursorPos < end) {
-            return predicate(token.type);
-        }
-    }
-
-    return false;
-}
-
-constexpr bool isComment(const TokenType t)
-{
-    return t == TokenType::Comment || t == TokenType::DocComment;
-}
-
-constexpr bool isString(const TokenType t)
-{
-    return t == TokenType::String;
-}
-
-constexpr bool isCommentOrString(const TokenType t)
-{
-    return isComment(t) || isString(t);
-}
-
-} // namespace
-
 bool AutoCompleter::contextAllowsAutoBrackets(const QTextCursor &cursor, const QString &textToInsert) const
 {
     Q_UNUSED(textToInsert);
-    return !isIn(cursor, &isCommentOrString);
+    return !SourceLayout::isInCommentOrString(cursor);
 }
 
 bool AutoCompleter::contextAllowsAutoQuotes(const QTextCursor &cursor, const QString &textToInsert) const
 {
     Q_UNUSED(textToInsert);
-    return !isIn(cursor, &isCommentOrString);
+    return !SourceLayout::isInCommentOrString(cursor);
 }
 
 bool AutoCompleter::contextAllowsElectricCharacters(const QTextCursor &cursor) const
 {
-    return !isIn(cursor, &isCommentOrString);
+    return !SourceLayout::isInCommentOrString(cursor);
 }
 
 bool AutoCompleter::isInComment(const QTextCursor &cursor) const
 {
-    return isIn(cursor, &isComment);
+    return !SourceLayout::isInComment(cursor);
 }
 
 bool AutoCompleter::isInString(const QTextCursor &cursor) const
 {
-    return isIn(cursor, &isString);
+    return !SourceLayout::isInString(cursor);
 }
 
 QString AutoCompleter::insertMatchingBrace(const QTextCursor &cursor, const QString &text, QChar lookAhead, bool skipChars, int *skippedChars) const

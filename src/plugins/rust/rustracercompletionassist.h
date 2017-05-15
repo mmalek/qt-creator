@@ -27,6 +27,7 @@
 
 #include <texteditor/codeassist/completionassistprovider.h>
 #include <texteditor/codeassist/keywordscompletionassist.h>
+#include <texteditor/codeassist/assistproposalitem.h>
 
 namespace Rust {
 namespace Internal {
@@ -51,6 +52,19 @@ public:
     TextEditor::IAssistProcessor *createProcessor() const override;
     int activationCharSequenceLength() const override;
     bool isActivationCharSequence(const QString &sequence) const override;
+};
+
+class RacerAssistProposalItem : public TextEditor::AssistProposalItem
+{
+public:
+    enum class Type {
+        Function,
+        Other
+    };
+
+    RacerAssistProposalItem(const QString &text, const QString &detail, Type type);
+
+    static QIcon iconForType(Type type);
 };
 
 } // namespace Internal

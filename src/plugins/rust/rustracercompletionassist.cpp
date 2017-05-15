@@ -91,20 +91,21 @@ IAssistProposal *RacerCompletionAssistProcessor::perform(const AssistInterface *
 
             QStringList variables;
             QStringList functions;
+            QMap<QString, QStringList> functionArgs;
             for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
                 QRegularExpressionMatch match = it.next();
                 if (match.lastCapturedIndex() == 6) {
                     QString symbol = match.captured(1);
-                    QStringRef type = match.capturedRef(4);
+                    variables.append(symbol);
 
-                    if (type == QLatin1String("Function"))
+                    if (match.capturedRef(5) == QLatin1String("Function")) {
                         functions.append(symbol);
-                    else
-                        variables.append(symbol);
+                        functionArgs[symbol].append(match.captured(6));
+                    }
                 }
             }
 
-            Keywords keywords(variables, functions, {});
+            Keywords keywords(variables, functions, functionArgs);
             setKeywords(keywords);
         }
     }
@@ -135,6 +136,31 @@ int RacerCompletionAssistProvider::activationCharSequenceLength() const
 bool RacerCompletionAssistProvider::isActivationCharSequence(const QString &sequence) const
 {
     return sequence.endsWith(QLatin1Char('.')) || sequence == QLatin1String("::");
+}
+
+RacerAssistProposalItem::RacerAssistProposalItem(const QString &text,
+                                                 const QString &detail,
+                                                 RacerAssistProposalItem::Type type)
+{
+    setText(text);
+    setDetail(detail);
+    setIcon(iconForType(type));
+}
+
+QIcon RacerAssistProposalItem::iconForType(RacerAssistProposalItem::Type type)
+{
+    switch (type) {
+    case Type::Function: {
+        static QIcon icon(QLatin1String(":/codemodel/images/classmemberfunction.png"));
+        return icon;
+    }
+    case Type::Other: {
+        static QIcon icon(QLatin1String(":/codemodel/images/member.png"));
+        return icon;
+    }
+    default:
+        return QIcon();
+    }
 }
 
 } // namespace Internal

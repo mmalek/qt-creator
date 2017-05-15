@@ -28,6 +28,7 @@
 #include "rustlexer.h"
 #include <QtGlobal>
 
+class QTextCursor;
 class QTextBlock;
 
 namespace Rust {
@@ -44,6 +45,12 @@ Lexer::MultiLineState multiLineState(const QTextBlock &block);
 quint8 multiLineParam(const QTextBlock &block);
 
 void saveLexerState(QTextBlock &block, const Lexer& lexer);
+
+bool isInComment(const QTextCursor &cursor);
+
+bool isInString(const QTextCursor &cursor);
+
+bool isInCommentOrString(const QTextCursor &cursor);
 
 } // namespace SourceLayout
 } // namespace Internal
