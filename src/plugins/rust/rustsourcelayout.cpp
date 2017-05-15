@@ -24,13 +24,54 @@
 ****************************************************************************/
 
 #include "rustsourcelayout.h"
-#include "rustlexer.h"
+#include "rusttoken.h"
 #include <texteditor/textdocumentlayout.h>
 #include <QTextBlock>
 
 namespace Rust {
 namespace Internal {
 namespace SourceLayout {
+
+namespace {
+
+bool isIn(const QTextCursor &cursor, bool (*predicate)(TokenType))
+{
+    const int cursorPos = cursor.positionInBlock();
+    const QTextBlock block = cursor.block();
+    const QTextBlock previousBlock = block.previous();
+    const QString text = block.text();
+
+    Lexer lexer(&text,
+                SourceLayout::multiLineState(previousBlock),
+                SourceLayout::multiLineParam(previousBlock),
+                SourceLayout::braceDepth(previousBlock));
+
+    while(Token token = lexer.next()) {
+        const int end = token.begin + token.length;
+        if (cursorPos < end) {
+            return predicate(token.type);
+        }
+    }
+
+    return false;
+}
+
+constexpr bool isComment(const TokenType t)
+{
+    return t == TokenType::Comment || t == TokenType::DocComment;
+}
+
+constexpr bool isString(const TokenType t)
+{
+    return t == TokenType::String;
+}
+
+constexpr bool isCommentOrString(const TokenType t)
+{
+    return isComment(t) || isString(t);
+}
+
+} // namespace
 
 Lexer::MultiLineState multiLineState(const QTextBlock &block)
 {
@@ -53,6 +94,21 @@ void saveLexerState(QTextBlock &block, const Lexer& lexer)
 {
     TextEditor::TextDocumentLayout::setLexerState(block, lexer.multiLineParam());
     block.setUserState((lexer.depth() << 8) | (static_cast<int>(lexer.multiLineState()) & 0xFF));
+}
+
+bool isInComment(const QTextCursor &cursor)
+{
+    return isIn(cursor, &isComment);
+}
+
+bool isInString(const QTextCursor &cursor)
+{
+    return isIn(cursor, &isString);
+}
+
+bool isInCommentOrString(const QTextCursor &cursor)
+{
+    return !isIn(cursor, &isCommentOrString);
 }
 
 } // namespace SourceLayout
