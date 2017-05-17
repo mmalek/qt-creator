@@ -48,6 +48,8 @@ namespace {
 const char BUILD_TYPE_KEY[] = "Rust.BuildConfiguration.BuildType";
 const char BUILD_TYPE_VAL_DEBUG[] = "Debug";
 const char BUILD_TYPE_VAL_RELEASE[] = "Release";
+constexpr int BUILD_TYPE_DEBUG = 0;
+constexpr int BUILD_TYPE_RELEASE = 1;
 
 } // namespace
 
@@ -130,9 +132,6 @@ void BuildConfiguration::updateBuildDirectory()
 BuildConfigurationWidget::BuildConfigurationWidget(BuildConfiguration *buildConfiguration)
     : m_ui(new Ui::BuildConfigurationWidget)
 {
-    constexpr int BUILD_TYPE_DEBUG = 0;
-    constexpr int BUILD_TYPE_RELEASE = 1;
-
     m_ui->setupUi(this);
 
     if (buildConfiguration->buildType() == BuildConfiguration::Debug) {
