@@ -84,63 +84,63 @@ enum class CharState {
     End
 };
 
-constexpr QChar CHAR_NUL = 0x0000; // \0
-constexpr QChar CHAR_HT = 0x0009; // \t
-constexpr QChar CHAR_LF = 0x000A; // \n
-constexpr QChar CHAR_CR = 0x000D; // \r
-constexpr QChar CHAR_EXCLAMATION = 0x0021; // !
-constexpr QChar CHAR_DOUBLE_QUOTE = 0x0022; // "
-constexpr QChar CHAR_HASH = 0x0023; // #
-constexpr QChar CHAR_SINGLE_QUOTE = 0x0027; // '
-constexpr QChar CHAR_PARENTHESES_LEFT = 0x0028; // (
-constexpr QChar CHAR_PARENTHESES_RIGHT = 0x0029; // )
-constexpr QChar CHAR_ASTERISK = 0x002A; // *
-constexpr QChar CHAR_PLUS = 0x002B; // +
-constexpr QChar CHAR_MINUS = 0x002D; // -
-constexpr QChar CHAR_POINT = 0x002E; // .
-constexpr QChar CHAR_SLASH = 0x002F; // /
-constexpr QChar CHAR_0 = 0x0030; // 0
-constexpr QChar CHAR_1 = 0x0031; // 1
-constexpr QChar CHAR_7 = 0x0037; // 7
-constexpr QChar CHAR_9 = 0x0039; // 9
-constexpr QChar CHAR_COLON = 0x003A; // :
-constexpr QChar CHAR_SEMICOLON = 0x003B; // ;
-constexpr QChar CHAR_A_UPPER = 0x0041; // A
-constexpr QChar CHAR_E_UPPER = 0x0045; // E
-constexpr QChar CHAR_F_UPPER = 0x0046; // F
-constexpr QChar CHAR_SQUARE_BRRACKET_LEFT = 0x005B; // [
-constexpr QChar CHAR_SQUARE_BRRACKET_RIGHT = 0x005D; // ]
-constexpr QChar CHAR_BACKSLASH = 0x005C;
-constexpr QChar CHAR_UNDERSCORE = 0x005F; // _
-constexpr QChar CHAR_A_LOWER = 0x0061; // a
-constexpr QChar CHAR_B_LOWER = 0x0062; // b
-constexpr QChar CHAR_E_LOWER = 0x0065; // e
-constexpr QChar CHAR_F_LOWER = 0x0066; // f
-constexpr QChar CHAR_H_LOWER = 0x0068; // f
-constexpr QChar CHAR_N_LOWER = 0x006E; // n
-constexpr QChar CHAR_O_LOWER = 0x006F; // o
-constexpr QChar CHAR_R_LOWER = 0x0072; // r
-constexpr QChar CHAR_T_LOWER = 0x0074; // t
-constexpr QChar CHAR_U_LOWER = 0x0075; // u
-constexpr QChar CHAR_X_LOWER = 0x0078; // x
-constexpr QChar CHAR_BRACE_LEFT = 0x007B; // {
-constexpr QChar CHAR_BRACE_RIGHT = 0x007D; // }
+Q_CONSTEXPR QChar CHAR_NUL = 0x0000; // \0
+Q_CONSTEXPR QChar CHAR_HT = 0x0009; // \t
+Q_CONSTEXPR QChar CHAR_LF = 0x000A; // \n
+Q_CONSTEXPR QChar CHAR_CR = 0x000D; // \r
+Q_CONSTEXPR QChar CHAR_EXCLAMATION = 0x0021; // !
+Q_CONSTEXPR QChar CHAR_DOUBLE_QUOTE = 0x0022; // "
+Q_CONSTEXPR QChar CHAR_HASH = 0x0023; // #
+Q_CONSTEXPR QChar CHAR_SINGLE_QUOTE = 0x0027; // '
+Q_CONSTEXPR QChar CHAR_PARENTHESES_LEFT = 0x0028; // (
+Q_CONSTEXPR QChar CHAR_PARENTHESES_RIGHT = 0x0029; // )
+Q_CONSTEXPR QChar CHAR_ASTERISK = 0x002A; // *
+Q_CONSTEXPR QChar CHAR_PLUS = 0x002B; // +
+Q_CONSTEXPR QChar CHAR_MINUS = 0x002D; // -
+Q_CONSTEXPR QChar CHAR_POINT = 0x002E; // .
+Q_CONSTEXPR QChar CHAR_SLASH = 0x002F; // /
+Q_CONSTEXPR QChar CHAR_0 = 0x0030; // 0
+Q_CONSTEXPR QChar CHAR_1 = 0x0031; // 1
+Q_CONSTEXPR QChar CHAR_7 = 0x0037; // 7
+Q_CONSTEXPR QChar CHAR_9 = 0x0039; // 9
+Q_CONSTEXPR QChar CHAR_COLON = 0x003A; // :
+Q_CONSTEXPR QChar CHAR_SEMICOLON = 0x003B; // ;
+Q_CONSTEXPR QChar CHAR_A_UPPER = 0x0041; // A
+Q_CONSTEXPR QChar CHAR_E_UPPER = 0x0045; // E
+Q_CONSTEXPR QChar CHAR_F_UPPER = 0x0046; // F
+Q_CONSTEXPR QChar CHAR_SQUARE_BRRACKET_LEFT = 0x005B; // [
+Q_CONSTEXPR QChar CHAR_SQUARE_BRRACKET_RIGHT = 0x005D; // ]
+Q_CONSTEXPR QChar CHAR_BACKSLASH = 0x005C;
+Q_CONSTEXPR QChar CHAR_UNDERSCORE = 0x005F; // _
+Q_CONSTEXPR QChar CHAR_A_LOWER = 0x0061; // a
+Q_CONSTEXPR QChar CHAR_B_LOWER = 0x0062; // b
+Q_CONSTEXPR QChar CHAR_E_LOWER = 0x0065; // e
+Q_CONSTEXPR QChar CHAR_F_LOWER = 0x0066; // f
+Q_CONSTEXPR QChar CHAR_H_LOWER = 0x0068; // f
+Q_CONSTEXPR QChar CHAR_N_LOWER = 0x006E; // n
+Q_CONSTEXPR QChar CHAR_O_LOWER = 0x006F; // o
+Q_CONSTEXPR QChar CHAR_R_LOWER = 0x0072; // r
+Q_CONSTEXPR QChar CHAR_T_LOWER = 0x0074; // t
+Q_CONSTEXPR QChar CHAR_U_LOWER = 0x0075; // u
+Q_CONSTEXPR QChar CHAR_X_LOWER = 0x0078; // x
+Q_CONSTEXPR QChar CHAR_BRACE_LEFT = 0x007B; // {
+Q_CONSTEXPR QChar CHAR_BRACE_RIGHT = 0x007D; // }
 
-constexpr QLatin1String BYTE_START{"b\'"};
-constexpr QLatin1String BYTE_STRING_START{"b\""};
-constexpr QLatin1String RAW_STRING_START{"r#"};
-constexpr QLatin1String RAW_STRING_END{"\"#"};
-constexpr QLatin1String RAW_BYTE_STRING_START{"br#"};
-constexpr QLatin1String ONE_LINE_COMMENT_START{"//"};
-constexpr QLatin1String ONE_LINE_DOC1_COMMENT_START{"///"};
-constexpr QLatin1String ONE_LINE_DOC2_COMMENT_START{"//!"};
-constexpr QLatin1String MULTI_LINE_COMMENT_START{"/*"};
-constexpr QLatin1String MULTI_LINE_DOC1_COMMENT_START{"/**"};
-constexpr QLatin1String MULTI_LINE_DOC2_COMMENT_START{"/*!"};
-constexpr QLatin1String MULTI_LINE_COMMENT_END{"*/"};
-constexpr QLatin1String ATTRIBUTE_START{"#["};
+Q_CONSTEXPR QLatin1String BYTE_START{"b\'"};
+Q_CONSTEXPR QLatin1String BYTE_STRING_START{"b\""};
+Q_CONSTEXPR QLatin1String RAW_STRING_START{"r#"};
+Q_CONSTEXPR QLatin1String RAW_STRING_END{"\"#"};
+Q_CONSTEXPR QLatin1String RAW_BYTE_STRING_START{"br#"};
+Q_CONSTEXPR QLatin1String ONE_LINE_COMMENT_START{"//"};
+Q_CONSTEXPR QLatin1String ONE_LINE_DOC1_COMMENT_START{"///"};
+Q_CONSTEXPR QLatin1String ONE_LINE_DOC2_COMMENT_START{"//!"};
+Q_CONSTEXPR QLatin1String MULTI_LINE_COMMENT_START{"/*"};
+Q_CONSTEXPR QLatin1String MULTI_LINE_DOC1_COMMENT_START{"/**"};
+Q_CONSTEXPR QLatin1String MULTI_LINE_DOC2_COMMENT_START{"/*!"};
+Q_CONSTEXPR QLatin1String MULTI_LINE_COMMENT_END{"*/"};
+Q_CONSTEXPR QLatin1String ATTRIBUTE_START{"#["};
 
-constexpr std::array<QLatin1String, 52> KEYWORDS =
+Q_CONSTEXPR std::array<QLatin1String, 52> KEYWORDS =
 {
     QLatin1String("abstract"),
     QLatin1String("alignof"),
@@ -196,7 +196,7 @@ constexpr std::array<QLatin1String, 52> KEYWORDS =
     QLatin1String("yield")
 };
 
-constexpr std::array<QLatin1String, 10> INT_TYPES =
+Q_CONSTEXPR std::array<QLatin1String, 10> INT_TYPES =
 {
     QLatin1String("i16"),
     QLatin1String("i32"),
@@ -210,20 +210,20 @@ constexpr std::array<QLatin1String, 10> INT_TYPES =
     QLatin1String("usize")
 };
 
-constexpr std::array<QLatin1String, 2> FLOAT_TYPES =
+Q_CONSTEXPR std::array<QLatin1String, 2> FLOAT_TYPES =
 {
     QLatin1String("f32"),
     QLatin1String("f64")
 };
 
-constexpr std::array<QLatin1String, 3> OTHER_PRIMITIVE_TYPES =
+Q_CONSTEXPR std::array<QLatin1String, 3> OTHER_PRIMITIVE_TYPES =
 {
     QLatin1String("bool"),
     QLatin1String("char"),
     QLatin1String("str")
 };
 
-constexpr std::array<QLatin1String, 5> STD_TYPES =
+Q_CONSTEXPR std::array<QLatin1String, 5> STD_TYPES =
 {
     QLatin1String("Box"),
     QLatin1String("Option"),
@@ -232,9 +232,9 @@ constexpr std::array<QLatin1String, 5> STD_TYPES =
     QLatin1String("Vec")
 };
 
-constexpr QLatin1String SHORT_OPERATORS{"=!?+-*/%&|^<>,."};
+Q_CONSTEXPR QLatin1String SHORT_OPERATORS{"=!?+-*/%&|^<>,."};
 
-constexpr std::array<QLatin1String, 20> LONG_OPERATORS =
+Q_CONSTEXPR std::array<QLatin1String, 20> LONG_OPERATORS =
 {
     QLatin1String(".."),
     QLatin1String("<<"),
@@ -269,12 +269,12 @@ bool isKeyword(QStringRef text)
     return binarySearch(KEYWORDS, text);
 }
 
-constexpr bool isXidStart(const QChar c)
+bool isXidStart(const QChar c)
 {
     return c.isLetter() || c == CHAR_UNDERSCORE;
 }
 
-constexpr bool isXidContinue(QChar c)
+bool isXidContinue(QChar c)
 {
     return c.isLetterOrNumber() || c == CHAR_UNDERSCORE;
 }
@@ -288,19 +288,19 @@ int skipWhile(int pos, QStringRef buf, bool (*predicate)(QChar))
     return pos;
 }
 
-constexpr bool isBinDigit(const QChar c)
+bool isBinDigit(const QChar c)
 {
     return c == CHAR_0 || c == CHAR_1;
 }
 
-constexpr bool isHexDigit(const QChar c)
+bool isHexDigit(const QChar c)
 {
     return (c >= CHAR_0 && c <= CHAR_9) ||
            (c >= CHAR_A_UPPER && c <= CHAR_F_UPPER) ||
            (c >= CHAR_A_LOWER && c <= CHAR_F_LOWER);
 }
 
-constexpr bool isOctDigit(const QChar c)
+bool isOctDigit(const QChar c)
 {
     return c >= CHAR_0 && c <= CHAR_7;
 }
@@ -337,12 +337,12 @@ bool isEscapedChar(const QChar c)
         c == CHAR_T_LOWER;
 }
 
-constexpr bool isEol(const QChar c)
+bool isEol(const QChar c)
 {
     return c == CHAR_LF || c == CHAR_CR;
 }
 
-constexpr bool isUnprintableChar(const QChar c)
+bool isUnprintableChar(const QChar c)
 {
     return isEol(c) || c == CHAR_NUL || c == CHAR_HT;
 }
