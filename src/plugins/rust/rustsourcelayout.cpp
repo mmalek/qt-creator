@@ -108,7 +108,7 @@ bool isInString(const QTextCursor &cursor)
 
 bool isInCommentOrString(const QTextCursor &cursor)
 {
-    return !isIn(cursor, &isCommentOrString);
+    return isIn(cursor, &isCommentOrString);
 }
 
 } // namespace SourceLayout
