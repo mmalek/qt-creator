@@ -25,6 +25,7 @@
 
 #include "rustracercompletionassist.h"
 #include "rusteditors.h"
+#include "rustgrammar.h"
 #include "rustsourcelayout.h"
 
 #include <coreplugin/id.h>
@@ -32,6 +33,7 @@
 #include <texteditor/codeassist/assistproposalitem.h>
 #include <texteditor/codeassist/genericproposal.h>
 #include <texteditor/texteditor.h>
+#include <utils/algorithm.h>
 
 #include <QProcess>
 #include <QRegularExpression>
@@ -39,6 +41,8 @@
 #include <QTemporaryFile>
 #include <QTextBlock>
 #include <QTextStream>
+
+#include <algorithm>
 
 namespace Rust {
 namespace Internal {
@@ -58,12 +62,12 @@ Slice identAtCursor(const TextEditor::AssistInterface &interface)
 {
     const auto isXidStart = [&interface](const int pos) {
         const QChar c = interface.characterAt(pos);
-        return c.isLetter() || c == QLatin1Char('_');
+        return Grammar::isXidStart(c);
     };
 
     const auto isXidContinue = [&interface](const int pos) {
         const QChar c = interface.characterAt(pos);
-        return c.isLetterOrNumber() || c == QLatin1Char('_');
+        return Grammar::isXidContinue(c);
     };
 
     int begin = interface.position();
@@ -77,6 +81,20 @@ Slice identAtCursor(const TextEditor::AssistInterface &interface)
     for (; isXidContinue(end); ++end);
 
     return (begin < end) ? Slice(begin, end - begin) : Slice(interface.position());
+}
+
+void appendKeywords(QList<TextEditor::AssistProposalItemInterface *>& proposals)
+{
+    const auto addProposal = [&proposals](const QLatin1String& text) {
+        proposals.append(new RacerAssistProposalItem(text,
+                                                     QString(),
+                                                     RacerAssistProposalItem::Type::Keyword));
+    };
+
+    std::for_each(KEYWORDS.begin(), KEYWORDS.end(), addProposal);
+    std::for_each(INT_TYPES.begin(), INT_TYPES.end(), addProposal);
+    std::for_each(FLOAT_TYPES.begin(), FLOAT_TYPES.end(), addProposal);
+    std::for_each(OTHER_PRIMITIVE_TYPES.begin(), OTHER_PRIMITIVE_TYPES.end(), addProposal);
 }
 
 } // namespace
@@ -127,6 +145,8 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
     const int line = block.blockNumber() + 1;
     int column = cursor.positionInBlock();
 
+    QList<TextEditor::AssistProposalItemInterface *> proposals;
+
     QTemporaryFile file;
     if (file.open()) {
         {
@@ -152,7 +172,6 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
             QRegularExpression match("^MATCH (\\w+),(\\d+),(\\d+),(.+),(\\w+),(.+)$",
                                      QRegularExpression::MultilineOption);
 
-            QList<TextEditor::AssistProposalItemInterface *> proposals;
             for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
                 QRegularExpressionMatch match = it.next();
                 if (match.lastCapturedIndex() == 6) {
@@ -163,12 +182,14 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
                     proposals.append(new RacerAssistProposalItem(symbol, detail, type));
                 }
             }
-
-            return new TextEditor::GenericProposal(ident.begin, proposals);
         }
     }
 
-    return nullptr;
+    if (interface->reason() == TextEditor::IdleEditor) {
+        appendKeywords(proposals);
+    }
+
+    return new TextEditor::GenericProposal(ident.begin, proposals);
 }
 
 RacerAssistProposalItem::RacerAssistProposalItem(const QString &text,
@@ -204,6 +225,7 @@ QIcon RacerAssistProposalItem::iconForType(RacerAssistProposalItem::Type type)
         static QIcon icon(QLatin1String(":/codemodel/images/classmemberfunction.png"));
         return icon;
     }
+    case Type::Keyword:
     case Type::Module: {
         static QIcon icon(QLatin1String(":/codemodel/images/keyword.png"));
         return icon;

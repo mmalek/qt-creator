@@ -41,6 +41,7 @@ enum class TokenType {
     DocComment,
     PrimitiveType,
     Type,
+    Enumeration,
     Colon,
     Semicolon,
     ParenthesisLeft,
