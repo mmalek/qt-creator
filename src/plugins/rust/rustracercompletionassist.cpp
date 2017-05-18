@@ -25,6 +25,7 @@
 
 #include "rustracercompletionassist.h"
 #include "rusteditors.h"
+#include "rustsourcelayout.h"
 
 #include <coreplugin/id.h>
 #include <texteditor/codeassist/assistinterface.h>
@@ -41,24 +42,86 @@
 
 namespace Rust {
 namespace Internal {
-
-using namespace TextEditor;
+namespace {
 
 constexpr int RACER_TIMEOUT_MSEC = 5000;
+constexpr int MIN_TYPED_CHARS_AUTOCOMPLETE = 3;
 
-RacerCompletionAssistProcessor::RacerCompletionAssistProcessor()
-    : KeywordsCompletionAssistProcessor({})
+struct Slice {
+    explicit Slice(int p, int l = 0) : begin(p), length(l) {}
+
+    int begin;
+    int length;
+};
+
+Slice identAtCursor(const TextEditor::AssistInterface &interface)
+{
+    const auto isXidStart = [&interface](const int pos) {
+        const QChar c = interface.characterAt(pos);
+        return c.isLetter() || c == QLatin1Char('_');
+    };
+
+    const auto isXidContinue = [&interface](const int pos) {
+        const QChar c = interface.characterAt(pos);
+        return c.isLetterOrNumber() || c == QLatin1Char('_');
+    };
+
+    int begin = interface.position();
+    for (; begin > 0 && isXidContinue(begin - 1); --begin);
+
+    int end = interface.position();
+    if (begin == end && isXidStart(end)) {
+        ++end;
+    }
+
+    for (; isXidContinue(end); ++end);
+
+    return (begin < end) ? Slice(begin, end - begin) : Slice(interface.position());
+}
+
+} // namespace
+
+RacerCompletionAssistProvider::RacerCompletionAssistProvider(QObject *parent)
+    : CompletionAssistProvider(parent)
 {
 }
 
-RacerCompletionAssistProcessor::~RacerCompletionAssistProcessor()
+bool RacerCompletionAssistProvider::supportsEditor(Core::Id editorId) const
 {
+    return editorId == Editors::RUST;
 }
 
-IAssistProposal *RacerCompletionAssistProcessor::perform(const AssistInterface *interface)
+TextEditor::IAssistProcessor *RacerCompletionAssistProvider::createProcessor() const
 {
+    return new RacerCompletionAssistProcessor;
+}
+
+int RacerCompletionAssistProvider::activationCharSequenceLength() const
+{
+    return 2;
+}
+
+bool RacerCompletionAssistProvider::isActivationCharSequence(const QString &sequence) const
+{
+    return sequence.endsWith(QLatin1Char('.')) || sequence == QLatin1String("::");
+}
+
+TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextEditor::AssistInterface *interface)
+{
+    m_interface.reset(interface);
+
     QTextCursor cursor(interface->textDocument());
     cursor.setPosition(interface->position());
+
+    if (SourceLayout::isInCommentOrString(cursor)) {
+        return nullptr;
+    }
+
+    const Slice ident = identAtCursor(*interface);
+
+    if (interface->reason() == TextEditor::IdleEditor &&
+            (interface->position() - ident.begin) < MIN_TYPED_CHARS_AUTOCOMPLETE)
+        return nullptr;
 
     const QTextBlock block = cursor.block();
     const int line = block.blockNumber() + 1;
@@ -89,53 +152,23 @@ IAssistProposal *RacerCompletionAssistProcessor::perform(const AssistInterface *
             QRegularExpression match("^MATCH (\\w+),(\\d+),(\\d+),(.+),(\\w+),(.+)$",
                                      QRegularExpression::MultilineOption);
 
-            QStringList variables;
-            QStringList functions;
-            QMap<QString, QStringList> functionArgs;
+            QList<TextEditor::AssistProposalItemInterface *> proposals;
             for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
                 QRegularExpressionMatch match = it.next();
                 if (match.lastCapturedIndex() == 6) {
-                    QString symbol = match.captured(1);
-                    variables.append(symbol);
+                    const QString symbol = match.captured(1);
+                    const auto type = RacerAssistProposalItem::toType(match.capturedRef(5));
+                    const QString detail = match.captured(6);
 
-                    if (match.capturedRef(5) == QLatin1String("Function")) {
-                        functions.append(symbol);
-                        functionArgs[symbol].append(match.captured(6));
-                    }
+                    proposals.append(new RacerAssistProposalItem(symbol, detail, type));
                 }
             }
 
-            Keywords keywords(variables, functions, functionArgs);
-            setKeywords(keywords);
+            return new TextEditor::GenericProposal(ident.begin, proposals);
         }
     }
 
-    return KeywordsCompletionAssistProcessor::perform(interface);
-}
-
-RacerCompletionAssistProvider::RacerCompletionAssistProvider(QObject *parent)
-    : CompletionAssistProvider(parent)
-{
-}
-
-bool RacerCompletionAssistProvider::supportsEditor(Core::Id editorId) const
-{
-    return editorId == Editors::RUST;
-}
-
-IAssistProcessor *RacerCompletionAssistProvider::createProcessor() const
-{
-    return new RacerCompletionAssistProcessor;
-}
-
-int RacerCompletionAssistProvider::activationCharSequenceLength() const
-{
-    return 2;
-}
-
-bool RacerCompletionAssistProvider::isActivationCharSequence(const QString &sequence) const
-{
-    return sequence.endsWith(QLatin1Char('.')) || sequence == QLatin1String("::");
+    return nullptr;
 }
 
 RacerAssistProposalItem::RacerAssistProposalItem(const QString &text,
@@ -147,11 +180,32 @@ RacerAssistProposalItem::RacerAssistProposalItem(const QString &text,
     setIcon(iconForType(type));
 }
 
+RacerAssistProposalItem::Type RacerAssistProposalItem::toType(QStringRef text)
+{
+    if (text == QLatin1String("EnumVariant")) {
+        return RacerAssistProposalItem::Type::EnumVariant;
+    } else if (text == QLatin1String("Function")) {
+        return RacerAssistProposalItem::Type::Function;
+    } else if (text == QLatin1String("Module")) {
+        return RacerAssistProposalItem::Type::Module;
+    } else {
+        return RacerAssistProposalItem::Type::Other;
+    }
+}
+
 QIcon RacerAssistProposalItem::iconForType(RacerAssistProposalItem::Type type)
 {
     switch (type) {
+    case Type::EnumVariant: {
+        static QIcon icon(QLatin1String(":/codemodel/images/enum.png"));
+        return icon;
+    }
     case Type::Function: {
         static QIcon icon(QLatin1String(":/codemodel/images/classmemberfunction.png"));
+        return icon;
+    }
+    case Type::Module: {
+        static QIcon icon(QLatin1String(":/codemodel/images/keyword.png"));
         return icon;
     }
     case Type::Other: {

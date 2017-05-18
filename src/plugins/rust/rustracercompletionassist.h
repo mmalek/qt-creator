@@ -26,20 +26,13 @@
 #pragma once
 
 #include <texteditor/codeassist/completionassistprovider.h>
-#include <texteditor/codeassist/keywordscompletionassist.h>
 #include <texteditor/codeassist/assistproposalitem.h>
+#include <texteditor/codeassist/iassistprocessor.h>
+
+#include <QScopedPointer>
 
 namespace Rust {
 namespace Internal {
-
-class RacerCompletionAssistProcessor : public TextEditor::KeywordsCompletionAssistProcessor
-{
-public:
-    RacerCompletionAssistProcessor();
-    ~RacerCompletionAssistProcessor();
-
-    TextEditor::IAssistProposal *perform(const TextEditor::AssistInterface *interface) override;
-};
 
 class RacerCompletionAssistProvider : public TextEditor::CompletionAssistProvider
 {
@@ -54,15 +47,28 @@ public:
     bool isActivationCharSequence(const QString &sequence) const override;
 };
 
+class RacerCompletionAssistProcessor : public TextEditor::IAssistProcessor
+{
+public:
+    TextEditor::IAssistProposal *perform(const TextEditor::AssistInterface *interface) override;
+
+private:
+    QScopedPointer<const TextEditor::AssistInterface> m_interface;
+};
+
 class RacerAssistProposalItem : public TextEditor::AssistProposalItem
 {
 public:
     enum class Type {
+        EnumVariant,
         Function,
+        Module,
         Other
     };
 
     RacerAssistProposalItem(const QString &text, const QString &detail, Type type);
+
+    static Type toType(QStringRef str);
 
     static QIcon iconForType(Type type);
 };
