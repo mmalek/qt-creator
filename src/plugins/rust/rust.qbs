@@ -27,6 +27,7 @@ QtcPlugin {
         "rusteditorfactory.cpp",
         "rusteditorfactory.h",
         "rusteditors.h",
+        "rustgrammar.h",
         "rusthighlighter.cpp",
         "rusthighlighter.h",
         "rustindenter.cpp",

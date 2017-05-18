@@ -63,6 +63,7 @@ public:
         EnumVariant,
         Function,
         Module,
+        Keyword,
         Other
     };
 
