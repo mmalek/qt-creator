@@ -59,6 +59,9 @@ Category toCategory(TokenType tokenType)
     switch (tokenType) {
     case TokenType::Keyword:
         return Category::Keyword;
+    case TokenType::Comma:
+    case TokenType::Colon:
+    case TokenType::Semicolon:
     case TokenType::Operator:
         return Category::Operator;
     case TokenType::Char:

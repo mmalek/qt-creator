@@ -26,11 +26,14 @@
 #include "rustracercompletionassist.h"
 #include "rusteditors.h"
 #include "rustgrammar.h"
+#include "rustlexer.h"
 #include "rustsourcelayout.h"
+#include "rusttoken.h"
 
 #include <coreplugin/id.h>
 #include <texteditor/codeassist/assistinterface.h>
 #include <texteditor/codeassist/assistproposalitem.h>
+#include <texteditor/codeassist/functionhintproposal.h>
 #include <texteditor/codeassist/genericproposal.h>
 #include <texteditor/texteditor.h>
 #include <utils/algorithm.h>
@@ -41,6 +44,7 @@
 #include <QTemporaryFile>
 #include <QTextBlock>
 #include <QTextStream>
+#include <QVector>
 
 #include <algorithm>
 
@@ -52,6 +56,7 @@ constexpr int RACER_TIMEOUT_MSEC = 5000;
 constexpr int MIN_TYPED_CHARS_AUTOCOMPLETE = 3;
 
 struct Slice {
+    Slice() : begin(-1), length(0) {}
     explicit Slice(int p, int l = 0) : begin(p), length(l) {}
 
     int begin;
@@ -86,9 +91,7 @@ Slice identAtCursor(const TextEditor::AssistInterface &interface)
 void appendKeywords(QList<TextEditor::AssistProposalItemInterface *>& proposals)
 {
     const auto addProposal = [&proposals](const QLatin1String& text) {
-        proposals.append(new RacerAssistProposalItem(text,
-                                                     QString(),
-                                                     RacerAssistProposalItem::Type::Keyword));
+        proposals.append(new RacerAssistProposalItem(Racer::Result::Type::Keyword, text));
     };
 
     std::for_each(KEYWORDS.begin(), KEYWORDS.end(), addProposal);
@@ -97,7 +100,141 @@ void appendKeywords(QList<TextEditor::AssistProposalItemInterface *>& proposals)
     std::for_each(OTHER_PRIMITIVE_TYPES.begin(), OTHER_PRIMITIVE_TYPES.end(), addProposal);
 }
 
+template<typename F>
+void forEachFunArg(QStringRef declaration, F fn)
+{
+    Lexer lexer(declaration);
+
+    int depth = 0;
+    Slice slice;
+    while (const Token token = lexer.next()) {
+        if (token.type == TokenType::ParenthesisLeft) {
+            if (depth == 0) {
+                slice.begin = token.begin + 1;
+            }
+            ++depth;
+        } else if (token.type == TokenType::ParenthesisRight) {
+            if (depth == 0) {
+                break;
+            }
+
+            --depth;
+
+            if (depth == 0) {
+                if (slice.begin >= 0) {
+                    slice.length = token.begin - slice.begin;
+                    fn(slice);
+                    slice = Slice();
+                }
+                break;
+            }
+        } else if (token.type == TokenType::Comma && depth == 1) {
+            if (slice.begin >= 0) {
+                slice.length = token.begin - slice.begin;
+                fn(slice);
+                slice.begin = token.begin + 1;
+                slice.length = 0;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
 } // namespace
+
+namespace Racer {
+
+QVector<Result> run(Request request,
+                    const QTextCursor& cursor,
+                    const TextEditor::AssistInterface &interface)
+{
+    QVector<Result> results;
+
+    const QTextBlock block = cursor.block();
+    const int line = block.blockNumber() + 1;
+    int column = cursor.positionInBlock();
+
+    QTemporaryFile file;
+    if (file.open()) {
+        {
+            QTextStream out(&file);
+            out.setCodec("UTF-8");
+            out << interface.textDocument()->toPlainText();
+        }
+
+        const QString program = QLatin1String("racer");
+        const QStringList arguments = {
+            QLatin1String("complete"),
+            QString::number(line),
+            QString::number(column),
+            interface.fileName(),
+            file.fileName()
+        };
+
+        QProcess process;
+        process.start(program, arguments);
+
+        if (process.waitForFinished(RACER_TIMEOUT_MSEC)) {
+            QString str = QString::fromUtf8(process.readAllStandardOutput());
+            QRegularExpression match("^MATCH (\\w+),(\\d+),(\\d+),(.+),(\\w+),(.+)$",
+                                     QRegularExpression::MultilineOption);
+
+            for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
+                QRegularExpressionMatch match = it.next();
+                if (match.lastCapturedIndex() == 6) {
+                    Result result;
+                    result.symbol = match.captured(1);
+                    result.type = Result::toType(match.capturedRef(5));
+                    result.detail = match.captured(6);
+                    results.push_back(std::move(result));
+                }
+            }
+        }
+    }
+
+    return results;
+}
+
+Result::Type Result::toType(QStringRef text)
+{
+    if (text == QLatin1String("EnumVariant")) {
+        return Type::EnumVariant;
+    } else if (text == QLatin1String("Function")) {
+        return Type::Function;
+    } else if (text == QLatin1String("Module")) {
+        return Type::Module;
+    } else {
+        return Type::Other;
+    }
+}
+
+QIcon Result::icon(Type type)
+{
+    switch (type) {
+    case Type::EnumVariant: {
+        static QIcon icon(QLatin1String(":/codemodel/images/enum.png"));
+        return icon;
+    }
+    case Type::Function: {
+        static QIcon icon(QLatin1String(":/codemodel/images/classmemberfunction.png"));
+        return icon;
+    }
+    case Type::Keyword:
+    case Type::Module: {
+        static QIcon icon(QLatin1String(":/codemodel/images/keyword.png"));
+        return icon;
+    }
+    case Type::Other: {
+        static QIcon icon(QLatin1String(":/codemodel/images/member.png"));
+        return icon;
+    }
+    default:
+        return QIcon();
+    }
+}
+
+} // namespace Racer
 
 RacerCompletionAssistProvider::RacerCompletionAssistProvider(QObject *parent)
     : CompletionAssistProvider(parent)
@@ -135,54 +272,41 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
         return nullptr;
     }
 
+    if (interface->position() > 0 &&
+            interface->characterAt(interface->position()-1) == QLatin1Char('(')) {
+        int pos = interface->position() - 1;
+        for(; pos >= 0 && !Grammar::isXidContinue(interface->characterAt(pos)); --pos);
+        if (pos >= 0) {
+            QTextCursor newCursor(cursor);
+            newCursor.setPosition(pos);
+            auto results = Racer::run(Racer::Request::FindDefinition, newCursor, *interface);
+
+            QStringList declarations;
+            for (const Racer::Result& result : results) {
+                if (result.type == Racer::Result::Type::Function) {
+                    declarations.push_back(result.detail);
+                }
+            }
+
+            if (!declarations.isEmpty()) {
+                auto model = new RacerFunctionHintProposalModel(declarations);
+                return new TextEditor::FunctionHintProposal(interface->position()-1, model);
+            } else {
+                return nullptr;
+            }
+        }
+    }
+
     const Slice ident = identAtCursor(*interface);
 
     if (interface->reason() == TextEditor::IdleEditor &&
-            (interface->position() - ident.begin) < MIN_TYPED_CHARS_AUTOCOMPLETE)
+            (interface->position() - ident.begin) < MIN_TYPED_CHARS_AUTOCOMPLETE) {
         return nullptr;
-
-    const QTextBlock block = cursor.block();
-    const int line = block.blockNumber() + 1;
-    int column = cursor.positionInBlock();
+    }
 
     QList<TextEditor::AssistProposalItemInterface *> proposals;
-
-    QTemporaryFile file;
-    if (file.open()) {
-        {
-            QTextStream out(&file);
-            out.setCodec("UTF-8");
-            out << interface->textDocument()->toPlainText();
-        }
-
-        const QString program = QLatin1String("racer");
-        const QStringList arguments = {
-            QLatin1String("complete"),
-            QString::number(line),
-            QString::number(column),
-            interface->fileName(),
-            file.fileName()
-        };
-
-        QProcess process;
-        process.start(program, arguments);
-
-        if (process.waitForFinished(RACER_TIMEOUT_MSEC)) {
-            QString str = QString::fromUtf8(process.readAllStandardOutput());
-            QRegularExpression match("^MATCH (\\w+),(\\d+),(\\d+),(.+),(\\w+),(.+)$",
-                                     QRegularExpression::MultilineOption);
-
-            for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
-                QRegularExpressionMatch match = it.next();
-                if (match.lastCapturedIndex() == 6) {
-                    const QString symbol = match.captured(1);
-                    const auto type = RacerAssistProposalItem::toType(match.capturedRef(5));
-                    const QString detail = match.captured(6);
-
-                    proposals.append(new RacerAssistProposalItem(symbol, detail, type));
-                }
-            }
-        }
+    for (const Racer::Result& result : Racer::run(Racer::Request::Complete, cursor, *interface)) {
+        proposals.push_back(new RacerAssistProposalItem(result));
     }
 
     if (interface->reason() == TextEditor::IdleEditor) {
@@ -192,51 +316,71 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
     return new TextEditor::GenericProposal(ident.begin, proposals);
 }
 
-RacerAssistProposalItem::RacerAssistProposalItem(const QString &text,
-                                                 const QString &detail,
-                                                 RacerAssistProposalItem::Type type)
+RacerAssistProposalItem::RacerAssistProposalItem(const Racer::Result& result)
 {
-    setText(text);
+    setText(result.symbol);
+    setDetail(result.detail);
+    setIcon(Racer::Result::icon(result.type));
+}
+
+RacerAssistProposalItem::RacerAssistProposalItem(Racer::Result::Type type,
+                                                 const QString& symbol,
+                                                 const QString& detail)
+{
+    setText(symbol);
     setDetail(detail);
-    setIcon(iconForType(type));
+    setIcon(Racer::Result::icon(type));
 }
 
-RacerAssistProposalItem::Type RacerAssistProposalItem::toType(QStringRef text)
+RacerFunctionHintProposalModel::RacerFunctionHintProposalModel(QStringList declarations)
+    : m_declarations(declarations),
+      m_currentArg(-1)
 {
-    if (text == QLatin1String("EnumVariant")) {
-        return RacerAssistProposalItem::Type::EnumVariant;
-    } else if (text == QLatin1String("Function")) {
-        return RacerAssistProposalItem::Type::Function;
-    } else if (text == QLatin1String("Module")) {
-        return RacerAssistProposalItem::Type::Module;
-    } else {
-        return RacerAssistProposalItem::Type::Other;
-    }
 }
 
-QIcon RacerAssistProposalItem::iconForType(RacerAssistProposalItem::Type type)
+void RacerFunctionHintProposalModel::reset()
 {
-    switch (type) {
-    case Type::EnumVariant: {
-        static QIcon icon(QLatin1String(":/codemodel/images/enum.png"));
-        return icon;
+    m_currentArg = -1;
+}
+
+int RacerFunctionHintProposalModel::size() const
+{
+    return m_declarations.size();
+}
+
+QString RacerFunctionHintProposalModel::text(int index) const
+{
+    const QString& declaration = m_declarations.at(index);
+
+    if (m_currentArg >= 0) {
+        int count = 0;
+        Slice arg;
+        forEachFunArg(&declaration, [&count, &arg, this](const Slice& slice){
+            if (count == m_currentArg) {
+                arg = slice;
+            }
+            ++count;
+        });
+
+        if (arg.begin >= 0) {
+            QString hintText;
+            hintText += declaration.left(arg.begin).toHtmlEscaped();
+            hintText += QLatin1String("<b>");
+            hintText += declaration.mid(arg.begin, arg.length).toHtmlEscaped();
+            hintText += QLatin1String("</b>");
+            hintText += declaration.mid(arg.begin + arg.length).toHtmlEscaped();
+            return hintText;
+        }
     }
-    case Type::Function: {
-        static QIcon icon(QLatin1String(":/codemodel/images/classmemberfunction.png"));
-        return icon;
-    }
-    case Type::Keyword:
-    case Type::Module: {
-        static QIcon icon(QLatin1String(":/codemodel/images/keyword.png"));
-        return icon;
-    }
-    case Type::Other: {
-        static QIcon icon(QLatin1String(":/codemodel/images/member.png"));
-        return icon;
-    }
-    default:
-        return QIcon();
-    }
+
+    return declaration.toHtmlEscaped();
+}
+
+int RacerFunctionHintProposalModel::activeArgument(const QString &prefix) const
+{
+    m_currentArg = 0;
+    forEachFunArg(&prefix, [this](const Slice& slice){ ++m_currentArg; });
+    return m_currentArg;
 }
 
 } // namespace Internal
