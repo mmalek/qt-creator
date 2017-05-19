@@ -89,6 +89,9 @@ Q_CONSTEXPR QLatin1String MULTI_LINE_DOC1_COMMENT_START{"/**"};
 Q_CONSTEXPR QLatin1String MULTI_LINE_DOC2_COMMENT_START{"/*!"};
 Q_CONSTEXPR QLatin1String MULTI_LINE_COMMENT_END{"*/"};
 Q_CONSTEXPR QLatin1String ATTRIBUTE_START{"#["};
+Q_CONSTEXPR QLatin1String RANGE_OPERATOR{".."};
+Q_CONSTEXPR QLatin1String PATH_SEPARATOR{"::"};
+Q_CONSTEXPR QLatin1String KEYWORD_LC_SELF{"self"};
 
 Q_CONSTEXPR std::array<QLatin1String, 52> KEYWORDS =
 {
@@ -128,7 +131,7 @@ Q_CONSTEXPR std::array<QLatin1String, 52> KEYWORDS =
     QLatin1String{"pure"},
     QLatin1String{"ref"},
     QLatin1String{"return"},
-    QLatin1String{"self"},
+    KEYWORD_LC_SELF,
     QLatin1String{"sizeof"},
     QLatin1String{"static"},
     QLatin1String{"struct"},
@@ -194,7 +197,7 @@ Q_CONSTEXPR QLatin1String SHORT_OPERATORS{"=!?+-*/%&|^<>."};
 
 Q_CONSTEXPR std::array<QLatin1String, 20> LONG_OPERATORS =
 {
-    QLatin1String{".."},
+    RANGE_OPERATOR,
     QLatin1String{"<<"},
     QLatin1String{">>"},
     QLatin1String{"&&"},
