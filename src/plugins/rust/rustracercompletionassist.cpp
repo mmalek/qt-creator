@@ -105,6 +105,7 @@ void forEachFunArg(QStringRef declaration, F fn)
 {
     Lexer lexer(declaration);
 
+    bool self = false;
     int depth = 0;
     Slice slice;
     while (const Token token = lexer.next()) {
@@ -123,7 +124,11 @@ void forEachFunArg(QStringRef declaration, F fn)
             if (depth == 0) {
                 if (slice.begin >= 0) {
                     slice.length = token.begin - slice.begin;
-                    fn(slice);
+                    if (!self) {
+                        fn(slice);
+                    } else {
+                        self = false;
+                    }
                     slice = Slice();
                 }
                 break;
@@ -131,12 +136,19 @@ void forEachFunArg(QStringRef declaration, F fn)
         } else if (token.type == TokenType::Comma && depth == 1) {
             if (slice.begin >= 0) {
                 slice.length = token.begin - slice.begin;
-                fn(slice);
+                if (!self) {
+                    fn(slice);
+                } else {
+                    self = false;
+                }
                 slice.begin = token.begin + 1;
                 slice.length = 0;
             } else {
                 break;
             }
+        } else if (token.type == TokenType::Keyword && depth == 1 &&
+                   declaration.mid(token.begin, token.length) == KEYWORD_LC_SELF) {
+            self = true;
         }
     }
 }
@@ -258,7 +270,9 @@ int RacerCompletionAssistProvider::activationCharSequenceLength() const
 
 bool RacerCompletionAssistProvider::isActivationCharSequence(const QString &sequence) const
 {
-    return sequence.endsWith(QLatin1Char('.')) || sequence == QLatin1String("::");
+    return (sequence.endsWith(CHAR_POINT) && sequence != RANGE_OPERATOR) ||
+            sequence == PATH_SEPARATOR ||
+            sequence.endsWith(CHAR_PARENTHESES_LEFT);
 }
 
 TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextEditor::AssistInterface *interface)
@@ -272,11 +286,11 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
         return nullptr;
     }
 
-    if (interface->position() > 0 &&
+    if (interface->reason() != TextEditor::IdleEditor && interface->position() > 0 &&
             interface->characterAt(interface->position()-1) == QLatin1Char('(')) {
-        int pos = interface->position() - 1;
-        for(; pos >= 0 && !Grammar::isXidContinue(interface->characterAt(pos)); --pos);
-        if (pos >= 0) {
+        int pos = interface->position() - 2;
+        for(; pos >= 0 && interface->characterAt(pos).isSpace(); --pos);
+        if (pos >= 0 && Grammar::isXidContinue(interface->characterAt(pos))) {
             QTextCursor newCursor(cursor);
             newCursor.setPosition(pos);
             auto results = Racer::run(Racer::Request::FindDefinition, newCursor, *interface);
@@ -294,6 +308,8 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
             } else {
                 return nullptr;
             }
+        } else if (interface->reason() == TextEditor::ActivationCharacter) {
+            return nullptr;
         }
     }
 
