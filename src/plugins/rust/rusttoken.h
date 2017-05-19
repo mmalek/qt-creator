@@ -42,6 +42,7 @@ enum class TokenType {
     PrimitiveType,
     Type,
     Enumeration,
+    Comma,
     Colon,
     Semicolon,
     ParenthesisLeft,

@@ -52,6 +52,7 @@ enum class State {
     MultiLineComment,
     OneLineDocComment,
     MultiLineDocComment,
+    Comma,
     Colon,
     Semicolon,
     ParenthesisLeft,
@@ -418,6 +419,11 @@ Token Lexer::next()
             } else if (Grammar::isXidStart(character)) {
                 begin = m_pos;
                 state = State::IdentOrKeyword;
+            } else if (character == CHAR_COMMA) {
+                begin = m_pos;
+                ++m_pos;
+                state = State::Comma;
+                break;
             } else if (character == CHAR_COLON) {
                 begin = m_pos;
                 ++m_pos;
@@ -645,6 +651,8 @@ Token Lexer::next()
             case State::MultiLineDocComment:
             case State::OneLineDocComment:
                 return TokenType::DocComment;
+            case State::Comma:
+                return TokenType::Comma;
             case State::Colon:
                 return TokenType::Colon;
             case State::Semicolon:

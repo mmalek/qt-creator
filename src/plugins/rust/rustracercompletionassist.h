@@ -28,13 +28,46 @@
 #include <texteditor/codeassist/completionassistprovider.h>
 #include <texteditor/codeassist/assistproposalitem.h>
 #include <texteditor/codeassist/iassistprocessor.h>
+#include <texteditor/codeassist/ifunctionhintproposalmodel.h>
 
 #include <QScopedPointer>
 
 namespace Rust {
 namespace Internal {
 
-class RacerCompletionAssistProvider : public TextEditor::CompletionAssistProvider
+namespace Racer {
+
+enum class Request {
+    Complete,
+    FindDefinition
+};
+
+struct Result
+{
+    enum class Type {
+        EnumVariant,
+        Function,
+        Module,
+        Keyword,
+        Other
+    };
+
+    QString symbol;
+    QString detail;
+    Type type;
+
+    static Type toType(QStringRef str);
+
+    static QIcon icon(Type type);
+};
+
+QVector<Result> run(Request request,
+                    const QTextCursor& cursor,
+                    const TextEditor::AssistInterface &interface);
+
+} // namespace Racer
+
+class RacerCompletionAssistProvider final : public TextEditor::CompletionAssistProvider
 {
     Q_OBJECT
 
@@ -47,7 +80,7 @@ public:
     bool isActivationCharSequence(const QString &sequence) const override;
 };
 
-class RacerCompletionAssistProcessor : public TextEditor::IAssistProcessor
+class RacerCompletionAssistProcessor final : public TextEditor::IAssistProcessor
 {
 public:
     TextEditor::IAssistProposal *perform(const TextEditor::AssistInterface *interface) override;
@@ -56,22 +89,26 @@ private:
     QScopedPointer<const TextEditor::AssistInterface> m_interface;
 };
 
-class RacerAssistProposalItem : public TextEditor::AssistProposalItem
+class RacerAssistProposalItem final : public TextEditor::AssistProposalItem
 {
 public:
-    enum class Type {
-        EnumVariant,
-        Function,
-        Module,
-        Keyword,
-        Other
-    };
+    explicit RacerAssistProposalItem(const Racer::Result& result);
+    RacerAssistProposalItem(Racer::Result::Type type, const QString& symbol, const QString& detail = QString());
+};
 
-    RacerAssistProposalItem(const QString &text, const QString &detail, Type type);
+class RacerFunctionHintProposalModel final : public TextEditor::IFunctionHintProposalModel
+{
+public:
+    explicit RacerFunctionHintProposalModel(QStringList declarations);
 
-    static Type toType(QStringRef str);
+    void reset() override;
+    int size() const override;
+    QString text(int index) const override;
+    int activeArgument(const QString &prefix) const override;
 
-    static QIcon iconForType(Type type);
+private:
+    QStringList m_declarations;
+    mutable int m_currentArg;
 };
 
 } // namespace Internal
