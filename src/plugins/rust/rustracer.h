@@ -43,11 +43,28 @@ enum class Request {
 struct Result
 {
     enum class Type {
-        EnumVariant,
-        Function,
+        Struct = 0,
         Module,
-        Keyword,
-        Other
+        MatchArm,
+        Function,
+        Crate,
+        Let,
+        IfLet,
+        WhileLet,
+        For,
+        StructField,
+        Impl,
+        TraitImpl,
+        Enum,
+        EnumVariant,
+        Type,
+        FnArg,
+        Trait,
+        Const,
+        Static,
+        Macro,
+        Builtin,
+        NumResultTypes
     };
 
     QString symbol;

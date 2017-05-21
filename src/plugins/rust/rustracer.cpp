@@ -25,6 +25,8 @@
 
 #include "rustracer.h"
 
+#include <utils/icon.h>
+
 #include <QIcon>
 #include <QProcess>
 #include <QRegularExpression>
@@ -32,6 +34,9 @@
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextStream>
+
+#include <array>
+#include <algorithm>
 
 namespace Rust {
 namespace Internal {
@@ -48,6 +53,33 @@ QLatin1String toString(Request request)
     default: return QLatin1String();
     }
 }
+
+constexpr std::size_t NUM_RESULT_TYPES = static_cast<std::size_t>(Result::Type::NumResultTypes);
+
+Q_CONSTEXPR std::array<QLatin1String, NUM_RESULT_TYPES> RESULT_TYPE_NAMES =
+{
+    QLatin1String{"Struct"},
+    QLatin1String{"Module"},
+    QLatin1String{"MatchArm"},
+    QLatin1String{"Function"},
+    QLatin1String{"Crate"},
+    QLatin1String{"Let"},
+    QLatin1String{"IfLet"},
+    QLatin1String{"WhileLet"},
+    QLatin1String{"For"},
+    QLatin1String{"StructField"},
+    QLatin1String{"Impl"},
+    QLatin1String{"TraitImpl"},
+    QLatin1String{"Enum"},
+    QLatin1String{"EnumVariant"},
+    QLatin1String{"Type"},
+    QLatin1String{"FnArg"},
+    QLatin1String{"Trait"},
+    QLatin1String{"Const"},
+    QLatin1String{"Static"},
+    QLatin1String{"Macro"},
+    QLatin1String{"Builtin"}
+};
 
 } // namespace
 
@@ -106,35 +138,118 @@ QVector<Result> run(Request request, const QTextCursor& cursor, const QString &f
 
 Result::Type Result::toType(QStringRef text)
 {
-    if (text == QLatin1String("EnumVariant")) {
-        return Type::EnumVariant;
-    } else if (text == QLatin1String("Function")) {
-        return Type::Function;
-    } else if (text == QLatin1String("Module")) {
-        return Type::Module;
-    } else {
-        return Type::Other;
+    for (std::size_t i = 0; i < RESULT_TYPE_NAMES.size(); ++i) {
+        if (RESULT_TYPE_NAMES.at(i) == text) {
+            return static_cast<Result::Type>(i);
+        }
     }
+    return Type::NumResultTypes;
 }
 
 QIcon Result::icon(Type type)
 {
+    static const Utils::IconMaskAndColor classRelationIcon {
+        QLatin1String(":/codemodel/images/classrelation.png"),
+        Utils::Theme::IconsCodeModelOverlayForegroundColor};
+    static const Utils::IconMaskAndColor classRelationBackgroundIcon {
+        QLatin1String(":/codemodel/images/classrelationbackground.png"),
+        Utils::Theme::IconsCodeModelOverlayBackgroundColor};
+    static const Utils::IconMaskAndColor classMemberFunctionIcon {
+        QLatin1String(":/codemodel/images/classmemberfunction.png"),
+        Utils::Theme::IconsCodeModelFunctionColor};
+    static const Utils::IconMaskAndColor classMemberVariableIcon {
+        QLatin1String(":/codemodel/images/classmembervariable.png"),
+        Utils::Theme::IconsCodeModelVariableColor};
+    static const Utils::IconMaskAndColor variableIcon {
+        QLatin1String(":/codemodel/images/member.png"),
+        Utils::Theme::IconsCodeModelVariableColor};
+    static const Utils::IconMaskAndColor staticIcon {
+        QLatin1String(":/codemodel/images/static.png"),
+        Utils::Theme::IconsCodeModelOverlayForegroundColor};
+    static const Utils::IconMaskAndColor staticBackgroundIcon {
+        QLatin1String(":/codemodel/images/staticbackground.png"),
+        Utils::Theme::IconsCodeModelOverlayBackgroundColor};
+
     switch (type) {
-    case Type::EnumVariant: {
-        static QIcon icon(QLatin1String(":/codemodel/images/enum.png"));
+    case Type::Module:
+    case Type::Crate: {
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/utils/images/namespace.png"),
+             Utils::Theme::IconsCodeModelKeywordColor}
+        }, Utils::Icon::Tint).icon());
         return icon;
     }
     case Type::Function: {
-        static QIcon icon(QLatin1String(":/codemodel/images/classmemberfunction.png"));
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/codemodel/images/member.png"),
+             Utils::Theme::IconsCodeModelFunctionColor}
+        }, Utils::Icon::Tint).icon());
+    }
+    case Type::Enum: {
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/utils/images/enum.png"),
+             Utils::Theme::IconsCodeModelEnumColor}
+        }, Utils::Icon::Tint).icon());
+    }
+    case Type::EnumVariant: {
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/utils/images/enumerator.png"),
+             Utils::Theme::IconsCodeModelEnumColor}
+        }, Utils::Icon::Tint).icon());
+    }
+    case Type::Macro: {
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/codemodel/images/macro.png"),
+             Utils::Theme::IconsCodeModelMacroColor}
+        }, Utils::Icon::Tint).icon());
         return icon;
     }
-    case Type::Keyword:
-    case Type::Module: {
-        static QIcon icon(QLatin1String(":/codemodel/images/keyword.png"));
+    case Type::Struct: {
+        const static QIcon icon(Utils::Icon({
+            classRelationBackgroundIcon, classRelationIcon,
+            {QLatin1String(":/codemodel/images/classparent.png"),
+             Utils::Theme::IconsCodeModelStructColor},
+            classMemberFunctionIcon, classMemberVariableIcon
+        }, Utils::Icon::Tint).icon());
         return icon;
     }
-    case Type::Other: {
-        static QIcon icon(QLatin1String(":/codemodel/images/member.png"));
+    case Type::Trait: {
+        const static QIcon icon(Utils::Icon({
+            classRelationBackgroundIcon, classRelationIcon,
+            {QLatin1String(":/codemodel/images/classparent.png"),
+             Utils::Theme::IconsCodeModelClassColor},
+            classMemberFunctionIcon
+        }, Utils::Icon::Tint).icon());
+        return icon;
+    }
+    case Type::StructField:
+    case Type::FnArg: {
+        const static QIcon icon(Utils::Icon({
+            variableIcon
+        }, Utils::Icon::Tint).icon());
+        return icon;
+    }
+    case Type::Const:
+    case Type::Static: {
+        const static QIcon icon(Utils::Icon({
+            variableIcon, staticBackgroundIcon, staticIcon
+        }, Utils::Icon::Tint).icon());
+        return icon;
+    }
+
+    case Type::Impl:
+    case Type::TraitImpl:
+    case Type::Type:
+    case Type::MatchArm:
+    case Type::Let:
+    case Type::IfLet:
+    case Type::WhileLet:
+    case Type::For:
+    case Type::Builtin: {
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/codemodel/images/keyword.png"),
+             Utils::Theme::IconsCodeModelKeywordColor}
+        }, Utils::Icon::Tint).icon());
         return icon;
     }
     default:

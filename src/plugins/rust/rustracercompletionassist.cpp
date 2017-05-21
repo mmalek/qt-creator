@@ -52,7 +52,7 @@ constexpr int MIN_TYPED_CHARS_AUTOCOMPLETE = 3;
 void appendKeywords(QList<TextEditor::AssistProposalItemInterface *>& proposals)
 {
     const auto addProposal = [&proposals](const QLatin1String& text) {
-        proposals.append(new RacerAssistProposalItem(Racer::Result::Type::Keyword, text));
+        proposals.append(new RacerAssistProposalItem(Racer::Result::Type::Builtin, text));
     };
 
     std::for_each(KEYWORDS.begin(), KEYWORDS.end(), addProposal);
