@@ -27,6 +27,7 @@
 #include "rusteditors.h"
 #include "rustgrammar.h"
 #include "rustlexer.h"
+#include "rustslice.h"
 #include "rustsourcelayout.h"
 #include "rusttoken.h"
 
@@ -47,39 +48,6 @@ namespace Internal {
 namespace {
 
 constexpr int MIN_TYPED_CHARS_AUTOCOMPLETE = 3;
-
-struct Slice {
-    Slice() : begin(-1), length(0) {}
-    explicit Slice(int p, int l = 0) : begin(p), length(l) {}
-
-    int begin;
-    int length;
-};
-
-Slice identAtCursor(const TextEditor::AssistInterface &interface)
-{
-    const auto isXidStart = [&interface](const int pos) {
-        const QChar c = interface.characterAt(pos);
-        return Grammar::isXidStart(c);
-    };
-
-    const auto isXidContinue = [&interface](const int pos) {
-        const QChar c = interface.characterAt(pos);
-        return Grammar::isXidContinue(c);
-    };
-
-    int begin = interface.position();
-    for (; begin > 0 && isXidContinue(begin - 1); --begin);
-
-    int end = interface.position();
-    if (begin == end && isXidStart(end)) {
-        ++end;
-    }
-
-    for (; isXidContinue(end); ++end);
-
-    return (begin < end) ? Slice(begin, end - begin) : Slice(interface.position());
-}
 
 void appendKeywords(QList<TextEditor::AssistProposalItemInterface *>& proposals)
 {
@@ -213,10 +181,11 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
         }
     }
 
-    const Slice ident = identAtCursor(*interface);
+    const Slice ident = SourceLayout::identAtCursor(cursor);
+    const int newPos = ident ? ident.begin : interface->position();
 
     if (interface->reason() == TextEditor::IdleEditor &&
-            (interface->position() - ident.begin) < MIN_TYPED_CHARS_AUTOCOMPLETE) {
+            (interface->position() - newPos) < MIN_TYPED_CHARS_AUTOCOMPLETE) {
         return nullptr;
     }
 
@@ -229,7 +198,7 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
         appendKeywords(proposals);
     }
 
-    return new TextEditor::GenericProposal(ident.begin, proposals);
+    return new TextEditor::GenericProposal(newPos, proposals);
 }
 
 RacerAssistProposalItem::RacerAssistProposalItem(const Racer::Result& result)
