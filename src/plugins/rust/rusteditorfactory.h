@@ -30,7 +30,7 @@
 namespace Rust {
 namespace Internal {
 
-class EditorFactory : public TextEditor::TextEditorFactory
+class EditorFactory final : public TextEditor::TextEditorFactory
 {
     Q_OBJECT
 

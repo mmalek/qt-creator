@@ -25,15 +25,21 @@
 
 #pragma once
 
+#include <texteditor/texteditor.h>
+
 namespace Rust {
 namespace Internal {
 
-namespace Editors {
+class EditorWidget : public TextEditor::TextEditorWidget
+{
+    Q_OBJECT
 
-const char RUST[] = "Rust.Editor";
-const char CONTEXT_MENU[] = "Rust.ContextMenu";
+protected:
+    void contextMenuEvent(QContextMenuEvent *e) override;
 
-} // namespace Editors
+    Link findLinkAt(const QTextCursor &textCursor, bool resolveTarget = true,
+                    bool inNextSplit = false) override;
+};
 
 } // namespace Internal
 } // namespace Rust

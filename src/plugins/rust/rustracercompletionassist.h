@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include "rustracer.h"
+
 #include <texteditor/codeassist/completionassistprovider.h>
 #include <texteditor/codeassist/assistproposalitem.h>
 #include <texteditor/codeassist/iassistprocessor.h>
@@ -34,38 +36,6 @@
 
 namespace Rust {
 namespace Internal {
-
-namespace Racer {
-
-enum class Request {
-    Complete,
-    FindDefinition
-};
-
-struct Result
-{
-    enum class Type {
-        EnumVariant,
-        Function,
-        Module,
-        Keyword,
-        Other
-    };
-
-    QString symbol;
-    QString detail;
-    Type type;
-
-    static Type toType(QStringRef str);
-
-    static QIcon icon(Type type);
-};
-
-QVector<Result> run(Request request,
-                    const QTextCursor& cursor,
-                    const TextEditor::AssistInterface &interface);
-
-} // namespace Racer
 
 class RacerCompletionAssistProvider final : public TextEditor::CompletionAssistProvider
 {
