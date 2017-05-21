@@ -26,6 +26,8 @@
 #include "rusteditorwidget.h"
 #include "rusteditors.h"
 #include "rustracer.h"
+#include "rustslice.h"
+#include "rustsourcelayout.h"
 
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
@@ -60,16 +62,23 @@ TextEditor::TextEditorWidget::Link EditorWidget::findLinkAt(const QTextCursor &t
                                                             bool resolveTarget,
                                                             bool inNextSplit)
 {
-    auto results = Racer::run(Racer::Request::FindDefinition,
-                              textCursor,
-                              textDocument()->filePath().toString());
+    if (!SourceLayout::isInCommentOrString(textCursor)) {
+        auto results = Racer::run(Racer::Request::FindDefinition,
+                                  textCursor,
+                                  textDocument()->filePath().toString());
 
-    if (!results.isEmpty()) {
-        const Racer::Result& result = results.first();
-        return Link(result.filePath, result.line, result.column);
-    } else {
-        return Link();
+        if (!results.isEmpty()) {
+            const Racer::Result& result = results.first();
+            Link link(result.filePath, result.line, result.column);
+            if (const Slice slice = SourceLayout::identAtCursor(textCursor)) {
+                link.linkTextStart = slice.begin;
+                link.linkTextEnd = slice.begin + slice.length;
+            }
+            return link;
+        }
     }
+
+    return Link();
 }
 
 } // namespace Internal

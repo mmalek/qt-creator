@@ -24,9 +24,12 @@
 ****************************************************************************/
 
 #include "rustsourcelayout.h"
+#include "rustgrammar.h"
+#include "rustslice.h"
 #include "rusttoken.h"
 #include <texteditor/textdocumentlayout.h>
 #include <QTextBlock>
+#include <QTextDocument>
 
 namespace Rust {
 namespace Internal {
@@ -109,6 +112,33 @@ bool isInString(const QTextCursor &cursor)
 bool isInCommentOrString(const QTextCursor &cursor)
 {
     return isIn(cursor, &isCommentOrString);
+}
+
+Slice identAtCursor(const QTextCursor &cursor)
+{
+    const QTextDocument& document = *cursor.document();
+
+    const auto isXidStart = [&document](const int pos) {
+        const QChar c = document.characterAt(pos);
+        return Grammar::isXidStart(c);
+    };
+
+    const auto isXidContinue = [&document](const int pos) {
+        const QChar c = document.characterAt(pos);
+        return Grammar::isXidContinue(c);
+    };
+
+    int begin = cursor.position();
+    for (; begin > 0 && isXidContinue(begin - 1); --begin);
+
+    int end = cursor.position();
+    if (begin == end && isXidStart(end)) {
+        ++end;
+    }
+
+    for (; isXidContinue(end); ++end);
+
+    return (begin < end) ? Slice(begin, end - begin) : Slice();
 }
 
 } // namespace SourceLayout

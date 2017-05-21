@@ -29,7 +29,6 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QTemporaryFile>
-#include <QTextBlock>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QTextStream>
@@ -56,9 +55,8 @@ QVector<Result> run(Request request, const QTextCursor& cursor, const QString &f
 {
     QVector<Result> results;
 
-    const QTextBlock block = cursor.block();
-    const int line = block.blockNumber() + 1;
-    int column = cursor.positionInBlock();
+    const int line = cursor.blockNumber() + 1;
+    const int column = cursor.positionInBlock();
 
     QTemporaryFile file;
     if (file.open()) {

@@ -25,35 +25,17 @@
 
 #pragma once
 
-#include "rustlexer.h"
-#include <QtGlobal>
-
-class QTextCursor;
-class QTextBlock;
-
 namespace Rust {
 namespace Internal {
 
-class Slice;
+struct Slice {
+    Slice() : begin(-1), length(0) {}
+    explicit Slice(int p, int l = 0) : begin(p), length(l) {}
+    operator bool() const { return begin >= 0 && length > 0; }
 
-namespace SourceLayout {
+    int begin;
+    int length;
+};
 
-quint8 braceDepth(const QTextBlock &block);
-
-Lexer::MultiLineState multiLineState(const QTextBlock &block);
-
-quint8 multiLineParam(const QTextBlock &block);
-
-void saveLexerState(QTextBlock &block, const Lexer& lexer);
-
-bool isInComment(const QTextCursor &cursor);
-
-bool isInString(const QTextCursor &cursor);
-
-bool isInCommentOrString(const QTextCursor &cursor);
-
-Slice identAtCursor(const QTextCursor &cursor);
-
-} // namespace SourceLayout
 } // namespace Internal
 } // namespace Rust
