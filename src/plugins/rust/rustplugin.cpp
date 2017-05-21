@@ -30,8 +30,12 @@
 #include "rustbuildstep.h"
 #include "rustrunconfiguration.h"
 #include "rusteditorfactory.h"
+#include "rusteditors.h"
 
+#include <coreplugin/actionmanager/actioncontainer.h>
+#include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/fileiconprovider.h>
+#include <texteditor/texteditorconstants.h>
 #include <utils/mimetypes/mimedatabase.h>
 
 #include <QtPlugin>
@@ -70,6 +74,23 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
         Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
         Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
     }
+
+    Core::Context context(Editors::RUST);
+
+    Core::ActionContainer *contextMenu = Core::ActionManager::createMenu(Editors::CONTEXT_MENU);
+
+    Core::Command *cmd;
+
+    cmd = Core::ActionManager::command(TextEditor::Constants::FOLLOW_SYMBOL_UNDER_CURSOR);
+    contextMenu->addAction(cmd);
+
+    contextMenu->addSeparator(context);
+
+    cmd = Core::ActionManager::command(TextEditor::Constants::AUTO_INDENT_SELECTION);
+    contextMenu->addAction(cmd);
+
+    cmd = Core::ActionManager::command(TextEditor::Constants::UN_COMMENT_SELECTION);
+    contextMenu->addAction(cmd);
 
     return true;
 }

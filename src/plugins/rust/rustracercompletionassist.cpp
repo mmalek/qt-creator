@@ -38,13 +38,7 @@
 #include <texteditor/texteditor.h>
 #include <utils/algorithm.h>
 
-#include <QProcess>
-#include <QRegularExpression>
 #include <QStringList>
-#include <QTemporaryFile>
-#include <QTextBlock>
-#include <QTextStream>
-#include <QVector>
 
 #include <algorithm>
 
@@ -52,7 +46,6 @@ namespace Rust {
 namespace Internal {
 namespace {
 
-constexpr int RACER_TIMEOUT_MSEC = 5000;
 constexpr int MIN_TYPED_CHARS_AUTOCOMPLETE = 3;
 
 struct Slice {
@@ -155,99 +148,6 @@ void forEachFunArg(QStringRef declaration, F fn)
 
 } // namespace
 
-namespace Racer {
-
-QVector<Result> run(Request request,
-                    const QTextCursor& cursor,
-                    const TextEditor::AssistInterface &interface)
-{
-    QVector<Result> results;
-
-    const QTextBlock block = cursor.block();
-    const int line = block.blockNumber() + 1;
-    int column = cursor.positionInBlock();
-
-    QTemporaryFile file;
-    if (file.open()) {
-        {
-            QTextStream out(&file);
-            out.setCodec("UTF-8");
-            out << interface.textDocument()->toPlainText();
-        }
-
-        const QString program = QLatin1String("racer");
-        const QStringList arguments = {
-            QLatin1String("complete"),
-            QString::number(line),
-            QString::number(column),
-            interface.fileName(),
-            file.fileName()
-        };
-
-        QProcess process;
-        process.start(program, arguments);
-
-        if (process.waitForFinished(RACER_TIMEOUT_MSEC)) {
-            QString str = QString::fromUtf8(process.readAllStandardOutput());
-            QRegularExpression match("^MATCH (\\w+),(\\d+),(\\d+),(.+),(\\w+),(.+)$",
-                                     QRegularExpression::MultilineOption);
-
-            for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
-                QRegularExpressionMatch match = it.next();
-                if (match.lastCapturedIndex() == 6) {
-                    Result result;
-                    result.symbol = match.captured(1);
-                    result.type = Result::toType(match.capturedRef(5));
-                    result.detail = match.captured(6);
-                    results.push_back(std::move(result));
-                }
-            }
-        }
-    }
-
-    return results;
-}
-
-Result::Type Result::toType(QStringRef text)
-{
-    if (text == QLatin1String("EnumVariant")) {
-        return Type::EnumVariant;
-    } else if (text == QLatin1String("Function")) {
-        return Type::Function;
-    } else if (text == QLatin1String("Module")) {
-        return Type::Module;
-    } else {
-        return Type::Other;
-    }
-}
-
-QIcon Result::icon(Type type)
-{
-    switch (type) {
-    case Type::EnumVariant: {
-        static QIcon icon(QLatin1String(":/codemodel/images/enum.png"));
-        return icon;
-    }
-    case Type::Function: {
-        static QIcon icon(QLatin1String(":/codemodel/images/classmemberfunction.png"));
-        return icon;
-    }
-    case Type::Keyword:
-    case Type::Module: {
-        static QIcon icon(QLatin1String(":/codemodel/images/keyword.png"));
-        return icon;
-    }
-    case Type::Other: {
-        static QIcon icon(QLatin1String(":/codemodel/images/member.png"));
-        return icon;
-    }
-    default:
-        return QIcon();
-    }
-}
-
-} // namespace Racer
-
 RacerCompletionAssistProvider::RacerCompletionAssistProvider(QObject *parent)
     : CompletionAssistProvider(parent)
 {
@@ -293,7 +193,7 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
         if (pos >= 0 && Grammar::isXidContinue(interface->characterAt(pos))) {
             QTextCursor newCursor(cursor);
             newCursor.setPosition(pos);
-            auto results = Racer::run(Racer::Request::FindDefinition, newCursor, *interface);
+            auto results = Racer::run(Racer::Request::FindDefinition, newCursor, interface->fileName());
 
             QStringList declarations;
             for (const Racer::Result& result : results) {
@@ -321,7 +221,7 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
     }
 
     QList<TextEditor::AssistProposalItemInterface *> proposals;
-    for (const Racer::Result& result : Racer::run(Racer::Request::Complete, cursor, *interface)) {
+    for (const Racer::Result& result : Racer::run(Racer::Request::Complete, cursor, interface->fileName())) {
         proposals.push_back(new RacerAssistProposalItem(result));
     }
 

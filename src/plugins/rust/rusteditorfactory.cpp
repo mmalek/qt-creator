@@ -25,6 +25,7 @@
 
 #include "rusteditorfactory.h"
 #include "rusteditors.h"
+#include "rusteditorwidget.h"
 #include "rustindenter.h"
 #include "rustmimetypes.h"
 #include "rustracercompletionassist.h"
@@ -48,7 +49,8 @@ EditorFactory::EditorFactory()
 
     setEditorActionHandlers(TextEditor::TextEditorActionHandler::Format |
                             TextEditor::TextEditorActionHandler::UnCommentSelection |
-                            TextEditor::TextEditorActionHandler::UnCollapseAll);
+                            TextEditor::TextEditorActionHandler::UnCollapseAll |
+                            TextEditor::TextEditorActionHandler::FollowSymbolUnderCursor);
 
     setSyntaxHighlighterCreator([](){ return new Highlighter; });
 
@@ -59,6 +61,7 @@ EditorFactory::EditorFactory()
         document->setMimeType(QLatin1String(MimeTypes::RUST_SOURCE));
         return document;
     });
+    setEditorWidgetCreator([]() { return new EditorWidget; });
     setAutoCompleterCreator([](){ return new AutoCompleter; });
 
     setIndenterCreator([](){ return new Indenter; });

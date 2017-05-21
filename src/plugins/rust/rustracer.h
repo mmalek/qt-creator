@@ -25,15 +25,45 @@
 
 #pragma once
 
+#include <QString>
+#include <QVector>
+
+class QIcon;
+class QTextCursor;
+
 namespace Rust {
 namespace Internal {
+namespace Racer {
 
-namespace Editors {
+enum class Request {
+    Complete,
+    FindDefinition
+};
 
-const char RUST[] = "Rust.Editor";
-const char CONTEXT_MENU[] = "Rust.ContextMenu";
+struct Result
+{
+    enum class Type {
+        EnumVariant,
+        Function,
+        Module,
+        Keyword,
+        Other
+    };
 
-} // namespace Editors
+    QString symbol;
+    int line;
+    int column;
+    QString filePath;
+    QString detail;
+    Type type;
 
+    static Type toType(QStringRef str);
+
+    static QIcon icon(Type type);
+};
+
+QVector<Result> run(Request request, const QTextCursor& cursor, const QString &filePath);
+
+} // namespace Racer
 } // namespace Internal
 } // namespace Rust
