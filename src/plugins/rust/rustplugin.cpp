@@ -34,14 +34,22 @@
 
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
+#include <coreplugin/coreconstants.h>
 #include <coreplugin/fileiconprovider.h>
 #include <texteditor/texteditorconstants.h>
 #include <utils/mimetypes/mimedatabase.h>
 
+#include <QMenu>
 #include <QtPlugin>
 
 namespace Rust {
 namespace Internal {
+
+namespace {
+
+const char MAIN_MENU[] = "Rust.Tools.Menu";
+
+} // namespace
 
 static Plugin *m_instance = 0;
 
@@ -77,12 +85,26 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
 
     Core::Context context(Editors::RUST);
 
+    Core::ActionContainer *mainMenu = Core::ActionManager::createMenu(MAIN_MENU);
+
+    {
+        QMenu *menu = mainMenu->menu();
+        menu->setTitle(tr("&Rust"));
+        menu->setEnabled(true);
+    }
+
+    Core::ActionManager::actionContainer(Core::Constants::M_TOOLS)->addMenu(mainMenu);
+
     Core::ActionContainer *contextMenu = Core::ActionManager::createMenu(Editors::CONTEXT_MENU);
 
     Core::Command *cmd;
 
     cmd = Core::ActionManager::command(TextEditor::Constants::FOLLOW_SYMBOL_UNDER_CURSOR);
     contextMenu->addAction(cmd);
+    mainMenu->addAction(cmd);
+
+    cmd = Core::ActionManager::command(TextEditor::Constants::FOLLOW_SYMBOL_UNDER_CURSOR_IN_NEXT_SPLIT);
+    mainMenu->addAction(cmd);
 
     contextMenu->addSeparator(context);
 
