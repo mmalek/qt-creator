@@ -184,18 +184,21 @@ QIcon Result::icon(Type type)
             {QLatin1String(":/codemodel/images/member.png"),
              Utils::Theme::IconsCodeModelFunctionColor}
         }, Utils::Icon::Tint).icon());
+        return icon;
     }
     case Type::Enum: {
         const static QIcon icon(Utils::Icon({
-            {QLatin1String(":/utils/images/enum.png"),
+            {QLatin1String(":/codemodel/images/enum.png"),
              Utils::Theme::IconsCodeModelEnumColor}
         }, Utils::Icon::Tint).icon());
+        return icon;
     }
     case Type::EnumVariant: {
         const static QIcon icon(Utils::Icon({
-            {QLatin1String(":/utils/images/enumerator.png"),
+            {QLatin1String(":/codemodel/images/enumerator.png"),
              Utils::Theme::IconsCodeModelEnumColor}
         }, Utils::Icon::Tint).icon());
+        return icon;
     }
     case Type::Macro: {
         const static QIcon icon(Utils::Icon({
@@ -217,11 +220,15 @@ QIcon Result::icon(Type type)
         const static QIcon icon(Utils::Icon({
             classRelationBackgroundIcon, classRelationIcon,
             {QLatin1String(":/codemodel/images/classparent.png"),
-             Utils::Theme::IconsCodeModelClassColor},
-            classMemberFunctionIcon
+             Utils::Theme::IconsCodeModelClassColor}
         }, Utils::Icon::Tint).icon());
         return icon;
     }
+    case Type::MatchArm:
+    case Type::Let:
+    case Type::IfLet:
+    case Type::WhileLet:
+    case Type::For:
     case Type::StructField:
     case Type::FnArg: {
         const static QIcon icon(Utils::Icon({
@@ -236,15 +243,21 @@ QIcon Result::icon(Type type)
         }, Utils::Icon::Tint).icon());
         return icon;
     }
-
-    case Type::Impl:
-    case Type::TraitImpl:
+    case Type::Impl: {
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/codemodel/images/slot.png"),
+             Utils::Theme::IconsCodeModelStructColor}
+        }, Utils::Icon::Tint).icon());
+        return icon;
+    }
+    case Type::TraitImpl: {
+        const static QIcon icon(Utils::Icon({
+            {QLatin1String(":/codemodel/images/slot.png"),
+             Utils::Theme::IconsCodeModelClassColor}
+        }, Utils::Icon::Tint).icon());
+        return icon;
+    }
     case Type::Type:
-    case Type::MatchArm:
-    case Type::Let:
-    case Type::IfLet:
-    case Type::WhileLet:
-    case Type::For:
     case Type::Builtin: {
         const static QIcon icon(Utils::Icon({
             {QLatin1String(":/codemodel/images/keyword.png"),
