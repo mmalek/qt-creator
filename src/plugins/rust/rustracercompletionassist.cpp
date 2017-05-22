@@ -165,7 +165,8 @@ TextEditor::IAssistProposal *RacerCompletionAssistProcessor::perform(const TextE
 
             QStringList declarations;
             for (const Racer::Result& result : results) {
-                if (result.type == Racer::Result::Type::Function) {
+                if (result.type == Racer::Result::Type::Function ||
+                        result.type == Racer::Result::Type::EnumVariant) {
                     declarations.push_back(result.detail);
                 }
             }
