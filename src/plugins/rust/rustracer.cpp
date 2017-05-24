@@ -30,6 +30,7 @@
 #include <QIcon>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QScopedPointer>
 #include <QTemporaryFile>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -85,50 +86,57 @@ Q_CONSTEXPR std::array<QLatin1String, NUM_RESULT_TYPES> RESULT_TYPE_NAMES =
 
 QVector<Result> run(Request request, const QTextCursor& cursor, const QString &filePath)
 {
-    QVector<Result> results;
-
     const int line = cursor.blockNumber() + 1;
     const int column = cursor.positionInBlock();
 
-    QTemporaryFile file;
-    if (file.open()) {
-        Q_ASSERT(cursor.document() != nullptr);
-        const QTextDocument& textDocument = *cursor.document();
-        {
-            QTextStream out(&file);
+    Q_ASSERT(cursor.document() != nullptr);
+    const QTextDocument& textDocument = *cursor.document();
+
+    QScopedPointer<QTemporaryFile> substituteFile;
+    if (textDocument.isModified()) {
+        substituteFile.reset(new QTemporaryFile);
+        if (substituteFile->open()) {
+            QTextStream out(substituteFile.data());
             out.setCodec("UTF-8");
             out << textDocument.toPlainText();
+        } else {
+            return {};
         }
+    }
 
-        const QString program = QLatin1String("racer");
-        const QStringList arguments = {
-            toString(request),
-            QString::number(line),
-            QString::number(column),
-            filePath,
-            file.fileName()
-        };
+    const QString program = QLatin1String("racer");
+    QStringList arguments = {
+        toString(request),
+        QString::number(line),
+        QString::number(column),
+        filePath
+    };
 
-        QProcess process;
-        process.start(program, arguments);
+    if (substituteFile) {
+        arguments.push_back(substituteFile->fileName());
+    }
 
-        if (process.waitForFinished(RACER_TIMEOUT_MSEC)) {
-            QString str = QString::fromUtf8(process.readAllStandardOutput());
-            QRegularExpression match("^MATCH (\\w+),(\\d+),(\\d+),(.+),(\\w+),(.+)$",
-                                     QRegularExpression::MultilineOption);
+    QVector<Result> results;
 
-            for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
-                QRegularExpressionMatch match = it.next();
-                if (match.lastCapturedIndex() == 6) {
-                    Result result;
-                    result.symbol = match.captured(1);
-                    result.line = match.captured(2).toInt();
-                    result.column = match.captured(3).toInt();
-                    result.filePath = match.captured(4);
-                    result.type = Result::toType(match.capturedRef(5));
-                    result.detail = match.captured(6);
-                    results.push_back(std::move(result));
-                }
+    QProcess process;
+    process.start(program, arguments);
+
+    if (process.waitForFinished(RACER_TIMEOUT_MSEC)) {
+        QString str = QString::fromUtf8(process.readAllStandardOutput());
+        QRegularExpression match("^MATCH (\\w+),(\\d+),(\\d+),(.+),(\\w+),(.+)$",
+                                 QRegularExpression::MultilineOption);
+
+        for (QRegularExpressionMatchIterator it = match.globalMatch(str); it.hasNext(); ) {
+            QRegularExpressionMatch match = it.next();
+            if (match.lastCapturedIndex() == 6) {
+                Result result;
+                result.symbol = match.captured(1);
+                result.line = match.captured(2).toInt();
+                result.column = match.captured(3).toInt();
+                result.filePath = match.captured(4);
+                result.type = Result::toType(match.capturedRef(5));
+                result.detail = match.captured(6);
+                results.push_back(std::move(result));
             }
         }
     }
