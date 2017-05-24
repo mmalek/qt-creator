@@ -24,26 +24,17 @@
 ****************************************************************************/
 
 #include "rustindenter.h"
+#include "rustgrammar.h"
 #include "rustsourcelayout.h"
 #include <texteditor/tabsettings.h>
 #include <texteditor/textdocumentlayout.h>
 
 namespace Rust {
 namespace Internal {
-namespace {
-
-bool hasCloseBraceAtTheBeginning(const QTextBlock& block)
-{
-    const QString text = block.text();
-    const int pos = TextEditor::TabSettings::firstNonSpace(text);
-    return pos < text.size() && text[pos] == QLatin1Char('}');
-}
-
-} // namespace
 
 bool Indenter::isElectricCharacter(const QChar &ch) const
 {
-    return ch == QLatin1Char('}');
+    return ch == CHAR_BRACE_RIGHT;
 }
 
 int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &tabSettings)
@@ -51,7 +42,7 @@ int Indenter::indentFor(const QTextBlock &block, const TextEditor::TabSettings &
     QTextBlock previousBlock = block.previous();
     if (previousBlock.isValid()) {
         int depth = TextEditor::TextDocumentLayout::braceDepth(previousBlock);
-        if (hasCloseBraceAtTheBeginning(block)) {
+        if (SourceLayout::hasCloseBraceAtTheBeginning(block)) {
             --depth;
         }
 
