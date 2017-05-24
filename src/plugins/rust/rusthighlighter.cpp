@@ -24,6 +24,7 @@
 ****************************************************************************/
 
 #include "rusthighlighter.h"
+#include "rustgrammar.h"
 #include "rustlexer.h"
 #include "rusttoken.h"
 #include "rustsourcelayout.h"
@@ -88,6 +89,13 @@ Category toCategory(TokenType tokenType)
     }
 }
 
+inline void setFoldingEndIncluded(const QTextBlock& block, bool included)
+{
+    if (TextEditor::TextBlockUserData* data = TextEditor::TextDocumentLayout::userData(block)) {
+        data->setFoldingEndIncluded(included);
+    }
+}
+
 } // namespace
 
 Highlighter::Highlighter()
@@ -118,7 +126,7 @@ void Highlighter::highlightBlock(const QString &text)
     QTextBlock block = currentBlock();
     QTextBlock previousBlock = block.previous();
 
-    const int currentDepth = SourceLayout::braceDepth(previousBlock);
+    int currentDepth = SourceLayout::braceDepth(previousBlock);
 
     Lexer lexer(&text,
                 SourceLayout::multiLineState(previousBlock),
@@ -126,6 +134,10 @@ void Highlighter::highlightBlock(const QString &text)
                 currentDepth);
 
     TextEditor::Parentheses parentheses;
+
+    int tokenCount = 0;
+    bool hasFirstRightBrace = false;
+    bool hasSecondElse = false;
 
     while (const Token token = lexer.next())
     {
@@ -145,18 +157,33 @@ void Highlighter::highlightBlock(const QString &text)
            parentheses.push_back(TextEditor::Parenthesis(TextEditor::Parenthesis::Closed,
                                                          text[token.begin], token.begin));
         }
+
+        if (tokenCount == 0) {
+            hasFirstRightBrace = (token.type == TokenType::BraceRight);
+        } else if (tokenCount == 1) {
+            hasSecondElse = (token.type == TokenType::Keyword &&
+                             text.midRef(token.begin, token.length) == KEYWORD_ELSE);
+        }
+
+        ++tokenCount;
     }
 
     applyFormatToSpaces(text, formatForCategory(static_cast<int>(Category::Whitespace)));
+
+    if (hasFirstRightBrace && hasSecondElse) {
+        if (currentDepth > 0) {
+            --currentDepth;
+        }
+
+        setFoldingEndIncluded(previousBlock, false);
+    }
 
     SourceLayout::saveLexerState(block, lexer);
 
     TextEditor::TextDocumentLayout::setParentheses(block, parentheses);
     TextEditor::TextDocumentLayout::setFoldingIndent(block, currentDepth);
 
-    if (TextEditor::TextBlockUserData* data = TextEditor::TextDocumentLayout::userData(block)) {
-        data->setFoldingEndIncluded(true);
-    }
+    setFoldingEndIncluded(block, true);
 }
 
 } // namespace Internal

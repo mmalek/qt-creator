@@ -91,6 +91,8 @@ Q_CONSTEXPR QLatin1String MULTI_LINE_COMMENT_END{"*/"};
 Q_CONSTEXPR QLatin1String ATTRIBUTE_START{"#["};
 Q_CONSTEXPR QLatin1String RANGE_OPERATOR{".."};
 Q_CONSTEXPR QLatin1String PATH_SEPARATOR{"::"};
+
+Q_CONSTEXPR QLatin1String KEYWORD_ELSE{"else"};
 Q_CONSTEXPR QLatin1String KEYWORD_LC_SELF{"self"};
 
 Q_CONSTEXPR std::array<QLatin1String, 52> KEYWORDS =
@@ -106,7 +108,7 @@ Q_CONSTEXPR std::array<QLatin1String, 52> KEYWORDS =
     QLatin1String{"continue"},
     QLatin1String{"crate"},
     QLatin1String{"do"},
-    QLatin1String{"else"},
+    KEYWORD_ELSE,
     QLatin1String{"enum"},
     QLatin1String{"extern"},
     QLatin1String{"false"},
