@@ -54,6 +54,8 @@ bool isInCommentOrString(const QTextCursor &cursor);
 
 Slice identAtCursor(const QTextCursor &cursor);
 
+bool hasCloseBraceAtTheBeginning(const QTextBlock& block);
+
 } // namespace SourceLayout
 } // namespace Internal
 } // namespace Rust

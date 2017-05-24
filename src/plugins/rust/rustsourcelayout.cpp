@@ -27,6 +27,7 @@
 #include "rustgrammar.h"
 #include "rustslice.h"
 #include "rusttoken.h"
+#include <texteditor/tabsettings.h>
 #include <texteditor/textdocumentlayout.h>
 #include <QTextBlock>
 #include <QTextDocument>
@@ -139,6 +140,13 @@ Slice identAtCursor(const QTextCursor &cursor)
     for (; isXidContinue(end); ++end);
 
     return (begin < end) ? Slice(begin, end - begin) : Slice();
+}
+
+bool hasCloseBraceAtTheBeginning(const QTextBlock &block)
+{
+    const QString text = block.text();
+    const int pos = TextEditor::TabSettings::firstNonSpace(text);
+    return pos < text.size() && text[pos] == CHAR_BRACE_RIGHT;
 }
 
 } // namespace SourceLayout
