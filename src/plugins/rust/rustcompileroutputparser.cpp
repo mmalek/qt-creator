@@ -30,6 +30,7 @@
 #include <texteditor/fontsettings.h>
 #include <texteditor/texteditorsettings.h>
 
+#include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -91,7 +92,7 @@ void CompilerOutputParser::parseMessage(const QJsonObject& message)
         const int lineStart = span.value("line_start").toInt(-1);
 
         if (isPrimary && !fileName.isNull()) {
-            primaryFileName = Utils::FileName::fromString(fileName);
+            primaryFileName = Utils::FileName::fromString(QDir::cleanPath(fileName));
             primaryFileNameLine = lineStart;
         }
 
