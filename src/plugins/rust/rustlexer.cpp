@@ -497,7 +497,7 @@ Token Lexer::next()
         } else if (state == State::Zero) {
             if (character == CHAR_B_LOWER)
                 state = State::BinNumber;
-            else if (character == CHAR_H_LOWER)
+            else if (character == CHAR_X_LOWER)
                 state = State::HexNumber;
             else if (character == CHAR_O_LOWER)
                 state = State::OctNumber;

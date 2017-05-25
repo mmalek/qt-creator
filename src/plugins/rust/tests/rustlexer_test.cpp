@@ -204,7 +204,7 @@ void LexerTest::binary()
 
 void LexerTest::hexadecimal()
 {
-    const QString buffer{QLatin1String{"0h0123456789AbCdEf 0h34G"}};
+    const QString buffer{QLatin1String{"0x0123456789AbCdEf 0x34G"}};
     Lexer lexer{&buffer};
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
     QCOMPARE(lexer.next(), (Token{0, 18, TokenType::Number}));
