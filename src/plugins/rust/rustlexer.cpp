@@ -318,7 +318,8 @@ processDecNumber(QChar character, QStringRef buf, State state)
         return std::make_tuple(state, 0, false);
     } else if (character == CHAR_POINT) {
         const int nextPos = 1;
-        if (nextPos >= buf.size() || buf[nextPos].isDigit() || buf[nextPos].isSpace()) {
+        if (nextPos >= buf.size() ||
+                (!Grammar::isXidStart(buf[nextPos]) && buf[nextPos] != CHAR_POINT)) {
             state = State::FloatNumber;
             return std::make_tuple(state, 0, false);
         } else {
