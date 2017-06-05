@@ -48,13 +48,19 @@ public:
     QVariantMap toMap() const override;
 
     const QString& extraArgs() const { return m_extraArgs; }
+    bool showJsonOutput() const { return m_showJsonOnConsole; }
     virtual QString mainArgs() const = 0;
 
 public slots:
     void setExtraArgs(const QString& value);
+    void setShowJsonOutput(bool value);
+
+protected:
+    void stdOutput(const QString &line) override;
 
 private:
     QString m_extraArgs;
+    bool m_showJsonOnConsole;
 };
 
 class BuildStep final : public CargoStep
