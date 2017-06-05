@@ -39,12 +39,14 @@ namespace Internal {
 
 namespace {
 
-const char EXTRA_ARGS_KEY[] = "Rust.CargoStep.ExtraArgs";
+Q_CONSTEXPR QLatin1String EXTRA_ARGS_KEY("Rust.CargoStep.ExtraArgs");
+Q_CONSTEXPR QLatin1String SHOW_JSON_OUTPUT_KEY("Rust.CargoStep.ShowJsonOutput");
 
 } // namespace
 
 CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QString &displayName)
-    : AbstractProcessStep(bsl, id)
+    : AbstractProcessStep(bsl, id),
+      m_showJsonOnConsole(false)
 {
     setDefaultDisplayName(displayName);
     setDisplayName(displayName);
@@ -52,7 +54,8 @@ CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QSt
 
 CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const QString &displayName)
     : AbstractProcessStep(bsl, bs),
-      m_extraArgs(bs->m_extraArgs)
+      m_extraArgs(bs->m_extraArgs),
+      m_showJsonOnConsole(bs->m_showJsonOnConsole)
 {
     setDefaultDisplayName(displayName);
     setDisplayName(displayName);
@@ -83,20 +86,42 @@ ProjectExplorer::BuildStepConfigWidget *CargoStep::createConfigWidget()
 
 bool CargoStep::fromMap(const QVariantMap &map)
 {
-    setExtraArgs(map.value(QLatin1String(EXTRA_ARGS_KEY)).toString());
+    setExtraArgs(map.value(EXTRA_ARGS_KEY).toString());
+    setShowJsonOutput(map.value(SHOW_JSON_OUTPUT_KEY).toBool());
     return ProjectExplorer::AbstractProcessStep::fromMap(map);
 }
 
 QVariantMap CargoStep::toMap() const
 {
     QVariantMap map = ProjectExplorer::AbstractProcessStep::toMap();
-    map.insert(QLatin1String(EXTRA_ARGS_KEY), extraArgs());
+    map.insert(EXTRA_ARGS_KEY, extraArgs());
+    map.insert(SHOW_JSON_OUTPUT_KEY, showJsonOutput());
     return map;
 }
 
 void CargoStep::setExtraArgs(const QString &value)
 {
     m_extraArgs = value;
+}
+
+void CargoStep::setShowJsonOutput(bool value)
+{
+    m_showJsonOnConsole = value;
+}
+
+void CargoStep::stdOutput(const QString &line)
+{
+    if (CompilerOutputParser::isParsable(line)) {
+        if (ProjectExplorer::IOutputParser* parser = outputParser()) {
+            parser->stdOutput(line);
+        }
+
+        if (m_showJsonOnConsole) {
+            emit addOutput(line, BuildStep::NormalOutput, BuildStep::DontAppendNewline);
+        }
+    } else {
+        ProjectExplorer::AbstractProcessStep::stdOutput(line);
+    }
 }
 
 const char BuildStep::ID[] = "Rust.BuildStep";
@@ -192,8 +217,10 @@ BuildStepConfigWidget::BuildStepConfigWidget(CargoStep *step) :
     m_ui->setupUi(this);
 
     m_ui->extraArgs->setText(step->extraArgs());
+    m_ui->showJsonOutput->setChecked(step->showJsonOutput());
 
     connect(m_ui->extraArgs, &QLineEdit::textChanged, step, &CargoStep::setExtraArgs);
+    connect(m_ui->showJsonOutput, &QCheckBox::clicked, step, &CargoStep::setShowJsonOutput);
 }
 
 BuildStepConfigWidget::~BuildStepConfigWidget()
