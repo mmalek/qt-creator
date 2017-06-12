@@ -23,34 +23,15 @@
 **
 ****************************************************************************/
 
-#pragma once
-
-#include <extensionsystem/iplugin.h>
+#include "rusttoolchainmanager.h"
 
 namespace Rust {
 namespace Internal {
 
-class ToolChainManager;
-
-class Plugin final : public ExtensionSystem::IPlugin
+ToolChainManager::ToolChainManager(QObject *parent) : QObject(parent)
 {
-    Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
 
-public:
-    static Plugin &instance();
-
-    Plugin();
-    ~Plugin();
-
-    bool initialize(const QStringList &arguments, QString *errorMessage) override;
-
-    void extensionsInitialized() override;
-
-private:
-    static Plugin *m_instance;
-    ToolChainManager* m_toolChainManager = nullptr;
-};
+}
 
 } // namespace Internal
 } // namespace Rust

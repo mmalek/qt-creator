@@ -34,6 +34,8 @@ QtcPlugin {
         "rusthighlighter.h",
         "rustindenter.cpp",
         "rustindenter.h",
+        "rustkitconfigwidget.cpp",
+        "rustkitconfigwidget.h",
         "rustlexer.cpp",
         "rustlexer.h",
         "rustmimetypes.h",
@@ -56,6 +58,11 @@ QtcPlugin {
         "rustsourcelayout.cpp",
         "rustsourcelayout.h",
         "rusttoken.h",
+        "rusttoolchainmanager.cpp",
+        "rusttoolchainmanager.h",
+        "rusttoolsoptionspage.cpp",
+        "rusttoolsoptionspage.h",
+        "rusttoolsoptionspage.ui",
     ]
 
     Group {

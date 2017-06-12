@@ -24,13 +24,15 @@
 ****************************************************************************/
 
 #include "rustplugin.h"
-#include "rustmimetypes.h"
-#include "rustprojectmanager.h"
 #include "rustbuildconfiguration.h"
 #include "rustbuildstep.h"
-#include "rustrunconfiguration.h"
 #include "rusteditorfactory.h"
 #include "rusteditors.h"
+#include "rustmimetypes.h"
+#include "rustprojectmanager.h"
+#include "rustrunconfiguration.h"
+#include "rusttoolchainmanager.h"
+#include "rusttoolsoptionspage.h"
 
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
@@ -38,6 +40,7 @@
 #include <coreplugin/fileiconprovider.h>
 #include <texteditor/texteditorconstants.h>
 #include <utils/mimetypes/mimedatabase.h>
+#include <utils/qtcassert.h>
 
 #include <QMenu>
 #include <QtPlugin>
@@ -51,7 +54,13 @@ const char MAIN_MENU[] = "Rust.Tools.Menu";
 
 } // namespace
 
-static Plugin *m_instance = 0;
+Plugin *Plugin::m_instance = nullptr;
+
+Plugin &Plugin::instance()
+{
+    QTC_CHECK(m_instance != nullptr);
+    return *m_instance;
+}
 
 Plugin::Plugin()
 {
@@ -60,7 +69,7 @@ Plugin::Plugin()
 
 Plugin::~Plugin()
 {
-    m_instance = 0;
+    m_instance = nullptr;
 }
 
 bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
@@ -70,6 +79,8 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
 
     Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
 
+    addAutoReleasedObject(m_toolChainManager = new ToolChainManager);
+    addAutoReleasedObject(new ToolsOptionsPage);
     addAutoReleasedObject(new ProjectManager);
     addAutoReleasedObject(new BuildConfigurationFactory);
     addAutoReleasedObject(new BuildStepFactory);

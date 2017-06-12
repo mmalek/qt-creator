@@ -25,31 +25,33 @@
 
 #pragma once
 
-#include <extensionsystem/iplugin.h>
+#include <projectexplorer/kitconfigwidget.h>
+
+#include <QScopedPointer>
+
+class QComboBox;
+class QPushButton;
 
 namespace Rust {
 namespace Internal {
 
-class ToolChainManager;
-
-class Plugin final : public ExtensionSystem::IPlugin
+class KitConfigWidget final : public ProjectExplorer::KitConfigWidget
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
 
 public:
-    static Plugin &instance();
+    KitConfigWidget(ProjectExplorer::Kit *kit, const ProjectExplorer::KitInformation *ki);
+    ~KitConfigWidget();
 
-    Plugin();
-    ~Plugin();
-
-    bool initialize(const QStringList &arguments, QString *errorMessage) override;
-
-    void extensionsInitialized() override;
+    QString displayName() const override;
+    void makeReadOnly() override;
+    void refresh() override;
+    QWidget *mainWidget() const override;
+    QWidget *buttonWidget() const override;
 
 private:
-    static Plugin *m_instance;
-    ToolChainManager* m_toolChainManager = nullptr;
+    QScopedPointer<QComboBox> m_comboBox;
+    QScopedPointer<QPushButton> m_pushButton;
 };
 
 } // namespace Internal

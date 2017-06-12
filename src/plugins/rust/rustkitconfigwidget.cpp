@@ -23,34 +23,48 @@
 **
 ****************************************************************************/
 
-#pragma once
+#include "rustkitconfigwidget.h"
 
-#include <extensionsystem/iplugin.h>
+#include <QComboBox>
+#include <QPushButton>
 
 namespace Rust {
 namespace Internal {
 
-class ToolChainManager;
-
-class Plugin final : public ExtensionSystem::IPlugin
+KitConfigWidget::KitConfigWidget(ProjectExplorer::Kit *kit,
+                                 const ProjectExplorer::KitInformation *ki)
+    : ProjectExplorer::KitConfigWidget(kit, ki),
+      m_comboBox(new QComboBox),
+      m_pushButton(new QPushButton)
 {
-    Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
+}
 
-public:
-    static Plugin &instance();
+KitConfigWidget::~KitConfigWidget()
+{
+}
 
-    Plugin();
-    ~Plugin();
+QString KitConfigWidget::displayName() const
+{
+    return QString();
+}
 
-    bool initialize(const QStringList &arguments, QString *errorMessage) override;
+void KitConfigWidget::makeReadOnly()
+{
+}
 
-    void extensionsInitialized() override;
+void KitConfigWidget::refresh()
+{
+}
 
-private:
-    static Plugin *m_instance;
-    ToolChainManager* m_toolChainManager = nullptr;
-};
+QWidget *KitConfigWidget::mainWidget() const
+{
+    return m_comboBox.data();
+}
+
+QWidget *KitConfigWidget::buttonWidget() const
+{
+    return m_pushButton.data();
+}
 
 } // namespace Internal
 } // namespace Rust

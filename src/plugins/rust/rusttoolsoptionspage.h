@@ -25,31 +25,32 @@
 
 #pragma once
 
-#include <extensionsystem/iplugin.h>
+#include <coreplugin/dialogs/ioptionspage.h>
+
+#include <QScopedPointer>
 
 namespace Rust {
 namespace Internal {
 
-class ToolChainManager;
+namespace Ui { class ToolsOptionsPage; }
 
-class Plugin final : public ExtensionSystem::IPlugin
+class ToolsOptionsPage final : public Core::IOptionsPage
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
 
 public:
-    static Plugin &instance();
+    static const char ID[];
 
-    Plugin();
-    ~Plugin();
+    ToolsOptionsPage();
+    ~ToolsOptionsPage();
 
-    bool initialize(const QStringList &arguments, QString *errorMessage) override;
-
-    void extensionsInitialized() override;
+    QWidget *widget() override;
+    void apply() override;
+    void finish() override;
 
 private:
-    static Plugin *m_instance;
-    ToolChainManager* m_toolChainManager = nullptr;
+    QScopedPointer<Ui::ToolsOptionsPage> m_ui;
+    QScopedPointer<QWidget> m_widget;
 };
 
 } // namespace Internal

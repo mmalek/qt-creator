@@ -25,31 +25,44 @@
 
 #pragma once
 
-#include <extensionsystem/iplugin.h>
+#include <coreplugin/id.h>
+#include <utils/fileutils.h>
+
+#include <QObject>
+#include <QVector>
 
 namespace Rust {
 namespace Internal {
 
-class ToolChainManager;
+struct ToolChain
+{
+    Core::Id id;
 
-class Plugin final : public ExtensionSystem::IPlugin
+    QString name;
+    QString toolChainName;
+    Utils::FileName path;
+    QString version;
+    QString racerVersion;
+    bool autodetected;
+
+    bool fromRustup() const { return !toolChainName.isNull(); }
+    bool isRacerPresent() const { return !racerVersion.isNull(); }
+};
+
+class ToolChainManager : public QObject
 {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
-
 public:
-    static Plugin &instance();
+    explicit ToolChainManager(QObject *parent = nullptr);
 
-    Plugin();
-    ~Plugin();
+    const QVector<ToolChain>& toolChains() const { return m_toolChains; }
 
-    bool initialize(const QStringList &arguments, QString *errorMessage) override;
+signals:
 
-    void extensionsInitialized() override;
+public slots:
 
 private:
-    static Plugin *m_instance;
-    ToolChainManager* m_toolChainManager = nullptr;
+    QVector<ToolChain> m_toolChains;
 };
 
 } // namespace Internal
