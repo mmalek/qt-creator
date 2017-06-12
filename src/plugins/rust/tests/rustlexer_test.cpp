@@ -606,7 +606,7 @@ void LexerTest::squareBrackets()
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
     QCOMPARE(lexer.next(), (Token{9, 1, TokenType::Number}));
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
-    QCOMPARE(lexer.next(), (Token{10, 1, TokenType::Operator}));
+    QCOMPARE(lexer.next(), (Token{10, 1, TokenType::Comma}));
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
     QCOMPARE(lexer.next(), (Token{12, 1, TokenType::Number}));
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
