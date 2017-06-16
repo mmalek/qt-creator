@@ -32,12 +32,15 @@
 namespace Rust {
 namespace Internal {
 
+class ToolChainManager;
+
 class CargoStep : public ProjectExplorer::AbstractProcessStep
 {
     Q_OBJECT
 
 public:
-    CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QString& displayName);
+    CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id,
+              const ToolChainManager& tcm, const QString& displayName);
     CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const QString& displayName);
 
     bool init(QList<const ProjectExplorer::BuildStep *> &earlierSteps) final;
@@ -51,6 +54,8 @@ public:
     bool showJsonOutput() const { return m_showJsonOnConsole; }
     virtual QString mainArgs() const = 0;
 
+    const ToolChainManager& toolChainManager() const { return m_toolChainManager; }
+
 public slots:
     void setExtraArgs(const QString& value);
     void setShowJsonOutput(bool value);
@@ -59,6 +64,7 @@ protected:
     void stdOutput(const QString &line) override;
 
 private:
+    const ToolChainManager& m_toolChainManager;
     QString m_extraArgs;
     bool m_showJsonOnConsole;
 };
@@ -71,7 +77,7 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit BuildStep(ProjectExplorer::BuildStepList *bsl);
+    explicit BuildStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     BuildStep(ProjectExplorer::BuildStepList *bsl, BuildStep *bs);
 
     QString mainArgs() const override;
@@ -85,7 +91,7 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit TestStep(ProjectExplorer::BuildStepList *bsl);
+    explicit TestStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     TestStep(ProjectExplorer::BuildStepList *bsl, TestStep *bs);
 
     QString mainArgs() const override;
@@ -99,7 +105,7 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit BenchStep(ProjectExplorer::BuildStepList *bsl);
+    explicit BenchStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     BenchStep(ProjectExplorer::BuildStepList *bsl, BenchStep *bs);
 
     QString mainArgs() const override;
@@ -113,7 +119,7 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit CleanStep(ProjectExplorer::BuildStepList *bsl);
+    explicit CleanStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     CleanStep(ProjectExplorer::BuildStepList *bsl, CleanStep *bs);
 
     QString mainArgs() const override;
@@ -138,11 +144,14 @@ private:
 class BuildStepFactory final : public ProjectExplorer::IBuildStepFactory
 {
 public:
-    explicit BuildStepFactory(QObject *parent = nullptr);
+    explicit BuildStepFactory(const ToolChainManager& tcm, QObject *parent = nullptr);
 
     QList<ProjectExplorer::BuildStepInfo> availableSteps(ProjectExplorer::BuildStepList *parent) const override;
     ProjectExplorer::BuildStep *create(ProjectExplorer::BuildStepList *parent, Core::Id id) override;
     ProjectExplorer::BuildStep *clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *source) override;
+
+private:
+    const ToolChainManager& m_toolChainManager;
 };
 
 } // namespace Internal

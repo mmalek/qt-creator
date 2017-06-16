@@ -30,6 +30,11 @@
 namespace Rust {
 namespace Internal {
 
+ProjectManager::ProjectManager(const ToolChainManager &toolChainManager)
+    : m_toolChainManager(toolChainManager)
+{
+}
+
 QString ProjectManager::mimeType() const
 {
     return QLatin1String(MimeTypes::CARGO_MANIFEST);

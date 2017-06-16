@@ -24,19 +24,121 @@
 ****************************************************************************/
 
 #include "rustkitconfigwidget.h"
+#include "rustkitinformation.h"
+#include "rusttoolchainmanager.h"
+#include "rusttoolsoptionspage.h"
 
+#include <coreplugin/icore.h>
+
+#include <QAbstractListModel>
 #include <QComboBox>
 #include <QPushButton>
 
 namespace Rust {
 namespace Internal {
 
-KitConfigWidget::KitConfigWidget(ProjectExplorer::Kit *kit,
+class ToolChainsModel : public QAbstractListModel
+{
+public:
+    ToolChainsModel(const ToolChainManager& toolChainManager, QObject *parent = nullptr);
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
+    int rowForId(Core::Id id) const;
+    Core::Id idForRow(int i) const;
+    const ToolChain* toolChainForRow(int i) const;
+
+private:
+    const ToolChainManager& m_toolChainManager;
+};
+
+ToolChainsModel::ToolChainsModel(const ToolChainManager &toolChainManager, QObject *parent)
+    : QAbstractListModel(parent),
+      m_toolChainManager(toolChainManager)
+{
+}
+
+int ToolChainsModel::rowCount(const QModelIndex &parent) const
+{
+    if (parent.isValid())
+        return 0;
+    else
+        return 1 + m_toolChainManager.autodetected().size() + m_toolChainManager.manual().size();
+}
+
+QVariant ToolChainsModel::data(const QModelIndex &index, int role) const
+{
+    if (index.isValid() && index.column() == 0 && role == Qt::DisplayRole) {
+        if (const ToolChain *toolChain = toolChainForRow(index.row())) {
+            return toolChain->name;
+        } else {
+            return tr("None");
+        }
+    }
+    return QVariant();
+}
+
+int ToolChainsModel::rowForId(Core::Id id) const
+{
+    auto it = std::find_if(m_toolChainManager.autodetected().begin(),
+                           m_toolChainManager.autodetected().end(),
+                           [&id](const ToolChain& toolChain) { return toolChain.id == id; });
+
+    if (it != m_toolChainManager.autodetected().end()) {
+        const int i = std::distance(m_toolChainManager.autodetected().begin(), it);
+        return 1 + i;
+    }
+
+    it = std::find_if(m_toolChainManager.manual().begin(),
+                      m_toolChainManager.manual().end(),
+                      [&id](const ToolChain& toolChain) { return toolChain.id == id; });
+
+    if (it != m_toolChainManager.manual().end()) {
+        const int i = std::distance(m_toolChainManager.manual().begin(), it);
+        return 1 + m_toolChainManager.autodetected().size() + i;
+    }
+
+    return 0;
+}
+
+Core::Id ToolChainsModel::idForRow(int i) const
+{
+    if (const ToolChain *toolChain = toolChainForRow(i))
+        return toolChain->id;
+    else
+        return Core::Id();
+}
+
+const ToolChain *ToolChainsModel::toolChainForRow(int i) const
+{
+    const int autodetectedSize = m_toolChainManager.autodetected().size();
+    const int manualSize = m_toolChainManager.manual().size();
+
+    if (i > 0 && i < autodetectedSize+1) {
+        return &m_toolChainManager.autodetected().at(i - 1);
+    } else if (i > autodetectedSize && i < autodetectedSize + manualSize + 1) {
+        return &m_toolChainManager.manual().at(i - autodetectedSize - 1);
+    } else {
+        return nullptr;
+    }
+}
+
+KitConfigWidget::KitConfigWidget(const ToolChainManager& toolChainManager,
+                                 ProjectExplorer::Kit *kit,
                                  const ProjectExplorer::KitInformation *ki)
     : ProjectExplorer::KitConfigWidget(kit, ki),
+      m_toolChainManager(toolChainManager),
+      m_model(new ToolChainsModel(toolChainManager, this)),
       m_comboBox(new QComboBox),
-      m_pushButton(new QPushButton)
+      m_pushButton(new QPushButton(ProjectExplorer::KitConfigWidget::msgManage()))
 {
+    m_comboBox->setModel(m_model);
+
+    connect(m_comboBox.data(), QOverload<int>::of(&QComboBox::currentIndexChanged),
+            [this](int index) { KitInformation::setToolChain(m_kit, m_model->idForRow(index)); });
+
+    connect(m_pushButton.data(), &QPushButton::clicked,
+            [this] { Core::ICore::showOptionsDialog(ToolsOptionsPage::ID, buttonWidget()); });
 }
 
 KitConfigWidget::~KitConfigWidget()
@@ -45,15 +147,18 @@ KitConfigWidget::~KitConfigWidget()
 
 QString KitConfigWidget::displayName() const
 {
-    return QString();
+    return tr("Rust:");
 }
 
 void KitConfigWidget::makeReadOnly()
 {
+    m_comboBox->setEnabled(false);
+    m_pushButton->setEnabled(false);
 }
 
 void KitConfigWidget::refresh()
 {
+    m_comboBox->setCurrentIndex(m_model->rowForId(KitInformation::getToolChain(m_kit)));
 }
 
 QWidget *KitConfigWidget::mainWidget() const

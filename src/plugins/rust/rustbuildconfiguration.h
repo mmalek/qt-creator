@@ -33,6 +33,8 @@
 namespace Rust {
 namespace Internal {
 
+class ToolChainManager;
+
 class BuildConfiguration final : public ProjectExplorer::BuildConfiguration
 {
     Q_OBJECT
@@ -78,7 +80,7 @@ class BuildConfigurationFactory final : public ProjectExplorer::IBuildConfigurat
     Q_OBJECT
 
 public:
-    BuildConfigurationFactory(QObject *parent = nullptr);
+    explicit BuildConfigurationFactory(const ToolChainManager& tcm, QObject *parent = nullptr);
 
     int priority(const ProjectExplorer::Target *parent) const override;
     QList<ProjectExplorer::BuildInfo *> availableBuilds(const ProjectExplorer::Target *parent) const override;
@@ -97,6 +99,9 @@ private:
     ProjectExplorer::BuildInfo *createBuildInfo(const ProjectExplorer::Kit *k,
                                                 const Utils::FileName &projectDir,
                                                 ProjectExplorer::BuildConfiguration::BuildType buildType) const;
+
+private:
+    const ToolChainManager& m_toolChainManager;
 };
 
 } // namespace Internal

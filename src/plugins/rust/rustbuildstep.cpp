@@ -25,6 +25,8 @@
 
 #include "rustbuildstep.h"
 #include "rustcompileroutputparser.h"
+#include "rustkitinformation.h"
+#include "rusttoolchainmanager.h"
 #include "ui_rustbuildstepconfigwidget.h"
 
 #include <projectexplorer/buildconfiguration.h>
@@ -32,6 +34,7 @@
 #include <projectexplorer/processparameters.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectexplorerconstants.h>
+#include <projectexplorer/target.h>
 #include <utils/qtcassert.h>
 
 namespace Rust {
@@ -44,8 +47,10 @@ Q_CONSTEXPR QLatin1String SHOW_JSON_OUTPUT_KEY("Rust.CargoStep.ShowJsonOutput");
 
 } // namespace
 
-CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QString &displayName)
+CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id,
+                     const ToolChainManager& tcm, const QString &displayName)
     : AbstractProcessStep(bsl, id),
+      m_toolChainManager(tcm),
       m_showJsonOnConsole(false)
 {
     setDefaultDisplayName(displayName);
@@ -54,6 +59,7 @@ CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QSt
 
 CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const QString &displayName)
     : AbstractProcessStep(bsl, bs),
+      m_toolChainManager(bs->m_toolChainManager),
       m_extraArgs(bs->m_extraArgs),
       m_showJsonOnConsole(bs->m_showJsonOnConsole)
 {
@@ -63,20 +69,26 @@ CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const Q
 
 bool CargoStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
 {
-    processParameters()->setCommand(QLatin1String("cargo"));
-    processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
-    processParameters()->setEnvironment(buildConfiguration()->environment());
+    ProjectExplorer::Kit* kit = target()->kit();
+    if (const ToolChain* toolChain = m_toolChainManager.get(KitInformation::getToolChain(kit))) {
+        processParameters()->setCommand(toolChain->cargoPath.toString());
+        processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
+        processParameters()->setEnvironment(buildConfiguration()->environment());
 
-    if (!extraArgs().isEmpty()) {
-        QString arguments = QString("%1 %2").arg(mainArgs().trimmed()).arg(extraArgs().trimmed());
-        processParameters()->setArguments(arguments);
+        if (!extraArgs().isEmpty()) {
+            QString arguments = QString("%1 %2").arg(mainArgs().trimmed()).arg(extraArgs().trimmed());
+            processParameters()->setArguments(arguments);
+        } else {
+            processParameters()->setArguments(mainArgs().trimmed());
+        }
+
+        setOutputParser(new CompilerOutputParser);
+
+        return AbstractProcessStep::init(earlierSteps);
     } else {
-        processParameters()->setArguments(mainArgs().trimmed());
+        emit addOutput(tr("Rust toolchain is not set up"), BuildStep::ErrorMessageOutput);
+        return false;
     }
-
-    setOutputParser(new CompilerOutputParser);
-
-    return AbstractProcessStep::init(earlierSteps);
 }
 
 ProjectExplorer::BuildStepConfigWidget *CargoStep::createConfigWidget()
@@ -127,8 +139,8 @@ void CargoStep::stdOutput(const QString &line)
 const char BuildStep::ID[] = "Rust.BuildStep";
 const char BuildStep::DISPLAY_NAME[] = "cargo build";
 
-BuildStep::BuildStep(ProjectExplorer::BuildStepList *bsl)
-    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
+BuildStep::BuildStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
+    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -149,8 +161,8 @@ QString BuildStep::mainArgs() const
 const char TestStep::ID[] = "Rust.TestStep";
 const char TestStep::DISPLAY_NAME[] = "cargo test";
 
-TestStep::TestStep(ProjectExplorer::BuildStepList *bsl)
-    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
+TestStep::TestStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
+    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -171,8 +183,8 @@ QString TestStep::mainArgs() const
 const char BenchStep::ID[] = "Rust.BenchStep";
 const char BenchStep::DISPLAY_NAME[] = "cargo bench";
 
-BenchStep::BenchStep(ProjectExplorer::BuildStepList *bsl)
-    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
+BenchStep::BenchStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
+    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -189,8 +201,8 @@ QString BenchStep::mainArgs() const
 const char CleanStep::ID[] = "Rust.CleanStep";
 const char CleanStep::DISPLAY_NAME[] = "cargo clean";
 
-CleanStep::CleanStep(ProjectExplorer::BuildStepList *bsl)
-    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
+CleanStep::CleanStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
+    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -227,8 +239,9 @@ BuildStepConfigWidget::~BuildStepConfigWidget()
 {
 }
 
-BuildStepFactory::BuildStepFactory(QObject *parent)
-    : ProjectExplorer::IBuildStepFactory(parent)
+BuildStepFactory::BuildStepFactory(const ToolChainManager& tcm, QObject *parent)
+    : ProjectExplorer::IBuildStepFactory(parent),
+      m_toolChainManager(tcm)
 {
 }
 
@@ -248,13 +261,13 @@ QList<ProjectExplorer::BuildStepInfo> BuildStepFactory::availableSteps(ProjectEx
 ProjectExplorer::BuildStep *BuildStepFactory::create(ProjectExplorer::BuildStepList *parent, Core::Id id)
 {
     if (id == BuildStep::ID) {
-        return new BuildStep(parent);
+        return new BuildStep(parent, m_toolChainManager);
     } else if (id == TestStep::ID) {
-        return new TestStep(parent);
+        return new TestStep(parent, m_toolChainManager);
     } else if (id == BenchStep::ID) {
-        return new BenchStep(parent);
+        return new BenchStep(parent, m_toolChainManager);
     } else if (id == CleanStep::ID) {
-        return new CleanStep(parent);
+        return new CleanStep(parent, m_toolChainManager);
     } else {
         return nullptr;
     }

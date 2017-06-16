@@ -28,6 +28,7 @@
 #include "rustbuildstep.h"
 #include "rusteditorfactory.h"
 #include "rusteditors.h"
+#include "rustkitinformation.h"
 #include "rustmimetypes.h"
 #include "rustprojectmanager.h"
 #include "rustrunconfiguration.h"
@@ -54,24 +55,6 @@ const char MAIN_MENU[] = "Rust.Tools.Menu";
 
 } // namespace
 
-Plugin *Plugin::m_instance = nullptr;
-
-Plugin &Plugin::instance()
-{
-    QTC_CHECK(m_instance != nullptr);
-    return *m_instance;
-}
-
-Plugin::Plugin()
-{
-    m_instance = this;
-}
-
-Plugin::~Plugin()
-{
-    m_instance = nullptr;
-}
-
 bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
 {
     Q_UNUSED(arguments)
@@ -80,12 +63,14 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
     Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
 
     addAutoReleasedObject(m_toolChainManager = new ToolChainManager);
-    addAutoReleasedObject(new ToolsOptionsPage);
-    addAutoReleasedObject(new ProjectManager);
-    addAutoReleasedObject(new BuildConfigurationFactory);
-    addAutoReleasedObject(new BuildStepFactory);
+    addAutoReleasedObject(new ToolsOptionsPage(*m_toolChainManager));
+    addAutoReleasedObject(new ProjectManager(*m_toolChainManager));
+    addAutoReleasedObject(new BuildConfigurationFactory(*m_toolChainManager));
+    addAutoReleasedObject(new BuildStepFactory(*m_toolChainManager));
     addAutoReleasedObject(new RunConfigurationFactory);
     addAutoReleasedObject(new EditorFactory);
+
+    ProjectExplorer::KitManager::registerKitInformation(new KitInformation(*m_toolChainManager));
 
     // Add MIME overlay icons (these icons displayed at Project dock panel)
     const QIcon icon((QLatin1String(":/images/rust.svg")));
