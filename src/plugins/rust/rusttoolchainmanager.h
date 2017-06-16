@@ -41,9 +41,9 @@ struct ToolChain
     QString name;
     QString toolChainName;
     Utils::FileName path;
+    Utils::FileName cargoPath;
     QString version;
     QString racerVersion;
-    bool autodetected;
 
     bool fromRustup() const { return !toolChainName.isNull(); }
     bool isRacerPresent() const { return !racerVersion.isNull(); }
@@ -55,14 +55,21 @@ class ToolChainManager : public QObject
 public:
     explicit ToolChainManager(QObject *parent = nullptr);
 
-    const QVector<ToolChain>& toolChains() const { return m_toolChains; }
+    QVector<ToolChain>& autodetected() { return m_autodetected; }
+    const QVector<ToolChain>& autodetected() const { return m_autodetected; }
+
+    QVector<ToolChain>& manual() { return m_manual; }
+    const QVector<ToolChain>& manual() const { return m_manual; }
+
+    const ToolChain* get(Core::Id id) const;
 
 signals:
 
 public slots:
 
 private:
-    QVector<ToolChain> m_toolChains;
+    QVector<ToolChain> m_autodetected;
+    QVector<ToolChain> m_manual;
 };
 
 } // namespace Internal

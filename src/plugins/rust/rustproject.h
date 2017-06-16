@@ -56,7 +56,7 @@ public:
     QString displayName() const override;
     QStringList files(FilesMode) const override;
     bool needsConfiguration() const override;
-    bool supportsKit(ProjectExplorer::Kit *k, QString *errorMessage) const override;
+    bool supportsKit(ProjectExplorer::Kit *kit, QString *errorMessage) const override;
     Utils::FileNameList files() const;
 
     const QVector<Product>& products() const { return m_products; }

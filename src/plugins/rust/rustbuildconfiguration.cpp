@@ -155,8 +155,9 @@ BuildConfigurationWidget::~BuildConfigurationWidget()
 {
 }
 
-BuildConfigurationFactory::BuildConfigurationFactory(QObject *parent)
-    : ProjectExplorer::IBuildConfigurationFactory(parent)
+BuildConfigurationFactory::BuildConfigurationFactory(const ToolChainManager& tcm, QObject *parent)
+    : ProjectExplorer::IBuildConfigurationFactory(parent),
+      m_toolChainManager(tcm)
 {
 
 }
@@ -209,10 +210,10 @@ ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::create(ProjectEx
     buildConfiguration->setBuildDirectory(buildDir);
 
     ProjectExplorer::BuildStepList* buildSteps = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
-    buildSteps->appendStep(new BuildStep(buildSteps));
+    buildSteps->appendStep(new BuildStep(buildSteps, m_toolChainManager));
 
     ProjectExplorer::BuildStepList* cleanSteps = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_CLEAN);
-    cleanSteps->appendStep(new CleanStep(cleanSteps));
+    cleanSteps->appendStep(new CleanStep(cleanSteps, m_toolChainManager));
 
     return buildConfiguration;
 }

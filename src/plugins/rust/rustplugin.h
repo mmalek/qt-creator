@@ -38,17 +38,11 @@ class Plugin final : public ExtensionSystem::IPlugin
     Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
 
 public:
-    static Plugin &instance();
-
-    Plugin();
-    ~Plugin();
-
     bool initialize(const QStringList &arguments, QString *errorMessage) override;
 
     void extensionsInitialized() override;
 
 private:
-    static Plugin *m_instance;
     ToolChainManager* m_toolChainManager = nullptr;
 };
 

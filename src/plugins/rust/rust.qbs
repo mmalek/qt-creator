@@ -36,6 +36,8 @@ QtcPlugin {
         "rustindenter.h",
         "rustkitconfigwidget.cpp",
         "rustkitconfigwidget.h",
+        "rustkitinformation.cpp",
+        "rustkitinformation.h",
         "rustlexer.cpp",
         "rustlexer.h",
         "rustmimetypes.h",

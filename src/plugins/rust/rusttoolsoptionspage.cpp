@@ -24,6 +24,7 @@
 ****************************************************************************/
 
 #include "rusttoolsoptionspage.h"
+#include "rustplugin.h"
 #include "rusttoolchainmanager.h"
 #include "ui_rusttoolsoptionspage.h"
 
@@ -34,23 +35,31 @@ namespace Rust {
 namespace Internal {
 namespace {
 
-enum class Column {
-    Name,
-    Path,
+enum Column : int {
+    ColumnName = 0,
+    ColumnPath,
 };
 
-class ToolItem;
+} // namespace
 
 class ToolItemModel : public Utils::TreeModel<Utils::TreeItem, Utils::TreeItem, ToolItem>
 {
     Q_DECLARE_TR_FUNCTIONS(Rust::ToolsOptionsPage)
 
 public:
-    ToolItemModel();
+    ToolItemModel(QObject *parent, ToolChainManager& toolChainManager);
+
+    Utils::TreeItem &autodetected() const { return *m_autodetected; }
+    Utils::TreeItem &manual() const { return *m_manual; }
 
     Core::Id defaultItemId() const { return m_defaultItemId; }
 
+    void apply();
+
 private:
+    ToolChainManager& m_toolChainManager;
+    Utils::TreeItem *m_autodetected;
+    Utils::TreeItem *m_manual;
     Core::Id m_defaultItemId;
 };
 
@@ -59,7 +68,7 @@ class ToolItem : public Utils::TreeItem
     Q_DECLARE_TR_FUNCTIONS(Rust::ToolsOptionsPage)
 
 public:
-    ToolItem(ToolChain toolChain, bool changed) :
+    ToolItem(ToolChain toolChain, bool changed = false) :
         m_toolChain(toolChain),
         m_changed(changed)
     {}
@@ -71,13 +80,16 @@ public:
         switch (role) {
         case Qt::DisplayRole:
             switch (column) {
-            case 0: {
-                QString name = m_toolChain.name;
+            case ColumnName:
                 if (model()->defaultItemId() == m_toolChain.id)
-                    name += tr(" (Default)");
-                return name;
-            }
-            case 1: return m_toolChain.path.toUserOutput();
+                    return m_toolChain.name + tr(" (Default)");
+                else
+                    return m_toolChain.name;
+            case ColumnPath:
+                return m_toolChain.path.toUserOutput();
+
+            default:
+                Q_UNREACHABLE();
             }
 
         case Qt::FontRole: {
@@ -91,15 +103,44 @@ public:
 
     ToolChain m_toolChain;
     bool m_changed = true;
-
 };
 
-} // namespace
+ToolItemModel::ToolItemModel(QObject *parent, ToolChainManager& toolChainManager)
+    : Utils::TreeModel<Utils::TreeItem, Utils::TreeItem, ToolItem>(parent),
+      m_toolChainManager(toolChainManager),
+      m_autodetected(new Utils::StaticTreeItem(tr("Auto-detected"))),
+      m_manual(new Utils::StaticTreeItem(tr("Manual")))
+{
+    setHeader({tr("Name"), tr("Location")});
+    rootItem()->appendChild(m_autodetected);
+    rootItem()->appendChild(m_manual);
+
+    for (const ToolChain& toolChain : m_toolChainManager.autodetected()) {
+        autodetected().appendChild(new ToolItem(toolChain));
+    }
+
+    for (const ToolChain& toolChain : m_toolChainManager.manual()) {
+        manual().appendChild(new ToolItem(toolChain));
+    }
+}
+
+void ToolItemModel::apply()
+{
+    auto& toolChains = m_toolChainManager.manual();
+
+    toolChains.clear();
+    toolChains.reserve(manual().childCount());
+
+    manual().forChildrenAtLevel(1, [&toolChains](const Utils::TreeItem* item) {
+        toolChains.push_back(static_cast<const ToolItem*>(item)->m_toolChain);
+    });
+}
 
 const char ToolsOptionsPage::ID[] = "Z.RustTools";
 
-ToolsOptionsPage::ToolsOptionsPage()
-    : m_ui(new Ui::ToolsOptionsPage)
+ToolsOptionsPage::ToolsOptionsPage(ToolChainManager& toolChainManager)
+    : m_ui(new Ui::ToolsOptionsPage),
+      m_model(new ToolItemModel(this, toolChainManager))
 {
     setId(ID);
     setDisplayName(tr("Rust"));
@@ -118,12 +159,17 @@ QWidget *ToolsOptionsPage::widget()
     if (!m_widget) {
         m_widget.reset(new QWidget);
         m_ui->setupUi(m_widget.data());
+        m_ui->tools->setModel(m_model);
+        m_ui->tools->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+        m_ui->tools->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+        m_ui->tools->expandAll();
     }
     return m_widget.data();
 }
 
 void ToolsOptionsPage::apply()
 {
+    m_model->apply();
 }
 
 void ToolsOptionsPage::finish()

@@ -30,14 +30,23 @@
 namespace Rust {
 namespace Internal {
 
+class ToolChainManager;
+
 class ProjectManager final : public ProjectExplorer::IProjectManager
 {
     Q_OBJECT
 
 public:
+    explicit ProjectManager(const ToolChainManager &toolChainManager);
+
     QString mimeType() const override;
 
     ProjectExplorer::Project *openProject(const QString &fileName, QString *errorString) override;
+
+    const ToolChainManager &toolChainManager() const { return m_toolChainManager; }
+
+private:
+    const ToolChainManager &m_toolChainManager;
 };
 
 } // namespace Internal

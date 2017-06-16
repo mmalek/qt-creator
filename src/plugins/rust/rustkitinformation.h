@@ -25,37 +25,30 @@
 
 #pragma once
 
-#include <coreplugin/dialogs/ioptionspage.h>
-
-#include <QScopedPointer>
+#include <projectexplorer/kitmanager.h>
 
 namespace Rust {
 namespace Internal {
 
-namespace Ui { class ToolsOptionsPage; }
-
 class ToolChainManager;
-class ToolItem;
-class ToolItemModel;
 
-class ToolsOptionsPage final : public Core::IOptionsPage
+class KitInformation final : public ProjectExplorer::KitInformation
 {
-    Q_OBJECT
-
 public:
     static const char ID[];
 
-    explicit ToolsOptionsPage(ToolChainManager& toolChainManager);
-    ~ToolsOptionsPage();
+    explicit KitInformation(ToolChainManager& toolChainManager);
 
-    QWidget *widget() override;
-    void apply() override;
-    void finish() override;
+    QVariant defaultValue(const ProjectExplorer::Kit *kit) const override;
+    QList<ProjectExplorer::Task> validate(const ProjectExplorer::Kit *kit) const override;
+    ItemList toUserOutput(const ProjectExplorer::Kit *kit) const override;
+    ProjectExplorer::KitConfigWidget *createConfigWidget(ProjectExplorer::Kit *kit) const override;
+
+    static Core::Id getToolChain(const ProjectExplorer::Kit* kit);
+    static void setToolChain(ProjectExplorer::Kit* kit, Core::Id id);
 
 private:
-    QScopedPointer<Ui::ToolsOptionsPage> m_ui;
-    QScopedPointer<QWidget> m_widget;
-    ToolItemModel* m_model;
+    ToolChainManager& m_toolChainManager;
 };
 
 } // namespace Internal

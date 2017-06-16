@@ -35,12 +35,17 @@ class QPushButton;
 namespace Rust {
 namespace Internal {
 
+class ToolChainManager;
+class ToolChainsModel;
+
 class KitConfigWidget final : public ProjectExplorer::KitConfigWidget
 {
     Q_OBJECT
 
 public:
-    KitConfigWidget(ProjectExplorer::Kit *kit, const ProjectExplorer::KitInformation *ki);
+    KitConfigWidget(const ToolChainManager& toolChainManager,
+                    ProjectExplorer::Kit *kit,
+                    const ProjectExplorer::KitInformation *ki);
     ~KitConfigWidget();
 
     QString displayName() const override;
@@ -50,6 +55,8 @@ public:
     QWidget *buttonWidget() const override;
 
 private:
+    const ToolChainManager& m_toolChainManager;
+    ToolChainsModel* m_model;
     QScopedPointer<QComboBox> m_comboBox;
     QScopedPointer<QPushButton> m_pushButton;
 };

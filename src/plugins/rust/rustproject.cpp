@@ -25,8 +25,10 @@
 ****************************************************************************/
 
 #include "rustproject.h"
+#include "rustkitinformation.h"
 #include "rustprojectnode.h"
 #include "rustprojectmanager.h"
+#include "rusttoolchainmanager.h"
 
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/kit.h>
@@ -192,9 +194,17 @@ void Project::recursiveScanDirectory(const QDir &dir, QSet<QString> &container)
     m_fsWatcher.addPath(dir.absolutePath());
 }
 
-bool Project::supportsKit(Kit *k, QString *) const
+bool Project::supportsKit(Kit *kit, QString *errorMessage) const
 {
-    return k->isValid();
+    const ProjectManager& pm = static_cast<const ProjectManager&>(*projectManager());
+    if (pm.toolChainManager().get(KitInformation::getToolChain(kit))) {
+        return kit->isValid();
+    } else {
+        if (errorMessage) {
+            *errorMessage = tr("No Rust toolchain set.");
+        }
+        return false;
+    }
 }
 
 FileNameList Project::files() const
