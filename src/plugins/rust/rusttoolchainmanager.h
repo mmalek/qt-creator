@@ -42,9 +42,11 @@ struct ToolChain
     QString toolChainName;
     Utils::FileName path;
     Utils::FileName cargoPath;
+    Utils::FileName racerPath;
     QString version;
     QString racerVersion;
 
+    operator bool() const { return !cargoPath.isEmpty(); }
     bool fromRustup() const { return !toolChainName.isNull(); }
     bool isRacerPresent() const { return !racerVersion.isNull(); }
 };

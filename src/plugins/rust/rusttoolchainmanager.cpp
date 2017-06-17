@@ -75,6 +75,51 @@ void addUniquely(QVector<ToolChain>& toolChains, ToolChain newTc)
     }
 }
 
+ToolChain detectCargo(const QString& dir)
+{
+    Utils::FileName file = searchInDirectory({CARGO_BINARY}, dir);
+    if (!file.isNull()) {
+        QProcess process;
+        process.start(file.toString(), {QLatin1String("--version")});
+        if (process.waitForFinished(ONE_SECOND)) {
+            const QString output = QString::fromLocal8Bit(process.readLine().trimmed());
+
+            QRegularExpression regex("^cargo (?<name>(?<version>\\S+) \\((?<id>\\w+) \\S+\\))$");
+            QRegularExpressionMatch match = regex.match(output);
+            if (match.hasMatch()) {
+                ToolChain toolChain;
+                toolChain.id = Core::Id::fromString(match.captured("id"));
+                toolChain.name = match.captured("name");
+                toolChain.version = match.captured("version");
+                toolChain.path = Utils::FileName::fromString(dir);
+                toolChain.cargoPath = file;
+                return toolChain;
+            }
+        }
+    }
+
+    return {};
+}
+
+void detectRacer(ToolChain& toolChain)
+{
+    Utils::FileName file = searchInDirectory({RACER_BINARY}, toolChain.path.toString());
+    if (!file.isNull()) {
+        QProcess process;
+        process.start(file.toString(), {QLatin1String("--version")});
+        if (process.waitForFinished(ONE_SECOND)) {
+            const QString output = QString::fromLocal8Bit(process.readLine().trimmed());
+
+            QRegularExpression regex("^racer (?<version>.+)$");
+            QRegularExpressionMatch match = regex.match(output);
+            if (match.hasMatch()) {
+                toolChain.racerVersion = match.captured("version");
+                toolChain.racerPath = file;
+            }
+        }
+    }
+}
+
 } // namespace
 
 ToolChainManager::ToolChainManager(QObject *parent) : QObject(parent)
@@ -83,25 +128,9 @@ ToolChainManager::ToolChainManager(QObject *parent) : QObject(parent)
     dirs.removeDuplicates();
 
     for (const QString& dir : dirs) {
-        Utils::FileName file = searchInDirectory({CARGO_BINARY}, dir);
-        if (!file.isNull()) {
-            QProcess process;
-            process.start(file.toString(), {QLatin1String("--version")});
-            if (process.waitForFinished(ONE_SECOND)) {
-                const QString version = QString::fromLocal8Bit(process.readLine().trimmed());
-
-                QRegularExpression regex("^cargo (?<name>(?<version>\\S+) \\((?<id>\\w+) \\S+\\))$");
-                QRegularExpressionMatch match = regex.match(version);
-                if (match.hasMatch()) {
-                    ToolChain toolChain;
-                    toolChain.id = Core::Id::fromString(match.captured("id"));
-                    toolChain.name = match.captured("name");
-                    toolChain.version = match.captured("version");
-                    toolChain.path = Utils::FileName::fromString(dir);
-                    toolChain.cargoPath = file;
-                    addUniquely(m_autodetected, std::move(toolChain));
-                }
-            }
+        if (ToolChain toolChain = detectCargo(dir)) {
+            detectRacer(toolChain);
+            addUniquely(m_autodetected, std::move(toolChain));
         }
     }
 }

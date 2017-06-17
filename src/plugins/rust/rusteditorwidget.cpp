@@ -59,8 +59,8 @@ void EditorWidget::contextMenuEvent(QContextMenuEvent *e)
 }
 
 TextEditor::TextEditorWidget::Link EditorWidget::findLinkAt(const QTextCursor &textCursor,
-                                                            bool resolveTarget,
-                                                            bool inNextSplit)
+                                                            bool /*resolveTarget*/,
+                                                            bool /*inNextSplit*/)
 {
     if (!SourceLayout::isInCommentOrString(textCursor)) {
         auto results = Racer::run(Racer::Request::FindDefinition,
