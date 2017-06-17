@@ -63,6 +63,8 @@ public:
 
     const ToolChain* get(Core::Id id) const;
 
+    const ToolChain* getFirst() const;
+
 signals:
 
 public slots:

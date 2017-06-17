@@ -24,8 +24,10 @@
 ****************************************************************************/
 
 #include "rustprojectmanager.h"
+#include "rustmanifest.h"
 #include "rustmimetypes.h"
 #include "rustproject.h"
+#include "rusttoolchainmanager.h"
 
 namespace Rust {
 namespace Internal {
@@ -42,12 +44,22 @@ QString ProjectManager::mimeType() const
 
 ProjectExplorer::Project *ProjectManager::openProject(const QString &fileName, QString *errorString)
 {
-    if (!QFileInfo(fileName).isFile()) {
-        *errorString = tr("Cannot open Cargo manifest \"%1\": not a file.").arg(fileName);
-        return nullptr;
+    QString subErrorString;
+
+    if (const ToolChain* toolChain = m_toolChainManager.getFirst()) {
+        if (Manifest manifest = Manifest::read(fileName, toolChain->cargoPath, &subErrorString)) {
+            return new Project(this, std::move(manifest));
+        }
+    } else {
+        subErrorString = tr("No Rust toolchain set up");
     }
 
-    return new Project(this, fileName);
+    if (errorString) {
+        *errorString = tr("Cannot open Cargo manifest \"%1\": %2.").arg(fileName)
+                                                                   .arg(subErrorString);
+    }
+
+    return nullptr;
 }
 
 } // namespace Internal
