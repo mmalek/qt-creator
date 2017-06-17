@@ -20,8 +20,6 @@ QtcPlugin {
         "rustbuildstep.cpp",
         "rustbuildstep.h",
         "rustbuildstepconfigwidget.ui",
-        "rustcargo.cpp",
-        "rustcargo.h",
         "rustcompileroutputparser.cpp",
         "rustcompileroutputparser.h",
         "rusteditorfactory.cpp",
