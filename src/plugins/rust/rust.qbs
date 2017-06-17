@@ -40,6 +40,8 @@ QtcPlugin {
         "rustkitinformation.h",
         "rustlexer.cpp",
         "rustlexer.h",
+        "rustmanifest.cpp",
+        "rustmanifest.h",
         "rustmimetypes.h",
         "rustplugin.cpp",
         "rustplugin.h",

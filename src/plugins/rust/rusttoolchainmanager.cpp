@@ -126,5 +126,15 @@ const ToolChain *ToolChainManager::get(Core::Id id) const
     }
 }
 
+const ToolChain *ToolChainManager::getFirst() const
+{
+    if (!m_autodetected.isEmpty())
+        return &m_autodetected.front();
+    else if (!m_manual.isEmpty())
+        return &m_manual.front();
+    else
+        return nullptr;
+}
+
 } // namespace Internal
 } // namespace Rust
