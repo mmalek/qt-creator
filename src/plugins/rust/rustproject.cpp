@@ -103,7 +103,7 @@ void Project::populateProject()
 
     QSet<QString> oldFiles = m_files;
     m_files.clear();
-    recursiveScanDirectory(QDir(projectDirectory().toString()), m_files);
+    recursiveScanDirectory(QDir(projectDirectory().toString()), m_files, true);
 
     if (m_files == oldFiles)
         return;
@@ -118,17 +118,24 @@ void Project::populateProject()
     emit parsingFinished();
 }
 
-void Project::recursiveScanDirectory(const QDir &dir, QSet<QString> &container)
+void Project::recursiveScanDirectory(const QDir &dir, QSet<QString> &container, bool topDir)
 {
     for (const QFileInfo &info : dir.entryInfoList(QDir::AllDirs |
                                                    QDir::Files |
                                                    QDir::NoDotAndDotDot |
                                                    QDir::NoSymLinks |
                                                    QDir::CaseSensitive)) {
-        if (info.isDir())
-            recursiveScanDirectory(QDir(info.filePath()), container);
-        else
-            container << info.filePath();
+        if (info.isDir()) {
+            if (!topDir || info.fileName() != QLatin1String("target")) {
+                recursiveScanDirectory(QDir(info.filePath()), container);
+            }
+        } else {
+            if (info.suffix() != QLatin1String("autosave") &&
+                info.fileName().compare(QLatin1String("Cargo.lock"), Qt::CaseInsensitive) != 0 &&
+                info.fileName().compare(QLatin1String("Cargo.toml.user"), Qt::CaseInsensitive) != 0) {
+                container << info.filePath();
+            }
+        }
     }
     m_fsWatcher.addPath(dir.absolutePath());
 }
@@ -144,25 +151,6 @@ bool Project::supportsKit(Kit *kit, QString *errorMessage) const
         }
         return false;
     }
-}
-
-FileNameList Project::files() const
-{
-    FileNameList result;
-
-    QQueue<FolderNode *> folders;
-    folders.enqueue(rootProjectNode());
-
-    while (!folders.isEmpty()) {
-        FolderNode *folder = folders.takeFirst();
-        for (FileNode *file : folder->fileNodes()) {
-            if (file->displayName().endsWith(QLatin1String(".rs")))
-                result.append(file->filePath());
-        }
-        folders.append(folder->subFolderNodes());
-    }
-
-    return result;
 }
 
 } // namespace Internal
