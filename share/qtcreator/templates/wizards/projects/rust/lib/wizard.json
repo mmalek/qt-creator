@@ -1,0 +1,55 @@
+{
+    "version": 1,
+    "supportedProjectTypes": [ "Rust.Project" ],
+    "id": "Z.RustLibrary",
+    "category": "I.Projects",
+    "trDescription": "Creates a Rust library.",
+    "trDisplayName": "Rust Library",
+    "trDisplayCategory": "Non-Qt Project",
+    "icon": "../icon.svg",
+    "enabled": "%{JS: [ %{Plugins} ].indexOf('Rust') >= 0}",
+
+    "pages":
+    [
+        {
+            "trDisplayName": "Project Location",
+            "trShortTitle": "Location",
+            "typeId": "Project"
+        },
+        {
+            "trDisplayName": "Kit Selection",
+            "trShortTitle": "Kits",
+            "typeId": "Kits",
+            "data": { "projectFilePath": "%{ProjectDirectory}/Cargo.toml" }
+        },
+        {
+            "trDisplayName": "Project Management",
+            "trShortTitle": "Summary",
+            "typeId": "Summary"
+        }
+    ],
+    "generators":
+    [
+        {
+            "typeId": "File",
+            "data":
+            [
+                {
+                    "source": "../Cargo.toml",
+                    "target": "%{ProjectDirectory}/Cargo.toml",
+                    "openAsProject": true
+                },
+                {
+                    "source": "lib.rs",
+                    "target": "%{ProjectDirectory}/src/lib.rs",
+                    "openInEditor": true
+                },
+                {
+                    "source": "git.ignore",
+                    "target": "%{ProjectDirectory}/.gitignore",
+                    "condition": "%{JS: '%{VersionControl}' === 'G.Git'}"
+                }
+            ]
+        }
+    ]
+}
