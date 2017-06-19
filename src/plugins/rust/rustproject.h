@@ -57,14 +57,13 @@ public:
     QStringList files(FilesMode) const override;
     bool needsConfiguration() const override;
     bool supportsKit(ProjectExplorer::Kit *kit, QString *errorMessage) const override;
-    Utils::FileNameList files() const;
 
     const QVector<Product>& products() const { return m_products; }
 
 private:
     void scheduleProjectScan();
     void populateProject();
-    void recursiveScanDirectory(const QDir &dir, QSet<QString> &container);
+    void recursiveScanDirectory(const QDir &dir, QSet<QString> &container, bool topDir = false);
 
     QSet<QString> m_files;
     QFileSystemWatcher m_fsWatcher;
