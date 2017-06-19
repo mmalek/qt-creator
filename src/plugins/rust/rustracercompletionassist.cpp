@@ -265,7 +265,7 @@ QString RacerFunctionHintProposalModel::text(int index) const
 int RacerFunctionHintProposalModel::activeArgument(const QString &prefix) const
 {
     m_currentArg = 0;
-    forEachFunArg(&prefix, [this](const Slice& slice){ ++m_currentArg; });
+    forEachFunArg(&prefix, [this](const Slice&){ ++m_currentArg; });
     return m_currentArg;
 }
 
