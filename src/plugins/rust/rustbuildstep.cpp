@@ -123,16 +123,16 @@ void CargoStep::setShowJsonOutput(bool value)
 
 void CargoStep::stdOutput(const QString &line)
 {
-    if (CompilerOutputParser::isParsable(line)) {
+    const bool parsable = CompilerOutputParser::isParsable(line);
+
+    if (parsable) {
         if (ProjectExplorer::IOutputParser* parser = outputParser()) {
             parser->stdOutput(line);
         }
+    }
 
-        if (m_showJsonOnConsole) {
-            emit addOutput(line, BuildStep::NormalOutput, BuildStep::DontAppendNewline);
-        }
-    } else {
-        ProjectExplorer::AbstractProcessStep::stdOutput(line);
+    if (m_showJsonOnConsole || !parsable) {
+        emit addOutput(line, BuildStep::NormalOutput, BuildStep::DontAppendNewline);
     }
 }
 
