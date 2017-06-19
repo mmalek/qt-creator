@@ -1,0 +1,36 @@
+{
+    "version": 1,
+    "supportedProjectTypes": [ ],
+    "id": "Z.RustSource",
+    "category": "Z.Rust",
+    "trDescription": "Creates a Rust source file that you can add to a Rust project.",
+    "trDisplayName": "Rust Source File",
+    "trDisplayCategory": "Rust",
+    "enabled": "%{JS: [ %{Plugins} ].indexOf('Rust') >= 0}",
+
+    "pages" :
+    [
+        {
+            "trDisplayName": "Location",
+            "trShortTitle": "Location",
+            "typeId": "File"
+        },
+        {
+            "trDisplayName": "Project Management",
+            "trShortTitle": "Summary",
+            "typeId": "Summary"
+        }
+    ],
+    "generators" :
+    [
+        {
+            "typeId": "File",
+            "data":
+            {
+                "source": "file.rs",
+                "target": "%{JS: Util.fileName('%{TargetPath}', 'rs')}",
+                "openInEditor": true
+            }
+        }
+    ]
+}
