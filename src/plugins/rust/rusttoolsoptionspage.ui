@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>300</height>
+    <height>322</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,21 +15,41 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
+    <layout class="QFormLayout" name="formLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="cargoLabel">
+       <property name="text">
+        <string>Cargo:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="Utils::PathChooser" name="cargo" native="true"/>
+     </item>
+     <item row="1" column="0">
       <widget class="QLabel" name="rustupLabel">
        <property name="text">
         <string>Rustup:</string>
        </property>
+       <property name="buddy">
+        <cstring>cargo</cstring>
+       </property>
       </widget>
      </item>
-     <item>
+     <item row="1" column="1">
       <widget class="Utils::PathChooser" name="rustup" native="true"/>
      </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="racerLabel">
+       <property name="text">
+        <string>Racer:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="Utils::PathChooser" name="racer" native="true"/>
+     </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QTreeView" name="tools"/>
    </item>
   </layout>
  </widget>

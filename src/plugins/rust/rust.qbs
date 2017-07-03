@@ -56,6 +56,8 @@ QtcPlugin {
         "rustracercompletionassist.h",
         "rustrunconfiguration.cpp",
         "rustrunconfiguration.h",
+        "rustsettings.cpp",
+        "rustsettings.h",
         "rustslice.h",
         "rustsourcelayout.cpp",
         "rustsourcelayout.h",

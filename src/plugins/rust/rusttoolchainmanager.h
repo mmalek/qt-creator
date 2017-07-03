@@ -26,6 +26,7 @@
 #pragma once
 
 #include <coreplugin/id.h>
+#include <utils/environment.h>
 #include <utils/fileutils.h>
 
 #include <QObject>
@@ -39,16 +40,14 @@ struct ToolChain
     Core::Id id;
 
     QString name;
-    QString toolChainName;
-    Utils::FileName path;
+    QString fullToolChainName;
+    bool isDefault = false;
     Utils::FileName cargoPath;
-    Utils::FileName racerPath;
     QString version;
-    QString racerVersion;
 
-    operator bool() const { return !cargoPath.isEmpty(); }
-    bool fromRustup() const { return !toolChainName.isNull(); }
-    bool isRacerPresent() const { return !racerVersion.isNull(); }
+    operator bool() const { return id.isValid(); }
+    bool operator==(const Core::Id& other) const { return id == other; }
+    bool fromRustup() const { return !fullToolChainName.isNull(); }
 };
 
 class ToolChainManager : public QObject
@@ -57,23 +56,23 @@ class ToolChainManager : public QObject
 public:
     explicit ToolChainManager(QObject *parent = nullptr);
 
-    QVector<ToolChain>& autodetected() { return m_autodetected; }
-    const QVector<ToolChain>& autodetected() const { return m_autodetected; }
+    const Utils::Environment& environment() const { return m_environment; }
 
-    QVector<ToolChain>& manual() { return m_manual; }
-    const QVector<ToolChain>& manual() const { return m_manual; }
+    QVector<ToolChain>& toolChains() { return m_toolChains; }
+    const QVector<ToolChain>& toolChains() const { return m_toolChains; }
 
     const ToolChain* get(Core::Id id) const;
 
-    const ToolChain* getFirst() const;
+    const ToolChain* getDefault() const;
 
-signals:
+    static void addToEnvironment(Utils::Environment& environment);
 
 public slots:
+    void settingsChanged();
 
 private:
-    QVector<ToolChain> m_autodetected;
-    QVector<ToolChain> m_manual;
+    Utils::Environment m_environment;
+    QVector<ToolChain> m_toolChains;
 };
 
 } // namespace Internal

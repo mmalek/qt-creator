@@ -63,7 +63,7 @@ int ToolChainsModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid())
         return 0;
     else
-        return 1 + m_toolChainManager.autodetected().size() + m_toolChainManager.manual().size();
+        return 1 + m_toolChainManager.toolChains().size();
 }
 
 QVariant ToolChainsModel::data(const QModelIndex &index, int role) const
@@ -80,22 +80,13 @@ QVariant ToolChainsModel::data(const QModelIndex &index, int role) const
 
 int ToolChainsModel::rowForId(Core::Id id) const
 {
-    auto it = std::find_if(m_toolChainManager.autodetected().begin(),
-                           m_toolChainManager.autodetected().end(),
-                           [&id](const ToolChain& toolChain) { return toolChain.id == id; });
+    auto it = std::find(m_toolChainManager.toolChains().begin(),
+                        m_toolChainManager.toolChains().end(),
+                        id);
 
-    if (it != m_toolChainManager.autodetected().end()) {
-        const int i = std::distance(m_toolChainManager.autodetected().begin(), it);
+    if (it != m_toolChainManager.toolChains().end()) {
+        const int i = std::distance(m_toolChainManager.toolChains().begin(), it);
         return 1 + i;
-    }
-
-    it = std::find_if(m_toolChainManager.manual().begin(),
-                      m_toolChainManager.manual().end(),
-                      [&id](const ToolChain& toolChain) { return toolChain.id == id; });
-
-    if (it != m_toolChainManager.manual().end()) {
-        const int i = std::distance(m_toolChainManager.manual().begin(), it);
-        return 1 + m_toolChainManager.autodetected().size() + i;
     }
 
     return 0;
@@ -111,13 +102,8 @@ Core::Id ToolChainsModel::idForRow(int i) const
 
 const ToolChain *ToolChainsModel::toolChainForRow(int i) const
 {
-    const int autodetectedSize = m_toolChainManager.autodetected().size();
-    const int manualSize = m_toolChainManager.manual().size();
-
-    if (i > 0 && i < autodetectedSize+1) {
-        return &m_toolChainManager.autodetected().at(i - 1);
-    } else if (i > autodetectedSize && i < autodetectedSize + manualSize + 1) {
-        return &m_toolChainManager.manual().at(i - autodetectedSize - 1);
+    if (i > 0 && i < m_toolChainManager.toolChains().size()+1) {
+        return &m_toolChainManager.toolChains().at(i - 1);
     } else {
         return nullptr;
     }

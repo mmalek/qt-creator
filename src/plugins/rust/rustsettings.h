@@ -25,48 +25,25 @@
 
 #pragma once
 
-#include <coreplugin/dialogs/ioptionspage.h>
-
-#include <QScopedPointer>
-#include <QVector>
-
-namespace Utils { class PathChooser; }
+#include <QString>
 
 namespace Rust {
 namespace Internal {
+namespace Settings {
 
-namespace Settings { struct StringOption; }
-namespace Ui { class ToolsOptionsPage; }
-
-class ToolChainManager;
-
-class ToolsOptionsPage final : public Core::IOptionsPage
+struct StringOption
 {
-    Q_OBJECT
-
-public:
-    static const char ID[];
-
-    explicit ToolsOptionsPage(ToolChainManager& toolChainManager);
-    ~ToolsOptionsPage();
-
-    QWidget *widget() override;
-    void apply() override;
-    void finish() override;
-
-private:
-    ToolChainManager& m_toolChainManager;
-    QScopedPointer<Ui::ToolsOptionsPage> m_ui;
-    QScopedPointer<QWidget> m_widget;
-
-    struct Tool
-    {
-        const Settings::StringOption* option;
-        Utils::PathChooser* widget;
-    };
-
-    QVector<Tool> m_tools;
+    QLatin1String key;
+    QString defaultValue;
 };
 
+static const StringOption CARGO {QLatin1String{"Cargo"}, QLatin1String{"cargo"}};
+static const StringOption RUSTUP {QLatin1String{"Rustup"}, QLatin1String{"rustup"}};
+static const StringOption RACER {QLatin1String{"Racer"}, QLatin1String{"racer"}};
+
+QString value(const StringOption& option);
+void setValue(const StringOption& option, const QString& value);
+
+} // namespace Settings
 } // namespace Internal
 } // namespace Rust

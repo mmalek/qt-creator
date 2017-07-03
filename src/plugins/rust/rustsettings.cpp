@@ -23,50 +23,34 @@
 **
 ****************************************************************************/
 
-#pragma once
+#include "rustsettings.h"
 
-#include <coreplugin/dialogs/ioptionspage.h>
-
-#include <QScopedPointer>
-#include <QVector>
-
-namespace Utils { class PathChooser; }
+#include <coreplugin/icore.h>
 
 namespace Rust {
 namespace Internal {
+namespace Settings {
+namespace {
 
-namespace Settings { struct StringOption; }
-namespace Ui { class ToolsOptionsPage; }
+Q_CONSTEXPR QLatin1String GROUP{"Rust"};
 
-class ToolChainManager;
+} // namespace
 
-class ToolsOptionsPage final : public Core::IOptionsPage
+QString value(const StringOption& option)
 {
-    Q_OBJECT
+    const QSettings *settings = Core::ICore::settings();
+    return settings->value(QString("%1/%2").arg(GROUP).arg(option.key),
+                           option.defaultValue).toString();
+}
 
-public:
-    static const char ID[];
+void setValue(const StringOption& option, const QString& value)
+{
+    QSettings *settings = Core::ICore::settings();
+    settings->beginGroup(GROUP);
+    settings->setValue(option.key, value);
+    settings->endGroup();
+}
 
-    explicit ToolsOptionsPage(ToolChainManager& toolChainManager);
-    ~ToolsOptionsPage();
-
-    QWidget *widget() override;
-    void apply() override;
-    void finish() override;
-
-private:
-    ToolChainManager& m_toolChainManager;
-    QScopedPointer<Ui::ToolsOptionsPage> m_ui;
-    QScopedPointer<QWidget> m_widget;
-
-    struct Tool
-    {
-        const Settings::StringOption* option;
-        Utils::PathChooser* widget;
-    };
-
-    QVector<Tool> m_tools;
-};
-
+} // namespace Settings
 } // namespace Internal
 } // namespace Rust

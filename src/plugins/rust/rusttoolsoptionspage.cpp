@@ -24,12 +24,9 @@
 ****************************************************************************/
 
 #include "rusttoolsoptionspage.h"
-#include "rustplugin.h"
+#include "rustsettings.h"
 #include "rusttoolchainmanager.h"
 #include "ui_rusttoolsoptionspage.h"
-
-#include <projectexplorer/projectexplorerconstants.h>
-#include <utils/treemodel.h>
 
 namespace Rust {
 namespace Internal {
@@ -42,112 +39,22 @@ enum Column : int {
 
 } // namespace
 
-class ToolItemModel : public Utils::TreeModel<Utils::TreeItem, Utils::TreeItem, ToolItem>
-{
-    Q_DECLARE_TR_FUNCTIONS(Rust::ToolsOptionsPage)
+const char ToolsOptionsPage::ID[] = "Rust.ToolsOptions";
 
-public:
-    ToolItemModel(QObject *parent, ToolChainManager& toolChainManager);
-
-    Utils::TreeItem &autodetected() const { return *m_autodetected; }
-    Utils::TreeItem &manual() const { return *m_manual; }
-
-    Core::Id defaultItemId() const { return m_defaultItemId; }
-
-    void apply();
-
-private:
-    ToolChainManager& m_toolChainManager;
-    Utils::TreeItem *m_autodetected;
-    Utils::TreeItem *m_manual;
-    Core::Id m_defaultItemId;
-};
-
-class ToolItem : public Utils::TreeItem
-{
-    Q_DECLARE_TR_FUNCTIONS(Rust::ToolsOptionsPage)
-
-public:
-    ToolItem(ToolChain toolChain, bool changed = false) :
-        m_toolChain(toolChain),
-        m_changed(changed)
-    {}
-
-    ToolItemModel *model() const { return static_cast<ToolItemModel *>(TreeItem::model()); }
-
-    QVariant data(int column, int role) const
-    {
-        switch (role) {
-        case Qt::DisplayRole:
-            switch (column) {
-            case ColumnName:
-                if (model()->defaultItemId() == m_toolChain.id)
-                    return m_toolChain.name + tr(" (Default)");
-                else
-                    return m_toolChain.name;
-            case ColumnPath:
-                return m_toolChain.path.toUserOutput();
-
-            default:
-                Q_UNREACHABLE();
-            }
-
-        case Qt::FontRole: {
-            QFont font;
-            font.setBold(m_changed);
-            return font;
-        }
-        }
-        return QVariant();
-    }
-
-    ToolChain m_toolChain;
-    bool m_changed = true;
-};
-
-ToolItemModel::ToolItemModel(QObject *parent, ToolChainManager& toolChainManager)
-    : Utils::TreeModel<Utils::TreeItem, Utils::TreeItem, ToolItem>(parent),
-      m_toolChainManager(toolChainManager),
-      m_autodetected(new Utils::StaticTreeItem(tr("Auto-detected"))),
-      m_manual(new Utils::StaticTreeItem(tr("Manual")))
-{
-    setHeader({tr("Name"), tr("Location")});
-    rootItem()->appendChild(m_autodetected);
-    rootItem()->appendChild(m_manual);
-
-    for (const ToolChain& toolChain : m_toolChainManager.autodetected()) {
-        autodetected().appendChild(new ToolItem(toolChain));
-    }
-
-    for (const ToolChain& toolChain : m_toolChainManager.manual()) {
-        manual().appendChild(new ToolItem(toolChain));
-    }
-}
-
-void ToolItemModel::apply()
-{
-    auto& toolChains = m_toolChainManager.manual();
-
-    toolChains.clear();
-    toolChains.reserve(manual().childCount());
-
-    manual().forChildrenAtLevel(1, [&toolChains](const Utils::TreeItem* item) {
-        toolChains.push_back(static_cast<const ToolItem*>(item)->m_toolChain);
-    });
-}
-
-const char ToolsOptionsPage::ID[] = "Z.RustTools";
+namespace {
+const char CATEGORY_ID[] = "Z.Rust";
+} // namespace
 
 ToolsOptionsPage::ToolsOptionsPage(ToolChainManager& toolChainManager)
-    : m_ui(new Ui::ToolsOptionsPage),
-      m_model(new ToolItemModel(this, toolChainManager))
+    : m_toolChainManager(toolChainManager),
+      m_ui(new Ui::ToolsOptionsPage)
 {
     setId(ID);
-    setDisplayName(tr("Rust"));
-    setCategory(ProjectExplorer::Constants::PROJECTEXPLORER_SETTINGS_CATEGORY);
-    setDisplayCategory(QCoreApplication::translate("ProjectExplorer",
-       ProjectExplorer::Constants::PROJECTEXPLORER_SETTINGS_TR_CATEGORY));
-    setCategoryIcon(Utils::Icon(ProjectExplorer::Constants::PROJECTEXPLORER_SETTINGS_CATEGORY_ICON));
+    setDisplayName(tr("Tools"));
+
+    setCategory(CATEGORY_ID);
+    setDisplayCategory(tr("Rust"));
+    setCategoryIcon(QString(QLatin1String(":/images/rust.svg")));
 }
 
 ToolsOptionsPage::~ToolsOptionsPage()
@@ -159,21 +66,40 @@ QWidget *ToolsOptionsPage::widget()
     if (!m_widget) {
         m_widget.reset(new QWidget);
         m_ui->setupUi(m_widget.data());
-        m_ui->tools->setModel(m_model);
-        m_ui->tools->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-        m_ui->tools->header()->setSectionResizeMode(1, QHeaderView::Stretch);
-        m_ui->tools->expandAll();
+
+        m_tools.push_back(Tool{&Settings::CARGO, m_ui->cargo});
+        m_tools.push_back(Tool{&Settings::RUSTUP, m_ui->rustup});
+        m_tools.push_back(Tool{&Settings::RACER, m_ui->racer});
+
+        for (const Tool& tool : m_tools) {
+            tool.widget->setExpectedKind(Utils::PathChooser::ExistingCommand);
+            tool.widget->setEnvironment(m_toolChainManager.environment());
+            tool.widget->setPath(Settings::value(*tool.option));
+        }
     }
     return m_widget.data();
 }
 
 void ToolsOptionsPage::apply()
 {
-    m_model->apply();
+    bool changed = false;
+
+    for (const Tool& tool : m_tools) {
+        const QString path = tool.widget->rawPath();
+        if (path != Settings::value(*tool.option)) {
+            Settings::setValue(*tool.option, path);
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        m_toolChainManager.settingsChanged();
+    }
 }
 
 void ToolsOptionsPage::finish()
 {
+    m_tools.clear();
     m_widget.reset();
 }
 

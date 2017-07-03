@@ -27,6 +27,7 @@
 #include "rustbuildstep.h"
 #include "rustmimetypes.h"
 #include "rustproject.h"
+#include "rusttoolchainmanager.h"
 #include "ui_rustbuildconfigurationwidget.h"
 
 #include <projectexplorer/buildinfo.h>
@@ -72,6 +73,11 @@ BuildConfiguration::BuildConfiguration(ProjectExplorer::Target *target, BuildCon
 ProjectExplorer::NamedWidget *BuildConfiguration::createConfigWidget()
 {
     return new BuildConfigurationWidget(this);
+}
+
+void BuildConfiguration::addToEnvironment(Utils::Environment &env) const
+{
+    ToolChainManager::addToEnvironment(env);
 }
 
 bool BuildConfiguration::fromMap(const QVariantMap &map)

@@ -24,13 +24,8 @@
 ****************************************************************************/
 
 #include "rustracer.h"
-#include "rustkitinformation.h"
-#include "rustprojectmanager.h"
-#include "rusttoolchainmanager.h"
+#include "rustsettings.h"
 
-#include <projectexplorer/project.h>
-#include <projectexplorer/session.h>
-#include <projectexplorer/target.h>
 #include <utils/icon.h>
 
 #include <QIcon>
@@ -88,28 +83,10 @@ Q_CONSTEXPR std::array<QLatin1String, NUM_RESULT_TYPES> RESULT_TYPE_NAMES =
     QLatin1String{"Builtin"}
 };
 
-// TODO: find a better way to make association filePath -> kit
-const ToolChain* getToolChain(const QString& filePath)
-{
-    if (const ProjectExplorer::Project* project = ProjectExplorer::SessionManager::projectForFile(Utils::FileName::fromString(filePath))) {
-        const ProjectExplorer::Target* target = project->activeTarget();
-        const ProjectManager* projectManager = qobject_cast<const ProjectManager*>(project->projectManager());
-        if (target && projectManager) {
-            return projectManager->toolChainManager().get(KitInformation::getToolChain(target->kit()));
-        }
-    }
-    return nullptr;
-}
-
 } // namespace
 
 QVector<Result> run(Request request, const QTextCursor& cursor, const QString &filePath)
 {
-    const ToolChain* toolChain = getToolChain(filePath);
-    if (!toolChain) {
-        return {};
-    }
-
     const int line = cursor.blockNumber() + 1;
     const int column = cursor.positionInBlock();
 
@@ -142,7 +119,7 @@ QVector<Result> run(Request request, const QTextCursor& cursor, const QString &f
     QVector<Result> results;
 
     QProcess process;
-    process.start(toolChain->racerPath.toString(), arguments);
+    process.start(Settings::value(Settings::RACER), arguments);
 
     if (process.waitForFinished(RACER_TIMEOUT_MSEC)) {
         QString str = QString::fromUtf8(process.readAllStandardOutput());

@@ -47,6 +47,8 @@ public:
 
     ProjectExplorer::NamedWidget *createConfigWidget() override;
 
+    void addToEnvironment(Utils::Environment &env) const override;
+
     bool fromMap(const QVariantMap &map) override;
     QVariantMap toMap() const override;
 
