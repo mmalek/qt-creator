@@ -26,6 +26,7 @@
 #include "rustbuildstep.h"
 #include "rustcompileroutputparser.h"
 #include "rustkitinformation.h"
+#include "rustsettings.h"
 #include "rusttoolchainmanager.h"
 #include "ui_rustbuildstepconfigwidget.h"
 
@@ -71,16 +72,24 @@ bool CargoStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
 {
     ProjectExplorer::Kit* kit = target()->kit();
     if (const ToolChain* toolChain = m_toolChainManager.get(KitInformation::getToolChain(kit))) {
-        processParameters()->setCommand(toolChain->cargoPath.toString());
+
+        QString arguments;
+        if (toolChain->fromRustup()) {
+            processParameters()->setCommand(Settings::value(Settings::RUSTUP));
+            arguments = QString("run %1 cargo %2 %3")
+                    .arg(toolChain->fullToolChainName.trimmed())
+                    .arg(mainArgs().trimmed())
+                    .arg(extraArgs().trimmed());
+        } else {
+            processParameters()->setCommand(toolChain->cargoPath.toString());
+            arguments = QString("%1 %2")
+                    .arg(mainArgs().trimmed())
+                    .arg(extraArgs().trimmed());
+        }
+
         processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
         processParameters()->setEnvironment(buildConfiguration()->environment());
-
-        if (!extraArgs().isEmpty()) {
-            QString arguments = QString("%1 %2").arg(mainArgs().trimmed()).arg(extraArgs().trimmed());
-            processParameters()->setArguments(arguments);
-        } else {
-            processParameters()->setArguments(mainArgs().trimmed());
-        }
+        processParameters()->setArguments(arguments.trimmed());
 
         setOutputParser(new CompilerOutputParser);
 

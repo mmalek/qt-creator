@@ -24,10 +24,12 @@
 ****************************************************************************/
 
 #include "rusttoolchainmanager.h"
+#include "rustsettings.h"
 
 #include <utils/environment.h>
 #include <utils/fileutils.h>
 
+#include <QDir>
 #include <QFileInfo>
 #include <QProcess>
 #include <QRegularExpression>
@@ -66,32 +68,29 @@ Utils::FileName searchInDirectory(const QStringList &execs, QString directory)
     return Utils::FileName();
 }
 
-void addUniquely(QVector<ToolChain>& toolChains, ToolChain newTc)
+ToolChain parseCargoVersion(QString output)
 {
-    if (std::none_of(toolChains.begin(),
-                     toolChains.end(),
-                     [&newTc] (const ToolChain& tc) { return newTc.id == tc.id; })) {
-        toolChains.push_back(std::move(newTc));
+    ToolChain toolChain;
+    QRegularExpression regex("^cargo (?<name>(?<version>\\S+) \\((?<id>\\w+) \\S+\\))$");
+    QRegularExpressionMatch match = regex.match(output);
+    if (match.hasMatch()) {
+        toolChain.id = Core::Id::fromString(match.captured("id"));
+        toolChain.name = match.captured("name");
+        toolChain.version = match.captured("version");
     }
+    return toolChain;
 }
 
-ToolChain detectCargo(const QString& dir)
+ToolChain detectCargo(const QString& dir, const Utils::Environment& environment)
 {
     Utils::FileName file = searchInDirectory({CARGO_BINARY}, dir);
     if (!file.isNull()) {
-        QProcess process;
-        process.start(file.toString(), {QLatin1String("--version")});
-        if (process.waitForFinished(ONE_SECOND)) {
-            const QString output = QString::fromLocal8Bit(process.readLine().trimmed());
-
-            QRegularExpression regex("^cargo (?<name>(?<version>\\S+) \\((?<id>\\w+) \\S+\\))$");
-            QRegularExpressionMatch match = regex.match(output);
-            if (match.hasMatch()) {
-                ToolChain toolChain;
-                toolChain.id = Core::Id::fromString(match.captured("id"));
-                toolChain.name = match.captured("name");
-                toolChain.version = match.captured("version");
-                toolChain.path = Utils::FileName::fromString(dir);
+        QProcess cargo;
+        cargo.setEnvironment(environment.toStringList());
+        cargo.start(file.toString(), {QLatin1String("--version")});
+        if (cargo.waitForFinished(ONE_SECOND) && cargo.exitStatus() == QProcess::NormalExit) {
+            const QString cargoVersionOutput = QString::fromLocal8Bit(cargo.readLine().trimmed());
+            if (ToolChain toolChain = parseCargoVersion(cargoVersionOutput)) {
                 toolChain.cargoPath = file;
                 return toolChain;
             }
@@ -101,68 +100,101 @@ ToolChain detectCargo(const QString& dir)
     return {};
 }
 
-void detectRacer(ToolChain& toolChain)
+QVector<ToolChain> parseToolChainList(QStringList toolChainList, const Utils::Environment& environment)
 {
-    Utils::FileName file = searchInDirectory({RACER_BINARY}, toolChain.path.toString());
-    if (!file.isNull()) {
-        QProcess process;
-        process.start(file.toString(), {QLatin1String("--version")});
-        if (process.waitForFinished(ONE_SECOND)) {
-            const QString output = QString::fromLocal8Bit(process.readLine().trimmed());
+    QVector<ToolChain> result;
+    for (const QString& toolChainElement : toolChainList) {
+        QRegularExpression regex("^(?<full>[\\w*|\\-|\\.]*)(?<default> \\(default\\))?$");
+        QRegularExpressionMatch match = regex.match(toolChainElement);
+        if (match.hasMatch()) {
+            const QString fullToolChainName = match.captured("full");
+            const bool isDefault = !match.captured("default").isEmpty();
 
-            QRegularExpression regex("^racer (?<version>.+)$");
-            QRegularExpressionMatch match = regex.match(output);
-            if (match.hasMatch()) {
-                toolChain.racerVersion = match.captured("version");
-                toolChain.racerPath = file;
+            QProcess rustup;
+            rustup.setEnvironment(environment.toStringList());
+            rustup.start(Settings::value(Settings::RUSTUP),
+                         {QLatin1String("run"),
+                          fullToolChainName,
+                          QLatin1String("cargo"),
+                          QLatin1String("--version")});
+
+            if (rustup.waitForFinished(ONE_SECOND) && rustup.exitStatus() == QProcess::NormalExit) {
+                const QString cargoVersionOutput = QString::fromLocal8Bit(rustup.readLine().trimmed());
+                if (ToolChain toolChain = parseCargoVersion(cargoVersionOutput)) {
+                    toolChain.fullToolChainName = fullToolChainName;
+                    toolChain.isDefault = isDefault;
+                    result.push_back(std::move(toolChain));
+                }
             }
         }
+
     }
+    return result;
 }
 
 } // namespace
 
-ToolChainManager::ToolChainManager(QObject *parent) : QObject(parent)
+ToolChainManager::ToolChainManager(QObject *parent)
+    : QObject(parent),
+      m_environment(Utils::Environment::systemEnvironment())
 {
-    QStringList dirs = Utils::Environment::systemEnvironment().path();
-    dirs.removeDuplicates();
+    addToEnvironment(m_environment);
 
-    for (const QString& dir : dirs) {
-        if (ToolChain toolChain = detectCargo(dir)) {
-            detectRacer(toolChain);
-            addUniquely(m_autodetected, std::move(toolChain));
-        }
-    }
+    settingsChanged();
 }
 
 const ToolChain *ToolChainManager::get(Core::Id id) const
 {
-    auto findToolChain = [](const QVector<ToolChain>& toolChains, const Core::Id& id)
-    {
-        auto it = std::find_if(toolChains.cbegin(),
-                               toolChains.cend(),
-                               [&id](const ToolChain& toolChain) { return toolChain.id == id; });
+    auto it = std::find(m_toolChains.cbegin(), m_toolChains.cend(), id);
+    return (it != m_toolChains.cend()) ? &(*it) : nullptr;
+}
 
-        return (it != toolChains.cend()) ? &(*it) : nullptr;
-    };
-
-    if (const ToolChain* toolChain = findToolChain(m_autodetected, id)) {
-        return toolChain;
-    } else if (const ToolChain* toolChain = findToolChain(m_manual, id)) {
-        return toolChain;
+const ToolChain *ToolChainManager::getDefault() const
+{
+    if (!m_toolChains.isEmpty()) {
+        for (const ToolChain& toolChain : m_toolChains) {
+            if (toolChain.isDefault)
+                return &toolChain;
+        }
+        return &m_toolChains.front();
     } else {
         return nullptr;
     }
 }
 
-const ToolChain *ToolChainManager::getFirst() const
+void ToolChainManager::addToEnvironment(Utils::Environment &environment)
 {
-    if (!m_autodetected.isEmpty())
-        return &m_autodetected.front();
-    else if (!m_manual.isEmpty())
-        return &m_manual.front();
-    else
-        return nullptr;
+    environment.appendOrSetPath(QDir::home().filePath(QLatin1String(".cargo/bin")));
+}
+
+void ToolChainManager::settingsChanged()
+{
+    QProcess rustup;
+    rustup.setEnvironment(m_environment.toStringList());
+    rustup.start(Settings::value(Settings::RUSTUP),
+                 {QLatin1String("toolchain"), QLatin1String("list")});
+
+    rustup.waitForFinished(ONE_SECOND);
+    if (rustup.exitStatus() == QProcess::NormalExit) {
+        QStringList toolChainList;
+
+        while (!rustup.atEnd()) {
+            toolChainList.push_back(QString::fromLocal8Bit(rustup.readLine().trimmed()));
+        }
+
+        m_toolChains = parseToolChainList(toolChainList, m_environment);
+    } else {
+        QStringList dirs = m_environment.path();
+        dirs.removeDuplicates();
+
+        m_toolChains.clear();
+        for (const QString& dir : dirs) {
+            if (ToolChain toolChain = detectCargo(dir, m_environment)) {
+                m_toolChains = {toolChain};
+                break;
+            }
+        }
+    }
 }
 
 } // namespace Internal

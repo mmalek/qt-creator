@@ -24,6 +24,7 @@
 ****************************************************************************/
 
 #include "rustmanifest.h"
+#include "rustsettings.h"
 
 #include <utils/environment.h>
 #include <utils/qtcprocess.h>
@@ -43,7 +44,7 @@ constexpr int FIVE_SECONDS = 5000;
 }
 
 Manifest Manifest::read(const QString &manifestFile,
-                        const Utils::FileName &cargoBinary,
+                        const Utils::Environment& environment,
                         QString *errorString)
 {
     Manifest manifest;
@@ -61,8 +62,8 @@ Manifest Manifest::read(const QString &manifestFile,
     manifest.directory = Utils::FileName::fromString(fileInfo.absolutePath());
 
     Utils::QtcProcess cargo;
-    cargo.setCommand(cargoBinary.toString(), QLatin1String("read-manifest"));
-    cargo.setEnvironment(Utils::Environment::systemEnvironment());
+    cargo.setCommand(Settings::value(Settings::CARGO), QLatin1String("read-manifest"));
+    cargo.setEnvironment(environment);
     cargo.setWorkingDirectory(fileInfo.absolutePath());
     cargo.start();
     cargo.waitForFinished(FIVE_SECONDS);

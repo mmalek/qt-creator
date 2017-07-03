@@ -46,12 +46,8 @@ ProjectExplorer::Project *ProjectManager::openProject(const QString &fileName, Q
 {
     QString subErrorString;
 
-    if (const ToolChain* toolChain = m_toolChainManager.getFirst()) {
-        if (Manifest manifest = Manifest::read(fileName, toolChain->cargoPath, &subErrorString)) {
-            return new Project(this, std::move(manifest));
-        }
-    } else {
-        subErrorString = tr("No Rust toolchain set up");
+    if (Manifest manifest = Manifest::read(fileName, m_toolChainManager.environment(), &subErrorString)) {
+        return new Project(this, std::move(manifest));
     }
 
     if (errorString) {

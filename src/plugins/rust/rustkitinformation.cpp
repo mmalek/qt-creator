@@ -46,8 +46,9 @@ KitInformation::KitInformation(ToolChainManager &toolChainManager)
 
 QVariant KitInformation::defaultValue(const ProjectExplorer::Kit *kit) const
 {
-    if (kit && !m_toolChainManager.autodetected().empty()) {
-        return m_toolChainManager.autodetected().front().id.toSetting();
+    const ToolChain* defaultToolChain = m_toolChainManager.getDefault();
+    if (kit && defaultToolChain) {
+        return defaultToolChain->id.toSetting();
     } else {
         return Core::Id().toSetting();
     }
@@ -71,7 +72,14 @@ QList<ProjectExplorer::Task> KitInformation::validate(const ProjectExplorer::Kit
 KitInformation::ItemList KitInformation::toUserOutput(const ProjectExplorer::Kit *kit) const
 {
     const ToolChain* toolChain = m_toolChainManager.get(getToolChain(kit));
-    QString name = toolChain ? toolChain->name : tr("None");
+    QString name;
+    if (!toolChain) {
+        name = tr("None");
+    } else if (toolChain->fullToolChainName.isEmpty()) {
+        name = toolChain->name;
+    } else {
+        name = QString("%1 %2").arg(toolChain->name).arg(toolChain->fullToolChainName);
+    }
     return {Item(tr("Rust"), std::move(name))};
 }
 
