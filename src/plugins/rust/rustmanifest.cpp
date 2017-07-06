@@ -66,9 +66,12 @@ Manifest Manifest::read(const QString &manifestFile,
     cargo.setEnvironment(environment);
     cargo.setWorkingDirectory(fileInfo.absolutePath());
     cargo.start();
-    cargo.waitForFinished(FIVE_SECONDS);
-
-    if (cargo.exitStatus() != QProcess::NormalExit) {
+    if (!cargo.waitForFinished(FIVE_SECONDS)) {
+        if (errorString) {
+            *errorString = tr("%1 not found");
+        }
+        return {};
+    } else if (cargo.exitStatus() != QProcess::NormalExit) {
         if (errorString) {
             *errorString = tr("%1 crashed");
         }

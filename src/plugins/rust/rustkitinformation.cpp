@@ -46,7 +46,7 @@ KitInformation::KitInformation(ToolChainManager &toolChainManager)
 
 QVariant KitInformation::defaultValue(const ProjectExplorer::Kit *kit) const
 {
-    const ToolChain* defaultToolChain = m_toolChainManager.getDefault();
+    const ToolChain* defaultToolChain = m_toolChainManager.defaultToolChain();
     if (kit && defaultToolChain) {
         return defaultToolChain->id.toSetting();
     } else {
@@ -57,7 +57,7 @@ QVariant KitInformation::defaultValue(const ProjectExplorer::Kit *kit) const
 QList<ProjectExplorer::Task> KitInformation::validate(const ProjectExplorer::Kit *kit) const
 {
     QList<ProjectExplorer::Task> result;
-    const ToolChain *tool = m_toolChainManager.get(getToolChain(kit));
+    const ToolChain *tool = m_toolChainManager.toolChain(getToolChain(kit));
     if (!tool) {
         ProjectExplorer::Task task(ProjectExplorer::Task::Warning,
                                    tr("No Rust toolchain set up"),
@@ -71,16 +71,16 @@ QList<ProjectExplorer::Task> KitInformation::validate(const ProjectExplorer::Kit
 
 KitInformation::ItemList KitInformation::toUserOutput(const ProjectExplorer::Kit *kit) const
 {
-    const ToolChain* toolChain = m_toolChainManager.get(getToolChain(kit));
+    const ToolChain* toolChain = m_toolChainManager.toolChain(getToolChain(kit));
     QString name;
     if (!toolChain) {
         name = tr("None");
     } else if (toolChain->fullToolChainName.isEmpty()) {
         name = toolChain->name;
     } else {
-        name = QString("%1 %2").arg(toolChain->name).arg(toolChain->fullToolChainName);
+        name = QString("%1 - %2").arg(toolChain->name).arg(toolChain->fullToolChainName);
     }
-    return {Item(tr("Rust"), std::move(name))};
+    return {Item(tr("Rust version"), std::move(name))};
 }
 
 ProjectExplorer::KitConfigWidget *KitInformation::createConfigWidget(ProjectExplorer::Kit *kit) const
