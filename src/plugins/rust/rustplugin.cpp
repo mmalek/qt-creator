@@ -32,6 +32,7 @@
 #include "rustmimetypes.h"
 #include "rustprojectmanager.h"
 #include "rustrunconfiguration.h"
+#include "rusttargetarchinformation.h"
 #include "rusttoolchainmanager.h"
 #include "rusttoolsoptionspage.h"
 
@@ -71,6 +72,7 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
     addAutoReleasedObject(new EditorFactory);
 
     ProjectExplorer::KitManager::registerKitInformation(new KitInformation(*m_toolChainManager));
+    ProjectExplorer::KitManager::registerKitInformation(new TargetArchInformation(*m_toolChainManager));
 
     // Add MIME overlay icons (these icons displayed at Project dock panel)
     const QIcon icon((QLatin1String(":/images/rust.svg")));

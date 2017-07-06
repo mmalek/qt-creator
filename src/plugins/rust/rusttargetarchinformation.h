@@ -25,41 +25,30 @@
 
 #pragma once
 
-#include <projectexplorer/kitconfigwidget.h>
-
-#include <QScopedPointer>
-
-class QComboBox;
-class QPushButton;
+#include <projectexplorer/kitmanager.h>
 
 namespace Rust {
 namespace Internal {
 
 class ToolChainManager;
-class ToolChainsModel;
 
-class KitConfigWidget final : public ProjectExplorer::KitConfigWidget
+class TargetArchInformation final : public ProjectExplorer::KitInformation
 {
-    Q_OBJECT
-
 public:
-    KitConfigWidget(const ToolChainManager& toolChainManager,
-                    ProjectExplorer::Kit *kit,
-                    const ProjectExplorer::KitInformation *ki);
-    ~KitConfigWidget();
+    static const char ID[];
 
-    QString displayName() const override;
-    void makeReadOnly() override;
-    void refresh() override;
-    QWidget *mainWidget() const override;
-    QWidget *buttonWidget() const override;
+    explicit TargetArchInformation(ToolChainManager& toolChainManager);
+
+    QVariant defaultValue(const ProjectExplorer::Kit *kit) const override;
+    QList<ProjectExplorer::Task> validate(const ProjectExplorer::Kit *kit) const override;
+    ItemList toUserOutput(const ProjectExplorer::Kit *kit) const override;
+    ProjectExplorer::KitConfigWidget *createConfigWidget(ProjectExplorer::Kit *kit) const override;
+
+    static Core::Id getTargetArch(const ProjectExplorer::Kit* kit);
+    static void setTargetArch(ProjectExplorer::Kit* kit, Core::Id id);
 
 private:
-    const ToolChainManager& m_toolChainManager;
-    ToolChainsModel* m_model;
-    QScopedPointer<QComboBox> m_comboBox;
-    QScopedPointer<QPushButton> m_pushButton;
-    bool m_modelInReset;
+    ToolChainManager& m_toolChainManager;
 };
 
 } // namespace Internal

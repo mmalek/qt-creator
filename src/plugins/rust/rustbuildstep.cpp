@@ -27,6 +27,7 @@
 #include "rustcompileroutputparser.h"
 #include "rustkitinformation.h"
 #include "rustsettings.h"
+#include "rusttargetarchinformation.h"
 #include "rusttoolchainmanager.h"
 #include "ui_rustbuildstepconfigwidget.h"
 
@@ -71,19 +72,29 @@ CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const Q
 bool CargoStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
 {
     ProjectExplorer::Kit* kit = target()->kit();
-    if (const ToolChain* toolChain = m_toolChainManager.get(KitInformation::getToolChain(kit))) {
+    if (const ToolChain* toolChain = m_toolChainManager.toolChain(KitInformation::getToolChain(kit))) {
 
         QString arguments;
         if (toolChain->fromRustup()) {
             processParameters()->setCommand(Settings::value(Settings::RUSTUP));
-            arguments = QString("run %1 cargo %2 %3")
+            arguments = QString("run %1 cargo %2")
                     .arg(toolChain->fullToolChainName.trimmed())
-                    .arg(mainArgs().trimmed())
-                    .arg(extraArgs().trimmed());
+                    .arg(mainArgs().trimmed());
         } else {
             processParameters()->setCommand(toolChain->cargoPath.toString());
+            arguments = mainArgs().trimmed();
+        }
+
+        const Core::Id targetArchId = TargetArchInformation::getTargetArch(kit);
+        if (const TargetArch* targetArch = m_toolChainManager.targetArch(targetArchId)) {
             arguments = QString("%1 %2")
-                    .arg(mainArgs().trimmed())
+                    .arg(arguments)
+                    .arg(targetArch->name);
+        }
+
+        if (!extraArgs().isEmpty()) {
+            arguments = QString("%1 %2")
+                    .arg(arguments)
                     .arg(extraArgs().trimmed());
         }
 

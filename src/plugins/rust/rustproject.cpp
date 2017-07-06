@@ -143,7 +143,7 @@ void Project::recursiveScanDirectory(const QDir &dir, QSet<QString> &container, 
 bool Project::supportsKit(Kit *kit, QString *errorMessage) const
 {
     const ProjectManager& pm = static_cast<const ProjectManager&>(*projectManager());
-    if (pm.toolChainManager().get(KitInformation::getToolChain(kit))) {
+    if (pm.toolChainManager().toolChain(KitInformation::getToolChain(kit))) {
         return kit->isValid();
     } else {
         if (errorMessage) {

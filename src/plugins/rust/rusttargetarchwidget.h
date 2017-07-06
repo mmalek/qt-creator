@@ -36,17 +36,17 @@ namespace Rust {
 namespace Internal {
 
 class ToolChainManager;
-class ToolChainsModel;
+class TargetArchModel;
 
-class KitConfigWidget final : public ProjectExplorer::KitConfigWidget
+class TargetArchWidget final : public ProjectExplorer::KitConfigWidget
 {
     Q_OBJECT
 
 public:
-    KitConfigWidget(const ToolChainManager& toolChainManager,
+    TargetArchWidget(const ToolChainManager& toolChainManager,
                     ProjectExplorer::Kit *kit,
                     const ProjectExplorer::KitInformation *ki);
-    ~KitConfigWidget();
+    ~TargetArchWidget();
 
     QString displayName() const override;
     void makeReadOnly() override;
@@ -56,7 +56,7 @@ public:
 
 private:
     const ToolChainManager& m_toolChainManager;
-    ToolChainsModel* m_model;
+    TargetArchModel* m_model;
     QScopedPointer<QComboBox> m_comboBox;
     QScopedPointer<QPushButton> m_pushButton;
     bool m_modelInReset;

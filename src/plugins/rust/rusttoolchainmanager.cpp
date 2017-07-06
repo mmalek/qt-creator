@@ -132,6 +132,36 @@ QVector<ToolChain> parseToolChainList(QStringList toolChainList, const Utils::En
     return result;
 }
 
+QVector<TargetArch> getTargetArchs(const Utils::Environment& environment)
+{
+    QVector<TargetArch> targetArchs;
+
+    QProcess rustup;
+    rustup.setEnvironment(environment.toStringList());
+    rustup.start(Settings::value(Settings::RUSTUP),
+                 {QLatin1String("target"), QLatin1String("list")});
+
+    if (rustup.waitForFinished(ONE_SECOND) && rustup.exitStatus() == QProcess::NormalExit) {
+
+        while (!rustup.atEnd()) {
+            const QString line = QString::fromLocal8Bit(rustup.readLine().trimmed());
+
+            QRegularExpression regex("^(?<name>[\\w*|\\-|\\.]*) \\((?<state>default|installed)\\)$");
+            QRegularExpressionMatch match = regex.match(line);
+            if (match.hasMatch()) {
+                TargetArch targetArch;
+                targetArch.name = match.captured("name");
+                targetArch.id = Core::Id::fromString(targetArch.name);
+                QString state = match.captured("state");
+                targetArch.isDefault = (state == QLatin1String("default"));
+                targetArchs.push_back(std::move(targetArch));
+            }
+        }
+    }
+
+    return targetArchs;
+}
+
 } // namespace
 
 ToolChainManager::ToolChainManager(QObject *parent)
@@ -143,13 +173,13 @@ ToolChainManager::ToolChainManager(QObject *parent)
     settingsChanged();
 }
 
-const ToolChain *ToolChainManager::get(Core::Id id) const
+const ToolChain *ToolChainManager::toolChain(Core::Id id) const
 {
     auto it = std::find(m_toolChains.cbegin(), m_toolChains.cend(), id);
     return (it != m_toolChains.cend()) ? &(*it) : nullptr;
 }
 
-const ToolChain *ToolChainManager::getDefault() const
+const ToolChain *ToolChainManager::defaultToolChain() const
 {
     if (!m_toolChains.isEmpty()) {
         for (const ToolChain& toolChain : m_toolChains) {
@@ -162,6 +192,25 @@ const ToolChain *ToolChainManager::getDefault() const
     }
 }
 
+const TargetArch *ToolChainManager::targetArch(Core::Id id) const
+{
+    auto it = std::find(m_targetArchs.cbegin(), m_targetArchs.cend(), id);
+    return (it != m_targetArchs.cend()) ? &(*it) : nullptr;
+}
+
+const TargetArch *ToolChainManager::defaultTargetArch() const
+{
+    if (!m_targetArchs.isEmpty()) {
+        for (const TargetArch& targetArch : m_targetArchs) {
+            if (targetArch.isDefault)
+                return &targetArch;
+        }
+        return &m_targetArchs.front();
+    } else {
+        return nullptr;
+    }
+}
+
 void ToolChainManager::addToEnvironment(Utils::Environment &environment)
 {
     environment.appendOrSetPath(QDir::home().filePath(QLatin1String(".cargo/bin")));
@@ -169,13 +218,14 @@ void ToolChainManager::addToEnvironment(Utils::Environment &environment)
 
 void ToolChainManager::settingsChanged()
 {
+    emit toolChainsAboutToBeReset();
+
     QProcess rustup;
     rustup.setEnvironment(m_environment.toStringList());
     rustup.start(Settings::value(Settings::RUSTUP),
                  {QLatin1String("toolchain"), QLatin1String("list")});
 
-    rustup.waitForFinished(ONE_SECOND);
-    if (rustup.exitStatus() == QProcess::NormalExit) {
+    if (rustup.waitForFinished(ONE_SECOND) && rustup.exitStatus() == QProcess::NormalExit) {
         QStringList toolChainList;
 
         while (!rustup.atEnd()) {
@@ -195,6 +245,14 @@ void ToolChainManager::settingsChanged()
             }
         }
     }
+
+    emit toolChainsReset();
+
+    emit targetArchsAboutToBeReset();
+
+    m_targetArchs = getTargetArchs(m_environment);
+
+    emit targetArchsReset();
 }
 
 } // namespace Internal

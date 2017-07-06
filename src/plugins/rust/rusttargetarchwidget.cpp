@@ -23,8 +23,8 @@
 **
 ****************************************************************************/
 
-#include "rustkitconfigwidget.h"
-#include "rustkitinformation.h"
+#include "rusttargetarchwidget.h"
+#include "rusttargetarchinformation.h"
 #include "rusttoolchainmanager.h"
 #include "rusttoolsoptionspage.h"
 
@@ -37,103 +37,98 @@
 namespace Rust {
 namespace Internal {
 
-class ToolChainsModel : public QAbstractListModel
+class TargetArchModel : public QAbstractListModel
 {
 public:
-    ToolChainsModel(const ToolChainManager& toolChainManager, QObject *parent = nullptr);
+    TargetArchModel(const ToolChainManager& toolChainManager, QObject *parent = nullptr);
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     int rowForId(Core::Id id) const;
     Core::Id idForRow(int i) const;
-    const ToolChain* toolChainForRow(int i) const;
+    const TargetArch* targetArchForRow(int i) const;
 
 private:
     const ToolChainManager& m_toolChainManager;
 };
 
-ToolChainsModel::ToolChainsModel(const ToolChainManager &toolChainManager, QObject *parent)
+TargetArchModel::TargetArchModel(const ToolChainManager &toolChainManager, QObject *parent)
     : QAbstractListModel(parent),
       m_toolChainManager(toolChainManager)
 {
-    connect(&m_toolChainManager, &ToolChainManager::toolChainsAboutToBeReset,
+    connect(&m_toolChainManager, &ToolChainManager::targetArchsAboutToBeReset,
             [this]{ beginResetModel(); });
 
-    connect(&m_toolChainManager, &ToolChainManager::toolChainsReset,
+    connect(&m_toolChainManager, &ToolChainManager::targetArchsReset,
             [this]{ endResetModel(); });
 }
 
-int ToolChainsModel::rowCount(const QModelIndex &parent) const
+int TargetArchModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid())
         return 0;
     else
-        return 1 + m_toolChainManager.toolChains().size();
+        return 1 + m_toolChainManager.targetArchs().size();
 }
 
-QVariant ToolChainsModel::data(const QModelIndex &index, int role) const
+QVariant TargetArchModel::data(const QModelIndex &index, int role) const
 {
     if (index.isValid() && index.column() == 0 && role == Qt::DisplayRole) {
-        if (const ToolChain *toolChain = toolChainForRow(index.row())) {
-            if (toolChain->fromRustup()) {
-                return QString("%1 - %2").arg(toolChain->name).arg(toolChain->fullToolChainName);
-            } else {
-                return toolChain->name;
-            }
+        if (const TargetArch *targetArch = targetArchForRow(index.row())) {
+            return targetArch->name;
         } else {
-            return tr("None");
+            return tr("Default");
         }
     }
     return QVariant();
 }
 
-int ToolChainsModel::rowForId(Core::Id id) const
+int TargetArchModel::rowForId(Core::Id id) const
 {
-    auto it = std::find(m_toolChainManager.toolChains().begin(),
-                        m_toolChainManager.toolChains().end(),
+    auto it = std::find(m_toolChainManager.targetArchs().begin(),
+                        m_toolChainManager.targetArchs().end(),
                         id);
 
-    if (it != m_toolChainManager.toolChains().end()) {
-        const int i = std::distance(m_toolChainManager.toolChains().begin(), it);
+    if (it != m_toolChainManager.targetArchs().end()) {
+        const int i = std::distance(m_toolChainManager.targetArchs().begin(), it);
         return 1 + i;
     }
 
     return 0;
 }
 
-Core::Id ToolChainsModel::idForRow(int i) const
+Core::Id TargetArchModel::idForRow(int i) const
 {
-    if (const ToolChain *toolChain = toolChainForRow(i))
-        return toolChain->id;
+    if (const TargetArch *targetArch = targetArchForRow(i))
+        return targetArch->id;
     else
         return Core::Id();
 }
 
-const ToolChain *ToolChainsModel::toolChainForRow(int i) const
+const TargetArch *TargetArchModel::targetArchForRow(int i) const
 {
-    if (i > 0 && i < m_toolChainManager.toolChains().size()+1) {
-        return &m_toolChainManager.toolChains().at(i - 1);
+    if (i > 0 && i < m_toolChainManager.targetArchs().size()+1) {
+        return &m_toolChainManager.targetArchs().at(i - 1);
     } else {
         return nullptr;
     }
 }
 
-KitConfigWidget::KitConfigWidget(const ToolChainManager& toolChainManager,
+TargetArchWidget::TargetArchWidget(const ToolChainManager& toolChainManager,
                                  ProjectExplorer::Kit *kit,
                                  const ProjectExplorer::KitInformation *ki)
     : ProjectExplorer::KitConfigWidget(kit, ki),
       m_toolChainManager(toolChainManager),
-      m_model(new ToolChainsModel(toolChainManager, this)),
+      m_model(new TargetArchModel(toolChainManager, this)),
       m_comboBox(new QComboBox),
-      m_pushButton(new QPushButton(ProjectExplorer::KitConfigWidget::msgManage())),
-      m_modelInReset(false)
+      m_pushButton(new QPushButton(ProjectExplorer::KitConfigWidget::msgManage()))
 {
     m_comboBox->setModel(m_model);
 
     connect(m_comboBox.data(), QOverload<int>::of(&QComboBox::currentIndexChanged),
             [this](int index) {
         if (!m_modelInReset) {
-            KitInformation::setToolChain(m_kit, m_model->idForRow(index));
+            TargetArchInformation::setTargetArch(m_kit, m_model->idForRow(index));
         }
     });
 
@@ -147,32 +142,32 @@ KitConfigWidget::KitConfigWidget(const ToolChainManager& toolChainManager,
             [this] { Core::ICore::showOptionsDialog(ToolsOptionsPage::ID, buttonWidget()); });
 }
 
-KitConfigWidget::~KitConfigWidget()
+TargetArchWidget::~TargetArchWidget()
 {
 }
 
-QString KitConfigWidget::displayName() const
+QString TargetArchWidget::displayName() const
 {
-    return tr("Rust version:");
+    return tr("Rust target architecture:");
 }
 
-void KitConfigWidget::makeReadOnly()
+void TargetArchWidget::makeReadOnly()
 {
     m_comboBox->setEnabled(false);
     m_pushButton->setEnabled(false);
 }
 
-void KitConfigWidget::refresh()
+void TargetArchWidget::refresh()
 {
-    m_comboBox->setCurrentIndex(m_model->rowForId(KitInformation::getToolChain(m_kit)));
+    m_comboBox->setCurrentIndex(m_model->rowForId(TargetArchInformation::getTargetArch(m_kit)));
 }
 
-QWidget *KitConfigWidget::mainWidget() const
+QWidget *TargetArchWidget::mainWidget() const
 {
     return m_comboBox.data();
 }
 
-QWidget *KitConfigWidget::buttonWidget() const
+QWidget *TargetArchWidget::buttonWidget() const
 {
     return m_pushButton.data();
 }

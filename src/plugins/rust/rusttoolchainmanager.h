@@ -50,6 +50,15 @@ struct ToolChain
     bool fromRustup() const { return !fullToolChainName.isNull(); }
 };
 
+struct TargetArch
+{
+    Core::Id id;
+    QString name;
+    bool isDefault = false;
+
+    bool operator==(const Core::Id& other) const { return id == other; }
+};
+
 class ToolChainManager : public QObject
 {
     Q_OBJECT
@@ -58,21 +67,29 @@ public:
 
     const Utils::Environment& environment() const { return m_environment; }
 
-    QVector<ToolChain>& toolChains() { return m_toolChains; }
     const QVector<ToolChain>& toolChains() const { return m_toolChains; }
+    const ToolChain* toolChain(Core::Id id) const;
+    const ToolChain* defaultToolChain() const;
 
-    const ToolChain* get(Core::Id id) const;
-
-    const ToolChain* getDefault() const;
+    const QVector<TargetArch>& targetArchs() const { return m_targetArchs; }
+    const TargetArch* targetArch(Core::Id id) const;
+    const TargetArch* defaultTargetArch() const;
 
     static void addToEnvironment(Utils::Environment& environment);
 
 public slots:
     void settingsChanged();
 
+signals:
+    void toolChainsAboutToBeReset();
+    void toolChainsReset();
+    void targetArchsAboutToBeReset();
+    void targetArchsReset();
+
 private:
     Utils::Environment m_environment;
     QVector<ToolChain> m_toolChains;
+    QVector<TargetArch> m_targetArchs;
 };
 
 } // namespace Internal
