@@ -75,13 +75,13 @@ QVariant ToolChainsModel::data(const QModelIndex &index, int role) const
 {
     if (index.isValid() && index.column() == 0 && role == Qt::DisplayRole) {
         if (const ToolChain *toolChain = toolChainForRow(index.row())) {
-            if (toolChain->fromRustup()) {
+            if (!toolChain->fullToolChainName.isEmpty()) {
                 return QString("%1 - %2").arg(toolChain->name).arg(toolChain->fullToolChainName);
             } else {
                 return toolChain->name;
             }
         } else {
-            return tr("None");
+            return tr("Default");
         }
     }
     return QVariant();

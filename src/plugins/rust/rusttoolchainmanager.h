@@ -42,12 +42,10 @@ struct ToolChain
     QString name;
     QString fullToolChainName;
     bool isDefault = false;
-    Utils::FileName cargoPath;
     QString version;
 
     operator bool() const { return id.isValid(); }
     bool operator==(const Core::Id& other) const { return id == other; }
-    bool fromRustup() const { return !fullToolChainName.isNull(); }
 };
 
 struct TargetArch
@@ -56,6 +54,7 @@ struct TargetArch
     QString name;
     bool isDefault = false;
 
+    operator bool() const { return id.isValid(); }
     bool operator==(const Core::Id& other) const { return id == other; }
 };
 

@@ -46,12 +46,8 @@ KitInformation::KitInformation(ToolChainManager &toolChainManager)
 
 QVariant KitInformation::defaultValue(const ProjectExplorer::Kit *kit) const
 {
-    const ToolChain* defaultToolChain = m_toolChainManager.defaultToolChain();
-    if (kit && defaultToolChain) {
-        return defaultToolChain->id.toSetting();
-    } else {
-        return Core::Id().toSetting();
-    }
+    Q_UNUSED(kit)
+    return Core::Id().toSetting();
 }
 
 QList<ProjectExplorer::Task> KitInformation::validate(const ProjectExplorer::Kit *kit) const
@@ -74,7 +70,7 @@ KitInformation::ItemList KitInformation::toUserOutput(const ProjectExplorer::Kit
     const ToolChain* toolChain = m_toolChainManager.toolChain(getToolChain(kit));
     QString name;
     if (!toolChain) {
-        name = tr("None");
+        name = tr("Default");
     } else if (toolChain->fullToolChainName.isEmpty()) {
         name = toolChain->name;
     } else {

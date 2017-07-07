@@ -50,9 +50,9 @@ public:
     bool fromMap(const QVariantMap &map) override;
     QVariantMap toMap() const override;
 
-    const QString& extraArgs() const { return m_extraArgs; }
+    QString extraArgs() const;
     bool showJsonOutput() const { return m_showJsonOnConsole; }
-    virtual QString mainArgs() const = 0;
+    virtual QStringList mainArgs() const = 0;
 
     const ToolChainManager& toolChainManager() const { return m_toolChainManager; }
 
@@ -65,7 +65,7 @@ protected:
 
 private:
     const ToolChainManager& m_toolChainManager;
-    QString m_extraArgs;
+    QStringList m_extraArgs;
     bool m_showJsonOnConsole;
 };
 
@@ -80,7 +80,7 @@ public:
     explicit BuildStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     BuildStep(ProjectExplorer::BuildStepList *bsl, BuildStep *bs);
 
-    QString mainArgs() const override;
+    QStringList mainArgs() const override;
 };
 
 class TestStep final : public CargoStep
@@ -94,7 +94,7 @@ public:
     explicit TestStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     TestStep(ProjectExplorer::BuildStepList *bsl, TestStep *bs);
 
-    QString mainArgs() const override;
+    QStringList mainArgs() const override;
 };
 
 class BenchStep final : public CargoStep
@@ -108,7 +108,7 @@ public:
     explicit BenchStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     BenchStep(ProjectExplorer::BuildStepList *bsl, BenchStep *bs);
 
-    QString mainArgs() const override;
+    QStringList mainArgs() const override;
 };
 
 class CleanStep final : public CargoStep
@@ -122,7 +122,7 @@ public:
     explicit CleanStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
     CleanStep(ProjectExplorer::BuildStepList *bsl, CleanStep *bs);
 
-    QString mainArgs() const override;
+    QStringList mainArgs() const override;
 };
 
 namespace Ui { class BuildStepConfigWidget; }
