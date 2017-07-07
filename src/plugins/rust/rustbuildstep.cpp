@@ -46,6 +46,7 @@ namespace {
 
 Q_CONSTEXPR QLatin1String EXTRA_ARGS_KEY("Rust.CargoStep.ExtraArgs");
 Q_CONSTEXPR QLatin1String SHOW_JSON_OUTPUT_KEY("Rust.CargoStep.ShowJsonOutput");
+Q_CONSTEXPR QLatin1Char ARGS_SEPARATOR(' ');
 
 } // namespace
 
@@ -72,43 +73,34 @@ CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const Q
 bool CargoStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
 {
     ProjectExplorer::Kit* kit = target()->kit();
-    if (const ToolChain* toolChain = m_toolChainManager.toolChain(KitInformation::getToolChain(kit))) {
 
-        QString arguments;
-        if (toolChain->fromRustup()) {
-            processParameters()->setCommand(Settings::value(Settings::RUSTUP));
-            arguments = QString("run %1 cargo %2")
-                    .arg(toolChain->fullToolChainName.trimmed())
-                    .arg(mainArgs().trimmed());
-        } else {
-            processParameters()->setCommand(toolChain->cargoPath.toString());
-            arguments = mainArgs().trimmed();
+    processParameters()->setCommand(Settings::value(Settings::CARGO));
+
+    QStringList arguments;
+
+    const Core::Id toolChainId = KitInformation::getToolChain(kit);
+    if (const ToolChain* toolChain = m_toolChainManager.toolChain(toolChainId)) {
+        if (!toolChain->fullToolChainName.isEmpty()) {
+            arguments.append(QString("+%1").arg(toolChain->fullToolChainName));
         }
-
-        const Core::Id targetArchId = TargetArchInformation::getTargetArch(kit);
-        if (const TargetArch* targetArch = m_toolChainManager.targetArch(targetArchId)) {
-            arguments = QString("%1 %2")
-                    .arg(arguments)
-                    .arg(targetArch->name);
-        }
-
-        if (!extraArgs().isEmpty()) {
-            arguments = QString("%1 %2")
-                    .arg(arguments)
-                    .arg(extraArgs().trimmed());
-        }
-
-        processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
-        processParameters()->setEnvironment(buildConfiguration()->environment());
-        processParameters()->setArguments(arguments.trimmed());
-
-        setOutputParser(new CompilerOutputParser);
-
-        return AbstractProcessStep::init(earlierSteps);
-    } else {
-        emit addOutput(tr("Rust toolchain is not set up"), BuildStep::ErrorMessageOutput);
-        return false;
     }
+
+    arguments += mainArgs();
+
+    const Core::Id targetArchId = TargetArchInformation::getTargetArch(kit);
+    if (const TargetArch* targetArch = m_toolChainManager.targetArch(targetArchId)) {
+        arguments.append(QString("--target=%1").arg(targetArch->name));
+    }
+
+    arguments += m_extraArgs;
+
+    processParameters()->setWorkingDirectory(project()->projectDirectory().toString());
+    processParameters()->setEnvironment(buildConfiguration()->environment());
+    processParameters()->setArguments(arguments.join(ARGS_SEPARATOR));
+
+    setOutputParser(new CompilerOutputParser);
+
+    return AbstractProcessStep::init(earlierSteps);
 }
 
 ProjectExplorer::BuildStepConfigWidget *CargoStep::createConfigWidget()
@@ -118,7 +110,7 @@ ProjectExplorer::BuildStepConfigWidget *CargoStep::createConfigWidget()
 
 bool CargoStep::fromMap(const QVariantMap &map)
 {
-    setExtraArgs(map.value(EXTRA_ARGS_KEY).toString());
+    m_extraArgs = map.value(EXTRA_ARGS_KEY).toStringList();
     setShowJsonOutput(map.value(SHOW_JSON_OUTPUT_KEY).toBool());
     return ProjectExplorer::AbstractProcessStep::fromMap(map);
 }
@@ -131,9 +123,14 @@ QVariantMap CargoStep::toMap() const
     return map;
 }
 
+QString CargoStep::extraArgs() const
+{
+    return m_extraArgs.join(ARGS_SEPARATOR);
+}
+
 void CargoStep::setExtraArgs(const QString &value)
 {
-    m_extraArgs = value;
+    m_extraArgs = value.split(ARGS_SEPARATOR, QString::SkipEmptyParts);
 }
 
 void CargoStep::setShowJsonOutput(bool value)
@@ -169,11 +166,11 @@ BuildStep::BuildStep(ProjectExplorer::BuildStepList *bsl, BuildStep *bs)
 {
 }
 
-QString BuildStep::mainArgs() const
+QStringList BuildStep::mainArgs() const
 {
-    QString args = QLatin1String("build --message-format=json");
+    QStringList args { QLatin1String("build"), QLatin1String("--message-format=json") };
     if (buildConfiguration()->buildType() == ProjectExplorer::BuildConfiguration::Release) {
-        args.append(QLatin1String(" --release"));
+        args.append(QLatin1String("--release"));
     }
     return args;
 }
@@ -191,11 +188,11 @@ TestStep::TestStep(ProjectExplorer::BuildStepList *bsl, TestStep *bs)
 {
 }
 
-QString TestStep::mainArgs() const
+QStringList TestStep::mainArgs() const
 {
-    QString args = QLatin1String("test --message-format=json");
+    QStringList args { QLatin1String("test"), QLatin1String("--message-format=json") };
     if (buildConfiguration()->buildType() == ProjectExplorer::BuildConfiguration::Release) {
-        args.append(QLatin1String(" --release"));
+        args.append(QLatin1String("--release"));
     }
     return args;
 }
@@ -213,9 +210,9 @@ BenchStep::BenchStep(ProjectExplorer::BuildStepList *bsl, BenchStep *bs)
 {
 }
 
-QString BenchStep::mainArgs() const
+QStringList BenchStep::mainArgs() const
 {
-    return QLatin1String("bench --message-format=json");
+    return { QLatin1String("bench"), QLatin1String("--message-format=json") };
 }
 
 const char CleanStep::ID[] = "Rust.CleanStep";
@@ -231,11 +228,11 @@ CleanStep::CleanStep(ProjectExplorer::BuildStepList *bsl, CleanStep *bs)
 {
 }
 
-QString CleanStep::mainArgs() const
+QStringList CleanStep::mainArgs() const
 {
-    QString args = QLatin1String("clean");
+    QStringList args { QLatin1String("clean") };
     if (buildConfiguration()->buildType() == ProjectExplorer::BuildConfiguration::Release) {
-        args.append(QLatin1String(" --release"));
+        args.append(QLatin1String("--release"));
     }
     return args;
 }

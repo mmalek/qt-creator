@@ -27,10 +27,8 @@
 #include "rustsettings.h"
 
 #include <utils/environment.h>
-#include <utils/fileutils.h>
 
 #include <QDir>
-#include <QFileInfo>
 #include <QProcess>
 #include <QRegularExpression>
 
@@ -39,34 +37,7 @@ namespace Internal {
 
 namespace {
 
-#ifdef Q_OS_WIN
-#define MAKE_BINARY_NAME(name) name ".exe"
-#else
-#define MAKE_BINARY_NAME(name) name
-#endif
-
-Q_CONSTEXPR QLatin1String CARGO_BINARY{MAKE_BINARY_NAME("cargo")};
-Q_CONSTEXPR QLatin1String RACER_BINARY{MAKE_BINARY_NAME("racer")};
-
 constexpr int ONE_SECOND = 1000;
-
-Utils::FileName searchInDirectory(const QStringList &execs, QString directory)
-{
-    const QChar slash = QLatin1Char('/');
-    if (directory.isEmpty())
-        return Utils::FileName();
-    // Avoid turing / into // on windows which triggers windows to check
-    // for network drives!
-    if (!directory.endsWith(slash))
-        directory += slash;
-
-    foreach (const QString &exec, execs) {
-        QFileInfo fi(directory + exec);
-        if (fi.exists() && fi.isFile() && fi.isExecutable())
-            return Utils::FileName::fromString(fi.absoluteFilePath());
-    }
-    return Utils::FileName();
-}
 
 ToolChain parseCargoVersion(QString output)
 {
@@ -81,25 +52,6 @@ ToolChain parseCargoVersion(QString output)
     return toolChain;
 }
 
-ToolChain detectCargo(const QString& dir, const Utils::Environment& environment)
-{
-    Utils::FileName file = searchInDirectory({CARGO_BINARY}, dir);
-    if (!file.isNull()) {
-        QProcess cargo;
-        cargo.setEnvironment(environment.toStringList());
-        cargo.start(file.toString(), {QLatin1String("--version")});
-        if (cargo.waitForFinished(ONE_SECOND) && cargo.exitStatus() == QProcess::NormalExit) {
-            const QString cargoVersionOutput = QString::fromLocal8Bit(cargo.readLine().trimmed());
-            if (ToolChain toolChain = parseCargoVersion(cargoVersionOutput)) {
-                toolChain.cargoPath = file;
-                return toolChain;
-            }
-        }
-    }
-
-    return {};
-}
-
 QVector<ToolChain> parseToolChainList(QStringList toolChainList, const Utils::Environment& environment)
 {
     QVector<ToolChain> result;
@@ -112,11 +64,8 @@ QVector<ToolChain> parseToolChainList(QStringList toolChainList, const Utils::En
 
             QProcess rustup;
             rustup.setEnvironment(environment.toStringList());
-            rustup.start(Settings::value(Settings::RUSTUP),
-                         {QLatin1String("run"),
-                          fullToolChainName,
-                          QLatin1String("cargo"),
-                          QLatin1String("--version")});
+            rustup.start(Settings::value(Settings::CARGO),
+                         {QString("+%1").arg(fullToolChainName), QLatin1String("--version")});
 
             if (rustup.waitForFinished(ONE_SECOND) && rustup.exitStatus() == QProcess::NormalExit) {
                 const QString cargoVersionOutput = QString::fromLocal8Bit(rustup.readLine().trimmed());
@@ -130,6 +79,26 @@ QVector<ToolChain> parseToolChainList(QStringList toolChainList, const Utils::En
 
     }
     return result;
+}
+
+QVector<ToolChain> getToolChains(const Utils::Environment& environment)
+{
+    QProcess rustup;
+    rustup.setEnvironment(environment.toStringList());
+    rustup.start(Settings::value(Settings::RUSTUP),
+                 {QLatin1String("toolchain"), QLatin1String("list")});
+
+    if (rustup.waitForFinished(ONE_SECOND) && rustup.exitStatus() == QProcess::NormalExit) {
+        QStringList toolChainList;
+
+        while (!rustup.atEnd()) {
+            toolChainList.push_back(QString::fromLocal8Bit(rustup.readLine().trimmed()));
+        }
+
+        return parseToolChainList(toolChainList, environment);
+    } else {
+        return {};
+    }
 }
 
 QVector<TargetArch> getTargetArchs(const Utils::Environment& environment)
@@ -219,39 +188,11 @@ void ToolChainManager::addToEnvironment(Utils::Environment &environment)
 void ToolChainManager::settingsChanged()
 {
     emit toolChainsAboutToBeReset();
-
-    QProcess rustup;
-    rustup.setEnvironment(m_environment.toStringList());
-    rustup.start(Settings::value(Settings::RUSTUP),
-                 {QLatin1String("toolchain"), QLatin1String("list")});
-
-    if (rustup.waitForFinished(ONE_SECOND) && rustup.exitStatus() == QProcess::NormalExit) {
-        QStringList toolChainList;
-
-        while (!rustup.atEnd()) {
-            toolChainList.push_back(QString::fromLocal8Bit(rustup.readLine().trimmed()));
-        }
-
-        m_toolChains = parseToolChainList(toolChainList, m_environment);
-    } else {
-        QStringList dirs = m_environment.path();
-        dirs.removeDuplicates();
-
-        m_toolChains.clear();
-        for (const QString& dir : dirs) {
-            if (ToolChain toolChain = detectCargo(dir, m_environment)) {
-                m_toolChains = {toolChain};
-                break;
-            }
-        }
-    }
-
+    m_toolChains = getToolChains(m_environment);
     emit toolChainsReset();
 
     emit targetArchsAboutToBeReset();
-
     m_targetArchs = getTargetArchs(m_environment);
-
     emit targetArchsReset();
 }
 

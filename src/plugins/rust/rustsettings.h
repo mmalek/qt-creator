@@ -27,6 +27,12 @@
 
 #include <QString>
 
+#ifdef Q_OS_WIN
+#define MAKE_BINARY_NAME(name) name ".exe"
+#else
+#define MAKE_BINARY_NAME(name) name
+#endif
+
 namespace Rust {
 namespace Internal {
 namespace Settings {
@@ -37,9 +43,9 @@ struct StringOption
     QString defaultValue;
 };
 
-static const StringOption CARGO {QLatin1String{"Cargo"}, QLatin1String{"cargo"}};
-static const StringOption RUSTUP {QLatin1String{"Rustup"}, QLatin1String{"rustup"}};
-static const StringOption RACER {QLatin1String{"Racer"}, QLatin1String{"racer"}};
+static const StringOption CARGO {QLatin1String{"Cargo"}, QLatin1String{MAKE_BINARY_NAME("cargo")}};
+static const StringOption RUSTUP {QLatin1String{"Rustup"}, QLatin1String{MAKE_BINARY_NAME("rustup")}};
+static const StringOption RACER {QLatin1String{"Racer"}, QLatin1String{MAKE_BINARY_NAME("racer")}};
 
 QString value(const StringOption& option);
 void setValue(const StringOption& option, const QString& value);
