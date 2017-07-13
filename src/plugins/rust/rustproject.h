@@ -1,6 +1,5 @@
 /****************************************************************************
 **
-** Copyright (C) Filippo Cucchetto <filippocucchetto@gmail.com>
 ** Copyright (C) Michal Malek <michalm@fastmail.fm>
 ** Contact: http://www.qt.io/licensing
 **
@@ -29,14 +28,13 @@
 #include "rustproduct.h"
 
 #include <projectexplorer/project.h>
-#include <projectexplorer/projectnodes.h>
-#include <utils/fileutils.h>
 
 #include <QFileSystemWatcher>
-#include <QElapsedTimer>
-#include <QProcess>
-#include <QTimer>
+#include <QList>
+#include <QString>
+#include <QVector>
 
+namespace ProjectExplorer { class FileNode; }
 namespace TextEditor { class TextDocument; }
 
 namespace Rust {
@@ -48,29 +46,25 @@ class ProjectManager;
 class Project final : public ProjectExplorer::Project
 {
     Q_OBJECT
-public:
 
 public:
     Project(ProjectManager *projectManager, Manifest manifest);
 
     QString displayName() const override;
-    QStringList files(FilesMode) const override;
+    QStringList files(FilesMode fileMode) const override;
     bool needsConfiguration() const override;
     bool supportsKit(ProjectExplorer::Kit *kit, QString *errorMessage) const override;
 
     const QVector<Product>& products() const { return m_products; }
 
 private:
-    void scheduleProjectScan();
-    void populateProject();
-    void recursiveScanDirectory(const QDir &dir, QSet<QString> &container, bool topDir = false);
+    void buildProjectTree(const QString &path);
+    void recursiveScanDirectory(const QString &path,
+                                QList<ProjectExplorer::FileNode*> &fileNodes,
+                                bool topDir = false,
+                                bool inTargetDir = false);
 
-    QSet<QString> m_files;
-    QFileSystemWatcher m_fsWatcher;
-
-    QElapsedTimer m_lastProjectScan;
-    QTimer m_projectScanTimer;
-
+    QFileSystemWatcher m_fileSystemWatcher;
     QVector<Product> m_products;
 };
 
