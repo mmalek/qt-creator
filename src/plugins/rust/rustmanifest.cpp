@@ -25,8 +25,10 @@
 
 #include "rustmanifest.h"
 #include "rustsettings.h"
+#include "rusttoolchainmanager.h"
 
 #include <utils/environment.h>
+#include <utils/fileutils.h>
 #include <utils/qtcprocess.h>
 
 #include <QFileInfo>
@@ -43,13 +45,12 @@ namespace {
 constexpr int FIVE_SECONDS = 5000;
 }
 
-Manifest Manifest::read(const QString &manifestFile,
-                        const Utils::Environment& environment,
+Manifest Manifest::read(const Utils::FileName &manifestFile,
                         QString *errorString)
 {
     Manifest manifest;
 
-    QFileInfo fileInfo(manifestFile);
+    QFileInfo fileInfo = manifestFile.toFileInfo();
 
     if (!fileInfo.isFile()) {
         if (errorString) {
@@ -63,7 +64,7 @@ Manifest Manifest::read(const QString &manifestFile,
 
     Utils::QtcProcess cargo;
     cargo.setCommand(Settings::value(Settings::CARGO), QLatin1String("read-manifest"));
-    cargo.setEnvironment(environment);
+    cargo.setEnvironment(ToolChainManager::makeEnvironment());
     cargo.setWorkingDirectory(fileInfo.absolutePath());
     cargo.start();
     if (!cargo.waitForFinished(FIVE_SECONDS)) {
@@ -78,7 +79,7 @@ Manifest Manifest::read(const QString &manifestFile,
         return {};
     } else if (cargo.exitCode() != 0) {
         if (errorString) {
-            *errorString = tr("%1: %2").arg(manifestFile)
+            *errorString = tr("%1: %2").arg(manifestFile.toString())
                                        .arg(QString::fromLocal8Bit(cargo.readAllStandardError()));
         }
         return {};

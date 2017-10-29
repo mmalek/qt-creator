@@ -179,8 +179,7 @@ QList<ProjectExplorer::BuildInfo *> BuildConfigurationFactory::availableBuilds(c
 
 int BuildConfigurationFactory::priority(const ProjectExplorer::Kit *k, const QString &projectPath) const
 {
-    Utils::MimeDatabase mdb;
-    if (k && mdb.mimeTypeForFile(projectPath).matchesName(QLatin1String(MimeTypes::CARGO_MANIFEST)))
+    if (k && Utils::mimeTypeForFile(projectPath).matchesName(QLatin1String(MimeTypes::CARGO_MANIFEST)))
         return 0;
     else
         return -1;
@@ -201,9 +200,9 @@ QList<ProjectExplorer::BuildInfo *> BuildConfigurationFactory::availableSetups(c
 
 ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::create(ProjectExplorer::Target *parent, const ProjectExplorer::BuildInfo *info) const
 {
-    QTC_ASSERT(info->factory() == this, return 0);
-    QTC_ASSERT(info->kitId == parent->kit()->id(), return 0);
-    QTC_ASSERT(!info->displayName.isEmpty(), return 0);
+    QTC_ASSERT(info->factory() == this, return nullptr);
+    QTC_ASSERT(info->kitId == parent->kit()->id(), return nullptr);
+    QTC_ASSERT(!info->displayName.isEmpty(), return nullptr);
 
     BuildConfiguration* buildConfiguration = new BuildConfiguration(parent, info->buildType);
     buildConfiguration->setDisplayName(info->displayName);
@@ -244,7 +243,7 @@ bool BuildConfigurationFactory::canClone(const ProjectExplorer::Target *parent, 
 ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source)
 {
     if (!canClone(parent, source))
-        return 0;
+        return nullptr;
     BuildConfiguration *buildConfiguration = static_cast<BuildConfiguration *>(source);
     return new BuildConfiguration(parent, buildConfiguration);
 }

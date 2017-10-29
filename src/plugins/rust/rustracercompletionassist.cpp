@@ -24,7 +24,6 @@
 ****************************************************************************/
 
 #include "rustracercompletionassist.h"
-#include "rusteditors.h"
 #include "rustgrammar.h"
 #include "rustlexer.h"
 #include "rustslice.h"
@@ -119,11 +118,6 @@ void forEachFunArg(QStringRef declaration, F fn)
 RacerCompletionAssistProvider::RacerCompletionAssistProvider(QObject *parent)
     : CompletionAssistProvider(parent)
 {
-}
-
-bool RacerCompletionAssistProvider::supportsEditor(Core::Id editorId) const
-{
-    return editorId == Editors::RUST;
 }
 
 TextEditor::IAssistProcessor *RacerCompletionAssistProvider::createProcessor() const

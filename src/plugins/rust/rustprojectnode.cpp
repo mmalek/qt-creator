@@ -26,6 +26,7 @@
 #include "rustprojectnode.h"
 
 #include <projectexplorer/projectnodes.h>
+#include <projectexplorer/projectnodes.h>
 
 namespace Rust {
 namespace Internal {
@@ -34,25 +35,11 @@ ProjectNode::ProjectNode(const Utils::FileName &projectFilePath)
     : ProjectExplorer::ProjectNode(projectFilePath)
 {}
 
-QList<ProjectExplorer::ProjectAction> ProjectNode::supportedActions(Node *node) const
-{
-    using namespace ProjectExplorer;
-
-    switch (node->nodeType()) {
-    case FileNodeType:
-        return { Rename, RemoveFile };
-    case FolderNodeType:
-    case ProjectNodeType:
-        return { AddNewFile, RemoveFile };
-    default:
-        return ProjectNode::supportedActions(node);
-    }
-}
-
 bool ProjectNode::addFiles(const QStringList &filePaths, QStringList *notAdded)
 {
     Q_UNUSED(filePaths)
     Q_UNUSED(notAdded)
+    emit changed();
     return true;
 }
 
@@ -60,12 +47,14 @@ bool ProjectNode::removeFiles(const QStringList &filePaths, QStringList *notRemo
 {
     Q_UNUSED(filePaths)
     Q_UNUSED(notRemoved)
+    emit changed();
     return true;
 }
 
 bool ProjectNode::deleteFiles(const QStringList &filePaths)
 {
     Q_UNUSED(filePaths)
+    emit changed();
     return true;
 }
 
@@ -73,7 +62,21 @@ bool ProjectNode::renameFile(const QString &filePath, const QString &newFilePath
 {
     Q_UNUSED(filePath)
     Q_UNUSED(newFilePath)
+    emit changed();
     return true;
+}
+
+bool ProjectNode::supportsAction(ProjectExplorer::ProjectAction action, ProjectExplorer::Node *node) const
+{
+    switch (node->nodeType()) {
+    case ProjectExplorer::NodeType::File:
+        return action == ProjectExplorer::Rename || action == ProjectExplorer::RemoveFile;
+    case ProjectExplorer::NodeType::Folder:
+    case ProjectExplorer::NodeType::Project:
+        return action == ProjectExplorer::AddNewFile || action == ProjectExplorer::RemoveFile;
+    default:
+        return false;
+    }
 }
 
 } // namespace Internal

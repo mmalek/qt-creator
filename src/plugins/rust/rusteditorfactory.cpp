@@ -54,7 +54,7 @@ EditorFactory::EditorFactory()
 
     setSyntaxHighlighterCreator([](){ return new Highlighter; });
 
-    setCommentStyle(Utils::CommentDefinition::CppStyle);
+    setCommentDefinition(Utils::CommentDefinition::CppStyle);
     setCompletionAssistProvider(new RacerCompletionAssistProvider);
     setDocumentCreator([](){
         auto document = new TextEditor::TextDocument(Editors::RUST);

@@ -33,7 +33,10 @@
 #include <QVector>
 #include <QCoreApplication>
 
-namespace Utils { class Environment; }
+namespace Utils {
+class FileName;
+class Environment;
+}
 
 namespace Rust {
 namespace Internal {
@@ -47,8 +50,7 @@ struct Manifest
 
     operator bool() const { return !name.isEmpty(); }
 
-    static Manifest read(const QString &manifestFile,
-                         const Utils::Environment& environment,
+    static Manifest read(const Utils::FileName &manifestFile,
                          QString *errorString = nullptr);
 
 private:

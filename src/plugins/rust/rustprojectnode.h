@@ -34,14 +34,19 @@ namespace Internal {
 
 class ProjectNode final : public ProjectExplorer::ProjectNode
 {
+    Q_OBJECT
+
 public:
     ProjectNode(const Utils::FileName &projectFilePath);
 
-    QList<ProjectExplorer::ProjectAction> supportedActions(Node *node) const override;
     bool addFiles(const QStringList &, QStringList *) override;
     bool removeFiles(const QStringList &, QStringList *) override;
     bool deleteFiles(const QStringList &) override;
     bool renameFile(const QString &, const QString &) override;
+    bool supportsAction(ProjectExplorer::ProjectAction action, Node *node) const override;
+
+signals:
+    void changed();
 };
 
 } // namespace Internal

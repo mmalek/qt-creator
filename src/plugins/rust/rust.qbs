@@ -46,8 +46,6 @@ QtcPlugin {
         "rustproduct.h",
         "rustproject.cpp",
         "rustproject.h",
-        "rustprojectmanager.cpp",
-        "rustprojectmanager.h",
         "rustprojectnode.cpp",
         "rustprojectnode.h",
         "rustracer.cpp",

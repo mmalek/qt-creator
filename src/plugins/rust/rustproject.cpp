@@ -1,5 +1,6 @@
 /****************************************************************************
 **
+** Copyright (C) Filippo Cucchetto <filippocucchetto@gmail.com>
 ** Copyright (C) Michal Malek <michalm@fastmail.fm>
 ** Contact: http://www.qt.io/licensing
 **
@@ -26,64 +27,64 @@
 #include "rustproject.h"
 #include "rustkitinformation.h"
 #include "rustmanifest.h"
+#include "rustmimetypes.h"
 #include "rustprojectnode.h"
-#include "rustprojectmanager.h"
 #include "rusttoolchainmanager.h"
 
-#include <projectexplorer/buildconfiguration.h>
-#include <projectexplorer/kit.h>
-#include <projectexplorer/projectexplorerconstants.h>
-#include <projectexplorer/projectnodes.h>
-#include <projectexplorer/target.h>
-#include <texteditor/textdocument.h>
+#include <coreplugin/messagemanager.h>
+#include <coreplugin/progressmanager/progressmanager.h>
+#include <coreplugin/vcsmanager.h>
+
+//#include <projectexplorer/buildconfiguration.h>
+//#include <projectexplorer/kit.h>
+//#include <projectexplorer/projectexplorerconstants.h>
+//#include <projectexplorer/projectnodes.h>
+//#include <projectexplorer/projecttree.h>
+//#include <projectexplorer/target.h>
 
 #include <utils/algorithm.h>
-#include <utils/fileutils.h>
+//#include <utils/fileutils.h>
+//#include <utils/hostosinfo.h>
+#include <utils/runextensions.h>
+#include <utils/qtcassert.h>
 
-#include <QDirIterator>
-#include <QFileInfo>
-#include <QTimer>
+//#include <QDirIterator>
+//#include <QFileInfo>
+//#include <QTimer>
 
 namespace Rust {
 namespace Internal {
+namespace {
 
-Project::Project(ProjectManager *projectManager, Manifest manifest)
-    : m_products(std::move(manifest.products))
+const int MIN_TIME_BETWEEN_PROJECT_SCANS = 4500;
+
+} // namespace
+
+Project::Project(const Utils::FileName &fileName)
+    : ProjectExplorer::Project(MimeTypes::RUST_SOURCE, fileName)
 {
     setId("Rust.Project");
-    setProjectManager(projectManager);
-    setDocument(new TextEditor::TextDocument);
-    document()->setFilePath(manifest.file);
 
-    setRootProjectNode(new ProjectNode(manifest.directory));
-    rootProjectNode()->setDisplayName(manifest.name);
+    QString errorString;
 
-    buildProjectTree(projectDirectory().toString());
+    if (Manifest manifest = Manifest::read(fileName, &errorString)) {
 
-    QTimer::singleShot(0, this, SIGNAL(parsingFinished()));
+        m_products = std::move(manifest.products);
 
-    connect(&m_fileSystemWatcher, &QFileSystemWatcher::directoryChanged,
-            this, &Project::buildProjectTree);
-}
+        setDisplayName(manifest.name);
 
-QString Project::displayName() const
-{
-    return rootProjectNode()->displayName();
-}
+        m_projectScanTimer.setSingleShot(true);
+        connect(&m_projectScanTimer, &QTimer::timeout, this, &Project::collectProjectFiles);
 
-QStringList Project::files(FilesMode fileMode) const
-{
-    const auto isExpected = [fileMode](const ProjectExplorer::FileNode* fileNode) {
-        return ((fileMode | SourceFiles) && fileNode->fileType() == ProjectExplorer::SourceType) ||
-               ((fileMode | GeneratedFiles) && fileNode->isGenerated());
-    };
+        connect(&m_futureWatcher, &QFutureWatcher<QList<ProjectExplorer::FileNode *>>::finished,
+                this, &Project::updateProject);
 
-    const auto toFilePath = [](const ProjectExplorer::FileNode* fileNode) {
-        return fileNode->filePath().toString();
-    };
-
-    return Utils::transform(Utils::filtered(rootProjectNode()->recursiveFileNodes(), isExpected),
-                            toFilePath);
+        collectProjectFiles();
+    } else {
+        Core::MessageManager::write(tr("Cannot open Cargo manifest \"%1\": %2.")
+                                    .arg(fileName.toString())
+                                    .arg(errorString));
+    }
 }
 
 bool Project::needsConfiguration() const
@@ -97,56 +98,66 @@ bool Project::supportsKit(ProjectExplorer::Kit *kit, QString *errorMessage) cons
     return kit->isValid();
 }
 
-void Project::recursiveScanDirectory(const QString &path,
-                                     QList<ProjectExplorer::FileNode*> &fileNodes,
-                                     bool topDir,
-                                     bool inTargetDir)
+void Project::scheduleProjectScan()
 {
-    QDirIterator dirIt(path, QDir::AllDirs | QDir::Files | QDir::NoDotAndDotDot | QDir::NoSymLinks);
-
-    while (dirIt.hasNext()) {
-        dirIt.next();
-
-        const QFileInfo info = dirIt.fileInfo();
-
-        if (info.isDir()) {
-            recursiveScanDirectory(info.filePath(), fileNodes, false,
-                                   inTargetDir || (topDir && info.fileName() == QLatin1String("target")));
-        } else if (info.suffix() != QLatin1String("autosave") &&
-             info.fileName().compare(QLatin1String("Cargo.toml.user"), Qt::CaseInsensitive) != 0) {
-
-            Utils::FileName filePath(info);
-
-            ProjectExplorer::FileType fileType;
-            if (info.suffix() == QLatin1String("rs"))
-                fileType = ProjectExplorer::SourceType;
-            else if (info.fileName().compare(QLatin1String("Cargo.toml"), Qt::CaseInsensitive) == 0)
-                fileType = ProjectExplorer::ProjectFileType;
-            else
-                fileType = ProjectExplorer::UnknownFileType;
-
-            bool generated = inTargetDir ||
-                    info.fileName().compare(QLatin1String("Cargo.lock"), Qt::CaseInsensitive) == 0;
-
-            fileNodes.append(new ProjectExplorer::FileNode(filePath, fileType, generated));
+    auto elapsedTime = m_lastProjectScan.elapsed();
+    if (elapsedTime < MIN_TIME_BETWEEN_PROJECT_SCANS) {
+        if (!m_projectScanTimer.isActive()) {
+            m_projectScanTimer.setInterval(MIN_TIME_BETWEEN_PROJECT_SCANS - elapsedTime);
+            m_projectScanTimer.start();
         }
+    } else {
+        collectProjectFiles();
     }
-
-    m_fileSystemWatcher.addPath(path);
 }
 
-void Project::buildProjectTree(const QString &path)
+void Project::collectProjectFiles()
 {
-    QFileInfo info(path);
-    if (info.exists()) {
-        if (ProjectExplorer::FolderNode* node = rootProjectNode()->findOrCreateSubFolderNode(path)) {
-            QList<ProjectExplorer::FileNode*> fileNodes;
-            recursiveScanDirectory(path, fileNodes, projectDirectory().toString() == path);
-            node->buildTree(fileNodes);
-        }
-    }
+    m_lastProjectScan.start();
+    QTC_ASSERT(!m_futureWatcher.future().isRunning(), return);
+    Utils::FileName prjDir = projectDirectory();
+    const QList<Core::IVersionControl *> versionControls = Core::VcsManager::versionControls();
+    QFuture<QList<ProjectExplorer::FileNode *>> future = Utils::runAsync([prjDir, versionControls] {
+        return ProjectExplorer::FileNode::scanForFilesWithVersionControls(
+                    prjDir,
+                    [](const Utils::FileName &fn) {
+                        return new ProjectExplorer::FileNode(fn, ProjectExplorer::FileType::Source, false);
+                    },
+                    versionControls);
+    });
+    m_futureWatcher.setFuture(future);
+    Core::ProgressManager::addTask(future, tr("Scanning for Rust files"), "Rust.Project.Scan");
+}
 
-    emit fileListChanged();
+void Project::updateProject()
+{
+    const QStringList oldFiles = m_files;
+    m_files.clear();
+
+    auto fileNodes = Utils::filtered(m_futureWatcher.future().result(),
+                                     [&](const ProjectExplorer::FileNode *fn) {
+        const Utils::FileName path = fn->filePath();
+        const QString fileName = path.fileName();
+        const bool keep = fileName.compare(QLatin1String("Cargo.toml.user"),
+                                           Utils::HostOsInfo::fileNameCaseSensitivity()) != 0;
+        if (!keep)
+            delete fn;
+        return keep;
+    });
+
+    m_files = Utils::transform(fileNodes,
+                               [](const ProjectExplorer::FileNode *fn) { return fn->filePath().toString(); });
+    Utils::sort(m_files, [](const QString &a, const QString &b) { return a < b; });
+
+    if (oldFiles == m_files)
+        return;
+
+    auto newRoot = new ProjectNode(projectDirectory());
+    connect(newRoot, &ProjectNode::changed, this, &Project::scheduleProjectScan);
+    newRoot->setDisplayName(displayName());
+    newRoot->addNestedNodes(fileNodes);
+    setRootProjectNode(newRoot);
+    emit parsingFinished();
 }
 
 } // namespace Internal

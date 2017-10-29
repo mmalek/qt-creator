@@ -74,6 +74,7 @@ public:
     const TargetArch* targetArch(Core::Id id) const;
     const TargetArch* defaultTargetArch() const;
 
+    static Utils::Environment makeEnvironment();
     static void addToEnvironment(Utils::Environment& environment);
 
 public slots:

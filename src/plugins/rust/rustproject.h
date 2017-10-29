@@ -1,5 +1,6 @@
 /****************************************************************************
 **
+** Copyright (C) Filippo Cucchetto <filippocucchetto@gmail.com>
 ** Copyright (C) Michal Malek <michalm@fastmail.fm>
 ** Contact: http://www.qt.io/licensing
 **
@@ -29,41 +30,45 @@
 
 #include <projectexplorer/project.h>
 
+#include <QElapsedTimer>
+#include <QFutureWatcher>
 #include <QFileSystemWatcher>
 #include <QList>
 #include <QString>
+#include <QTimer>
 #include <QVector>
 
-namespace ProjectExplorer { class FileNode; }
+namespace ProjectExplorer {
+class FileNode;
+class FolderNode;
+}
+
 namespace TextEditor { class TextDocument; }
 
 namespace Rust {
 namespace Internal {
-
-class Manifest;
-class ProjectManager;
 
 class Project final : public ProjectExplorer::Project
 {
     Q_OBJECT
 
 public:
-    Project(ProjectManager *projectManager, Manifest manifest);
+    explicit Project(const Utils::FileName &fileName);
 
-    QString displayName() const override;
-    QStringList files(FilesMode fileMode) const override;
     bool needsConfiguration() const override;
     bool supportsKit(ProjectExplorer::Kit *kit, QString *errorMessage) const override;
 
     const QVector<Product>& products() const { return m_products; }
 
 private:
-    void buildProjectTree(const QString &path);
-    void recursiveScanDirectory(const QString &path,
-                                QList<ProjectExplorer::FileNode*> &fileNodes,
-                                bool topDir = false,
-                                bool inTargetDir = false);
+    void scheduleProjectScan();
+    void collectProjectFiles();
+    void updateProject();
 
+    QStringList m_files;
+    QFutureWatcher<QList<ProjectExplorer::FileNode *>> m_futureWatcher;
+    QElapsedTimer m_lastProjectScan;
+    QTimer m_projectScanTimer;
     QFileSystemWatcher m_fileSystemWatcher;
     QVector<Product> m_products;
 };

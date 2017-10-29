@@ -149,7 +149,7 @@ void CargoStep::stdOutput(const QString &line)
     }
 
     if (m_showJsonOnConsole || !parsable) {
-        emit addOutput(line, BuildStep::NormalOutput, BuildStep::DontAppendNewline);
+        emit addOutput(line, BuildStep::OutputFormat::Stdout, BuildStep::DontAppendNewline);
     }
 }
 

@@ -30,7 +30,7 @@
 #include "rusteditors.h"
 #include "rustkitinformation.h"
 #include "rustmimetypes.h"
-#include "rustprojectmanager.h"
+#include "rustproject.h"
 #include "rustrunconfiguration.h"
 #include "rusttargetarchinformation.h"
 #include "rusttoolchainmanager.h"
@@ -40,6 +40,7 @@
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/coreconstants.h>
 #include <coreplugin/fileiconprovider.h>
+#include <projectexplorer/projectmanager.h>
 #include <texteditor/texteditorconstants.h>
 #include <utils/mimetypes/mimedatabase.h>
 #include <utils/qtcassert.h>
@@ -61,11 +62,11 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
     Q_UNUSED(arguments)
     Q_UNUSED(errorMessage)
 
-    Utils::MimeDatabase::addMimeTypes(QLatin1String(":/Rust.mimetypes.xml"));
+    ProjectExplorer::RunControl::registerWorker<RunConfiguration, ProjectExplorer::SimpleTargetRunner>
+            (ProjectExplorer::Constants::NORMAL_RUN_MODE);
 
     addAutoReleasedObject(m_toolChainManager = new ToolChainManager);
     addAutoReleasedObject(new ToolsOptionsPage(*m_toolChainManager));
-    addAutoReleasedObject(new ProjectManager(*m_toolChainManager));
     addAutoReleasedObject(new BuildConfigurationFactory(*m_toolChainManager));
     addAutoReleasedObject(new BuildStepFactory(*m_toolChainManager));
     addAutoReleasedObject(new RunConfigurationFactory);
@@ -74,12 +75,7 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
     ProjectExplorer::KitManager::registerKitInformation(new KitInformation(*m_toolChainManager));
     ProjectExplorer::KitManager::registerKitInformation(new TargetArchInformation(*m_toolChainManager));
 
-    // Add MIME overlay icons (these icons displayed at Project dock panel)
-    const QIcon icon((QLatin1String(":/images/rust.svg")));
-    if (!icon.isNull()) {
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
-        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
-    }
+    ProjectExplorer::ProjectManager::registerProjectType<Project>(MimeTypes::CARGO_MANIFEST);
 
     Core::Context context(Editors::RUST);
 
@@ -117,6 +113,12 @@ bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
 
 void Plugin::extensionsInitialized()
 {
+    // Add MIME overlay icons (these icons displayed at Project dock panel)
+    const QIcon icon((QLatin1String(":/images/rust.svg")));
+    if (!icon.isNull()) {
+        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::RUST_SOURCE);
+        Core::FileIconProvider::registerIconOverlayForMimeType(icon, MimeTypes::CARGO_MANIFEST);
+    }
 }
 
 } // namespace Internal

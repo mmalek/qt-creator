@@ -135,10 +135,8 @@ QVector<TargetArch> getTargetArchs(const Utils::Environment& environment)
 
 ToolChainManager::ToolChainManager(QObject *parent)
     : QObject(parent),
-      m_environment(Utils::Environment::systemEnvironment())
+      m_environment(makeEnvironment())
 {
-    addToEnvironment(m_environment);
-
     settingsChanged();
 }
 
@@ -178,6 +176,13 @@ const TargetArch *ToolChainManager::defaultTargetArch() const
     } else {
         return nullptr;
     }
+}
+
+Utils::Environment ToolChainManager::makeEnvironment()
+{
+    Utils::Environment environment = Utils::Environment::systemEnvironment();
+    addToEnvironment(environment);
+    return environment;
 }
 
 void ToolChainManager::addToEnvironment(Utils::Environment &environment)

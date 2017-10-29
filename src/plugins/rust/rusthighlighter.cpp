@@ -34,58 +34,57 @@
 namespace Rust {
 namespace Internal {
 namespace {
-enum class Category {
-    NoFormatting = -1,
-    Keyword = 0,
-    Operator,
-    String,
-    Number,
-    Comment,
-    DocComment,
-    PrimitiveType,
-    Type,
-    Enumeration,
-    Attribute,
-    Whitespace,
-    Error,
+enum Category {
+    CategoryNoFormatting = -1,
+    CategoryKeyword = 0,
+    CategoryOperator,
+    CategoryString,
+    CategoryNumber,
+    CategoryComment,
+    CategoryDocComment,
+    CategoryPrimitiveType,
+    CategoryType,
+    CategoryEnumeration,
+    CategoryAttribute,
+    CategoryWhitespace,
+    CategoryError,
 
     NumCategories
 };
 
 Category toCategory(TokenType tokenType)
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 12,
-                  "Number of categories changed, update the code below");
+    static_assert(NumCategories == 12, "Number of categories changed, update the code below");
 
     switch (tokenType) {
     case TokenType::Keyword:
-        return Category::Keyword;
+        return CategoryKeyword;
     case TokenType::Comma:
     case TokenType::Colon:
     case TokenType::Semicolon:
     case TokenType::Operator:
-        return Category::Operator;
+        return CategoryOperator;
     case TokenType::Char:
     case TokenType::String:
-        return Category::String;
+        return CategoryString;
     case TokenType::Number:
-        return Category::Number;
+        return CategoryNumber;
     case TokenType::Comment:
-        return Category::Comment;
+        return CategoryComment;
     case TokenType::DocComment:
-        return Category::DocComment;
+        return CategoryDocComment;
     case TokenType::PrimitiveType:
-        return Category::PrimitiveType;
+        return CategoryPrimitiveType;
     case TokenType::Type:
-        return Category::Type;
+        return CategoryType;
     case TokenType::Enumeration:
-        return Category::Enumeration;
+        return CategoryEnumeration;
     case TokenType::Attribute:
-        return Category::Attribute;
+        return CategoryAttribute;
     case TokenType::Unknown:
-        return Category::Error;
+        return CategoryError;
     default:
-        return Category::NoFormatting;
+        return CategoryNoFormatting;
     }
 }
 
@@ -96,29 +95,33 @@ inline void setFoldingEndIncluded(const QTextBlock& block, bool included)
     }
 }
 
+static TextEditor::TextStyle styleForFormat(int format)
+{
+    static_assert(NumCategories == 12, "Number of categories changed, update the code below");
+
+    switch (format) {
+    case CategoryKeyword: return TextEditor::C_KEYWORD;
+    case CategoryOperator: return TextEditor::C_OPERATOR;
+    case CategoryString: return TextEditor::C_STRING;
+    case CategoryNumber: return TextEditor::C_NUMBER;
+    case CategoryComment: return TextEditor::C_COMMENT;
+    case CategoryDocComment: return TextEditor::C_DOXYGEN_COMMENT;
+    case CategoryPrimitiveType: return TextEditor::C_PRIMITIVE_TYPE;
+    case CategoryType: return TextEditor::C_TYPE;
+    case CategoryEnumeration: return TextEditor::C_ENUMERATION;
+    case CategoryAttribute: return TextEditor::C_PREPROCESSOR;
+    case CategoryWhitespace: return TextEditor::C_VISUAL_WHITESPACE;
+    case CategoryError: return TextEditor::C_ERROR;
+    default: return TextEditor::C_TEXT;
+    };
+
+}
+
 } // namespace
 
 Highlighter::Highlighter()
 {
-    static_assert(static_cast<int>(Category::NumCategories) == 12,
-                  "Number of categories changed, update the code below");
-
-    static QVector<TextEditor::TextStyle> categories{
-                TextEditor::C_KEYWORD,
-                TextEditor::C_OPERATOR,
-                TextEditor::C_STRING,
-                TextEditor::C_NUMBER,
-                TextEditor::C_COMMENT,
-                TextEditor::C_DOXYGEN_COMMENT,
-                TextEditor::C_PRIMITIVE_TYPE,
-                TextEditor::C_TYPE,
-                TextEditor::C_ENUMERATION,
-                TextEditor::C_PREPROCESSOR,
-                TextEditor::C_VISUAL_WHITESPACE,
-                TextEditor::C_ERROR
-    };
-
-    setTextFormatCategories(categories);
+    setTextFormatCategories(NumCategories, styleForFormat);
 }
 
 void Highlighter::highlightBlock(const QString &text)
@@ -142,7 +145,7 @@ void Highlighter::highlightBlock(const QString &text)
     while (const Token token = lexer.next())
     {
         const Category category = toCategory(token.type);
-        if (category != Category::NoFormatting) {
+        if (category != CategoryNoFormatting) {
             setFormat(token.begin, token.length, formatForCategory(static_cast<int>(category)));
         }
 
@@ -168,7 +171,7 @@ void Highlighter::highlightBlock(const QString &text)
         ++tokenCount;
     }
 
-    applyFormatToSpaces(text, formatForCategory(static_cast<int>(Category::Whitespace)));
+    formatSpaces(text, 0, text.size());
 
     if (hasFirstRightBrace && hasSecondElse) {
         if (currentDepth > 0) {

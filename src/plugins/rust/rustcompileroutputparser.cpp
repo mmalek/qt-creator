@@ -110,7 +110,7 @@ QIcon toIcon(Level level)
 {
     switch (level) {
     case Level::Warning: return Utils::Icons::WARNING.icon();
-    case Level::Error: return Utils::Icons::ERROR.icon();
+    case Level::Error: return Utils::Icons::CRITICAL.icon();
     case Level::Help: return Utils::Icons::INFO.icon();
     default: return QIcon();
     }
