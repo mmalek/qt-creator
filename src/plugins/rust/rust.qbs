@@ -4,11 +4,10 @@ QtcPlugin {
     name: "Rust"
 
     Depends { name: "Qt.widgets" }
-    Depends { name: "Utils" }
-
     Depends { name: "Core" }
     Depends { name: "ProjectExplorer" }
     Depends { name: "TextEditor" }
+    Depends { name: "Utils" }
 
     files: [
         "rust.qrc",

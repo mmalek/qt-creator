@@ -34,6 +34,7 @@ SUBDIRS   = \
     glsleditor \
     pythoneditor \
     nim \
+    rust \
     mercurial \
     bazaar \
     classview \
