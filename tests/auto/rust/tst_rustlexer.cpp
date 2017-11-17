@@ -23,15 +23,12 @@
 **
 ****************************************************************************/
 
-#include "rustlexer_test.h"
-
-#include <rust/rustlexer.h>
-#include <rust/rusttoken.h>
+#include "rustlexer.h"
+#include "rusttoken.h"
 
 #include <QtTest>
 
-namespace Rust {
-namespace Internal {
+using namespace Rust::Internal;
 
 namespace {
 
@@ -71,6 +68,56 @@ QByteArray toByteArray(TokenType tokenType)
 
 } // namespace
 
+class tst_RustLexer : public QObject
+{
+    Q_OBJECT
+
+private slots:
+    void empty();
+    void state();
+    void whitespace();
+    void identifier();
+    void keyword();
+    void zero();
+    void integer1();
+    void integer2();
+    void integer3();
+    void integer4();
+    void binary();
+    void hexadecimal();
+    void octal();
+    void floating1();
+    void floating2();
+    void floating3();
+    void floating4();
+    void charLiteral1();
+    void charLiteral2();
+    void byte();
+    void string();
+    void byteString();
+    void multiLineString1();
+    void multiLineString2();
+    void multiLineString3();
+    void multiLineStringEscapedEol();
+    void rawString1();
+    void rawString2();
+    void rawString3();
+    void rawByteString1();
+    void rawByteString2();
+    void rawByteString3();
+    void oneLineComment();
+    void oneLineDocComment1();
+    void oneLineDocComment2();
+    void multiLineComment1();
+    void multiLineComment2();
+    void multiLineComment3();
+    void multiLineDocComment1();
+    void multiLineDocComment2();
+    void parentheses();
+    void squareBrackets();
+    void braces();
+};
+
 char *toString(TokenType tokenType)
 {
     // bring QTest::toString overloads into scope:
@@ -90,14 +137,14 @@ char *toString(const Token &token)
                     toByteArray(token.type) + '}');
 }
 
-void LexerTest::empty()
+void tst_RustLexer::empty()
 {
     Lexer lexer{QStringRef()};
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::state()
+void tst_RustLexer::state()
 {
     Lexer lexer{QStringRef(), Lexer::MultiLineState::String, 0};
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::String);
@@ -105,7 +152,7 @@ void LexerTest::state()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::whitespace()
+void tst_RustLexer::whitespace()
 {
     const QString buffer{QLatin1String{"     "}};
     Lexer lexer{&buffer};
@@ -114,7 +161,7 @@ void LexerTest::whitespace()
     QCOMPARE(lexer.multiLineState(), Lexer::MultiLineState::Default);
 }
 
-void LexerTest::identifier()
+void tst_RustLexer::identifier()
 {
     const QString buffer{QLatin1String{"   \t    abc123_890   "}};
     Lexer lexer{&buffer};
@@ -124,7 +171,7 @@ void LexerTest::identifier()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::keyword()
+void tst_RustLexer::keyword()
 {
     const QString buffer{QLatin1String{"   \t    let   "}};
     Lexer lexer{&buffer};
@@ -134,7 +181,7 @@ void LexerTest::keyword()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::zero()
+void tst_RustLexer::zero()
 {
     const QString buffer{QLatin1String{"0  0i32  0E+3f32"}};
     Lexer lexer{&buffer};
@@ -148,7 +195,7 @@ void LexerTest::zero()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::integer1()
+void tst_RustLexer::integer1()
 {
     const QString buffer{QLatin1String{"   \t    678401   "}};
     Lexer lexer{&buffer};
@@ -158,7 +205,7 @@ void LexerTest::integer1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::integer2()
+void tst_RustLexer::integer2()
 {
     const QString buffer{QLatin1String{"   \t    678_401   "}};
     Lexer lexer{&buffer};
@@ -168,7 +215,7 @@ void LexerTest::integer2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::integer3()
+void tst_RustLexer::integer3()
 {
     const QString buffer{QLatin1String{"401i32"}};
     Lexer lexer{&buffer};
@@ -178,7 +225,7 @@ void LexerTest::integer3()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::integer4()
+void tst_RustLexer::integer4()
 {
     const QString buffer{QLatin1String{"401u64 0589B34"}};
     Lexer lexer{&buffer};
@@ -190,7 +237,7 @@ void LexerTest::integer4()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::binary()
+void tst_RustLexer::binary()
 {
     const QString buffer{QLatin1String{"0b0111010 0b012"}};
     Lexer lexer{&buffer};
@@ -202,7 +249,7 @@ void LexerTest::binary()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::hexadecimal()
+void tst_RustLexer::hexadecimal()
 {
     const QString buffer{QLatin1String{"0x0123456789AbCdEf 0x34G"}};
     Lexer lexer{&buffer};
@@ -214,7 +261,7 @@ void LexerTest::hexadecimal()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::octal()
+void tst_RustLexer::octal()
 {
     const QString buffer{QLatin1String{"0o01234567 0o058"}};
     Lexer lexer{&buffer};
@@ -226,7 +273,7 @@ void LexerTest::octal()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::floating1()
+void tst_RustLexer::floating1()
 {
     const QString buffer{QLatin1String{"   \t    678401.   "}};
     Lexer lexer{&buffer};
@@ -236,7 +283,7 @@ void LexerTest::floating1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::floating2()
+void tst_RustLexer::floating2()
 {
     const QString buffer{QLatin1String{"   \t    678401.1  3_53.9  78."}};
     Lexer lexer{&buffer};
@@ -250,7 +297,7 @@ void LexerTest::floating2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::floating3()
+void tst_RustLexer::floating3()
 {
     const QString buffer{QLatin1String{"678401.2f32 1.3f128"}};
     Lexer lexer{&buffer};
@@ -262,7 +309,7 @@ void LexerTest::floating3()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::floating4()
+void tst_RustLexer::floating4()
 {
     const QString buffer{QLatin1String{"678401.3E+4 5e+10 6e-1f64 6e+1i64"}};
     Lexer lexer{&buffer};
@@ -278,7 +325,7 @@ void LexerTest::floating4()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::charLiteral1()
+void tst_RustLexer::charLiteral1()
 {
     const QString buffer{QLatin1String{" 'b' '\\x7D' '\\u{3DF}' '\\n' '\\r' '\\t' '\\0' '\\\\' '\\\'' '\\\"'"}};
     Lexer lexer{&buffer};
@@ -306,7 +353,7 @@ void LexerTest::charLiteral1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::charLiteral2()
+void tst_RustLexer::charLiteral2()
 {
     const QString buffer{QLatin1String{" '\"' ''' "}};
     Lexer lexer{&buffer};
@@ -316,7 +363,7 @@ void LexerTest::charLiteral2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::byte()
+void tst_RustLexer::byte()
 {
     const QString buffer{QLatin1String{" b'b' b'\\x7D'"}};
     Lexer lexer{&buffer};
@@ -328,7 +375,7 @@ void LexerTest::byte()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::string()
+void tst_RustLexer::string()
 {
     const QString buffer{QLatin1String{"\"abc\" \"unicode char 4A5: \\u{4A5}\""}};
     Lexer lexer{&buffer};
@@ -340,7 +387,7 @@ void LexerTest::string()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::byteString()
+void tst_RustLexer::byteString()
 {
     const QString buffer{QLatin1String{"b\"abc\""}};
     Lexer lexer{&buffer};
@@ -350,7 +397,7 @@ void LexerTest::byteString()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineString1()
+void tst_RustLexer::multiLineString1()
 {
     const QString buffer{QLatin1String{"\"abc\ndef\""}};
     Lexer lexer{&buffer};
@@ -363,7 +410,7 @@ void LexerTest::multiLineString1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineString2()
+void tst_RustLexer::multiLineString2()
 {
     const QString buffer{QLatin1String{"\"abc"}};
     Lexer lexer{&buffer};
@@ -374,7 +421,7 @@ void LexerTest::multiLineString2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineString3()
+void tst_RustLexer::multiLineString3()
 {
     const QString buffer{QLatin1String{"def\""}};
     Lexer lexer{&buffer, Lexer::MultiLineState::String};
@@ -385,7 +432,7 @@ void LexerTest::multiLineString3()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineStringEscapedEol()
+void tst_RustLexer::multiLineStringEscapedEol()
 {
     const QString buffer{QLatin1String{"\"abc\\\ndef\""}};
     Lexer lexer{&buffer};
@@ -398,7 +445,7 @@ void LexerTest::multiLineStringEscapedEol()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::rawString1()
+void tst_RustLexer::rawString1()
 {
     const QString buffer{QLatin1String{"r#\"abc\"#  r##\"def\nghi\"### r#\"ghi\" \"# "}};
     Lexer lexer{&buffer};
@@ -417,7 +464,7 @@ void LexerTest::rawString1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::rawString2()
+void tst_RustLexer::rawString2()
 {
     const QString buffer{QLatin1String{"r#\"abc"}};
     Lexer lexer{&buffer};
@@ -428,7 +475,7 @@ void LexerTest::rawString2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::rawString3()
+void tst_RustLexer::rawString3()
 {
     const QString buffer{QLatin1String{"def\"#"}};
     Lexer lexer{&buffer, Lexer::MultiLineState::String, 1};
@@ -438,7 +485,7 @@ void LexerTest::rawString3()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::rawByteString1()
+void tst_RustLexer::rawByteString1()
 {
     const QString buffer{QLatin1String{"br#\"abc\"#  br##\"def\nghi\"### br#\"ghi\" \"# "}};
     Lexer lexer{&buffer};
@@ -457,7 +504,7 @@ void LexerTest::rawByteString1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::rawByteString2()
+void tst_RustLexer::rawByteString2()
 {
     const QString buffer{QLatin1String{"br#\"abc"}};
     Lexer lexer{&buffer};
@@ -468,7 +515,7 @@ void LexerTest::rawByteString2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::rawByteString3()
+void tst_RustLexer::rawByteString3()
 {
     const QString buffer{QLatin1String{"def\"#"}};
     Lexer lexer{&buffer, Lexer::MultiLineState::String, 1};
@@ -478,7 +525,7 @@ void LexerTest::rawByteString3()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::oneLineComment()
+void tst_RustLexer::oneLineComment()
 {
     const QString buffer{QLatin1String{"// abc\n\rdef"}};
     Lexer lexer{&buffer};
@@ -489,7 +536,7 @@ void LexerTest::oneLineComment()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::oneLineDocComment1()
+void tst_RustLexer::oneLineDocComment1()
 {
     const QString buffer{QLatin1String{"/// abc"}};
     Lexer lexer{&buffer};
@@ -499,7 +546,7 @@ void LexerTest::oneLineDocComment1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::oneLineDocComment2()
+void tst_RustLexer::oneLineDocComment2()
 {
     const QString buffer{QLatin1String{"//! abc"}};
     Lexer lexer{&buffer};
@@ -509,7 +556,7 @@ void LexerTest::oneLineDocComment2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineComment1()
+void tst_RustLexer::multiLineComment1()
 {
     const QString buffer{QLatin1String{"/* abc\n\rdef*/ghi"}};
     Lexer lexer{&buffer};
@@ -523,7 +570,7 @@ void LexerTest::multiLineComment1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineComment2()
+void tst_RustLexer::multiLineComment2()
 {
     const QString buffer{QLatin1String{" abc/*def"}};
     Lexer lexer{&buffer};
@@ -535,7 +582,7 @@ void LexerTest::multiLineComment2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineComment3()
+void tst_RustLexer::multiLineComment3()
 {
     const QString buffer{QLatin1String{" abc*/def"}};
     Lexer lexer{&buffer, Lexer::MultiLineState::Comment, 1};
@@ -547,7 +594,7 @@ void LexerTest::multiLineComment3()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineDocComment1()
+void tst_RustLexer::multiLineDocComment1()
 {
     const QString buffer{QLatin1String{"/** abc */ "}};
     Lexer lexer{&buffer};
@@ -557,7 +604,7 @@ void LexerTest::multiLineDocComment1()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::multiLineDocComment2()
+void tst_RustLexer::multiLineDocComment2()
 {
     const QString buffer{QLatin1String{"/*! abc */ "}};
     Lexer lexer{&buffer};
@@ -567,7 +614,7 @@ void LexerTest::multiLineDocComment2()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::parentheses()
+void tst_RustLexer::parentheses()
 {
     const QString buffer{QLatin1String{"fn foo(bar: i64);"}};
     Lexer lexer{&buffer};
@@ -591,7 +638,7 @@ void LexerTest::parentheses()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::squareBrackets()
+void tst_RustLexer::squareBrackets()
 {
     const QString buffer{QLatin1String{"let v = [1, 2];"}};
     Lexer lexer{&buffer};
@@ -617,7 +664,7 @@ void LexerTest::squareBrackets()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-void LexerTest::braces()
+void tst_RustLexer::braces()
 {
     const QString buffer{QLatin1String{"struct My{ a: i32; }"}};
     Lexer lexer{&buffer};
@@ -641,5 +688,6 @@ void LexerTest::braces()
     QCOMPARE(lexer.next().type, TokenType::None);
 }
 
-} // namespace Internal
-} // namespace Rust
+QTEST_MAIN(tst_RustLexer)
+
+#include "tst_rustlexer.moc"

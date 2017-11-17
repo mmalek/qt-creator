@@ -19,6 +19,7 @@ Project {
         "generichighlighter/generichighlighter.qbs",
         "json/json.qbs",
         "profilewriter/profilewriter.qbs",
+        "rust/rust.qbs",
         "qml/qml.qbs",
         "qtcprocess/qtcprocess.qbs",
         "runextensions/runextensions.qbs",

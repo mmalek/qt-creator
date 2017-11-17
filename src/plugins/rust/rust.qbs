@@ -70,14 +70,4 @@ QtcPlugin {
         "rusttoolsoptionspage.h",
         "rusttoolsoptionspage.ui",
     ]
-
-    Group {
-        name: "Unit tests"
-        condition: qtc.testsEnabled
-        prefix: "tests/"
-        files: [
-            "rustlexer_test.cpp",
-            "rustlexer_test.h",
-        ]
-    }
 }

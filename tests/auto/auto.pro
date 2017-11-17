@@ -13,6 +13,7 @@ SUBDIRS += \
     environment \
     generichighlighter \
     profilewriter \
+    rust \
     treeviewfind \
     qtcprocess \
     json \
