@@ -469,7 +469,7 @@ Token Lexer::next()
                     --m_depth;
                 }
                 break;
-            } else if (slice.startsWith(ATTRIBUTE_START)) {
+            } else if (slice.startsWith(ATTRIBUTE_START) || slice.startsWith(ATTRIBUTE_NEG_START)) {
                 begin = m_pos;
                 state = State::Attribute;
             } else if (const int size = isLongOperator(slice)) {
