@@ -36,8 +36,10 @@
 #include "qmt/diagram/dinheritance.h"
 #include "qmt/diagram/ddependency.h"
 #include "qmt/diagram/dassociation.h"
+#include "qmt/diagram/dconnection.h"
 #include "qmt/diagram/dannotation.h"
 #include "qmt/diagram/dboundary.h"
+#include "qmt/diagram/dswimlane.h"
 #include "qmt/infrastructure/qmtassert.h"
 
 namespace qmt {
@@ -142,12 +144,24 @@ void DFlatAssignmentVisitor::visitDAssociation(const DAssociation *association)
     QMT_ASSERT(target, return);
     target->setEndA(association->endA());
     target->setEndB(association->endB());
+    // TODO assign assoziation class?
+}
+
+void DFlatAssignmentVisitor::visitDConnection(const DConnection *connection)
+{
+    visitDRelation(connection);
+    auto target = dynamic_cast<DConnection *>(m_target);
+    QMT_ASSERT(target, return);
+    target->setCustomRelationId(connection->customRelationId());
+    target->setEndA(connection->endA());
+    target->setEndB(connection->endB());
 }
 
 void DFlatAssignmentVisitor::visitDAnnotation(const DAnnotation *annotation)
 {
     visitDElement(annotation);
     auto target = dynamic_cast<DAnnotation *>(m_target);
+    QMT_ASSERT(target, return);
     target->setText(annotation->text());
     target->setPos(annotation->pos());
     target->setRect(annotation->rect());
@@ -159,9 +173,20 @@ void DFlatAssignmentVisitor::visitDBoundary(const DBoundary *boundary)
 {
     visitDElement(boundary);
     auto target = dynamic_cast<DBoundary *>(m_target);
+    QMT_ASSERT(target, return);
     target->setText(boundary->text());
     target->setPos(boundary->pos());
     target->setRect(boundary->rect());
+}
+
+void DFlatAssignmentVisitor::visitDSwimlane(const DSwimlane *swimlane)
+{
+    visitDElement(swimlane);
+    auto target = dynamic_cast<DSwimlane *>(m_target);
+    QMT_ASSERT(target, return);
+    target->setText(swimlane->text());
+    target->setHorizontal(swimlane->isHorizontal());
+    target->setPos(swimlane->pos());
 }
 
 } // namespace qmt

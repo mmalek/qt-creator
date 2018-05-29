@@ -34,10 +34,14 @@
 #include "pxnodecontroller.h"
 
 #include "qmt/config/configcontroller.h"
+#include "qmt/diagram_controller/dcontainer.h"
+#include "qmt/diagram_controller/dreferences.h"
 #include "qmt/diagram_scene/diagramscenemodel.h"
 #include "qmt/diagram_ui/diagramsmanager.h"
 #include "qmt/model/mdiagram.h"
 #include "qmt/model_controller/modelcontroller.h"
+#include "qmt/model_controller/mcontainer.h"
+#include "qmt/model_controller/mreferences.h"
 #include "qmt/project_controller/projectcontroller.h"
 #include "qmt/project/project.h"
 #include "qmt/stereotype/stereotypecontroller.h"
@@ -69,8 +73,8 @@ public:
     ManagedModel() = default;
     ManagedModel(ExtDocumentController *m_documentController,ModelDocument *m_modelDocument);
 
-    ExtDocumentController *m_documentController = 0;
-    ModelDocument *m_modelDocument = 0;
+    ExtDocumentController *m_documentController = nullptr;
+    ModelDocument *m_modelDocument = nullptr;
 };
 
 ModelsManager::ManagedModel::ManagedModel(ExtDocumentController *documentController,
@@ -88,11 +92,16 @@ public:
     }
 
     QList<ModelsManager::ManagedModel> managedModels;
-    ModelIndexer *modelIndexer = 0;
+    ModelIndexer *modelIndexer = nullptr;
     QList<Core::IDocument *> documentsToBeClosed;
 
-    QAction *openDiagramContextMenuItem = 0;
-    ProjectExplorer::Node *contextMenuOwnerNode = 0;
+    ExtDocumentController *modelClipboardDocumentController = nullptr;
+    qmt::MContainer modelClipboard;
+    ExtDocumentController *diagramClipboardDocumentController = nullptr;
+    qmt::DContainer diagramClipboard;
+
+    QAction *openDiagramContextMenuItem = nullptr;
+    ProjectExplorer::Node *contextMenuOwnerNode = nullptr;
 };
 
 ModelsManager::ModelsManager(QObject *parent)
@@ -142,6 +151,10 @@ ExtDocumentController *ModelsManager::createModel(ModelDocument *modelDocument)
 
 void ModelsManager::releaseModel(ExtDocumentController *documentController)
 {
+    if (documentController == d->modelClipboardDocumentController)
+        d->modelClipboardDocumentController = nullptr;
+    if (documentController == d->diagramClipboardDocumentController)
+        d->diagramClipboardDocumentController = nullptr;
     for (int i = 0; i < d->managedModels.size(); ++i) {
         ManagedModel *managedModel = &d->managedModels[i];
         if (managedModel->m_documentController == documentController) {
@@ -165,6 +178,55 @@ void ModelsManager::openDiagram(const qmt::Uid &modelUid, const qmt::Uid &diagra
     }
 }
 
+bool ModelsManager::isModelClipboardEmpty() const
+{
+    return d->modelClipboard.isEmpty();
+}
+
+ExtDocumentController *ModelsManager::modelClipboardDocumentController() const
+{
+    return d->modelClipboardDocumentController;
+}
+
+qmt::MReferences ModelsManager::modelClipboard() const
+{
+    qmt::MReferences clipboard;
+    clipboard.setElements(d->modelClipboard.elements());
+    return clipboard;
+}
+
+void ModelsManager::setModelClipboard(ExtDocumentController *documentController, const qmt::MContainer &container)
+{
+    d->modelClipboardDocumentController = documentController;
+    d->modelClipboard = container;
+    emit modelClipboardChanged(isModelClipboardEmpty());
+}
+
+bool ModelsManager::isDiagramClipboardEmpty() const
+{
+    return d->diagramClipboard.isEmpty();
+}
+
+ExtDocumentController *ModelsManager::diagramClipboardDocumentController() const
+{
+    return d->diagramClipboardDocumentController;
+}
+
+qmt::DReferences ModelsManager::diagramClipboard() const
+{
+    qmt::DReferences clipboard;
+    clipboard.setElements(d->diagramClipboard.elements());
+    return clipboard;
+}
+
+void ModelsManager::setDiagramClipboard(ExtDocumentController *documentController, const qmt::DContainer &dcontainer, const qmt::MContainer &mcontainer)
+{
+    setModelClipboard(documentController, mcontainer);
+    d->diagramClipboardDocumentController = documentController;
+    d->diagramClipboard = dcontainer;
+    emit diagramClipboardChanged(isDiagramClipboardEmpty());
+}
+
 void ModelsManager::onAboutToShowContextMenu(ProjectExplorer::Project *project,
                                              ProjectExplorer::Node *node)
 {
@@ -182,14 +244,14 @@ void ModelsManager::onAboutToShowContextMenu(ProjectExplorer::Project *project,
     if (canOpenDiagram)
         d->contextMenuOwnerNode = node;
     else
-        d->contextMenuOwnerNode = 0;
+        d->contextMenuOwnerNode = nullptr;
     d->openDiagramContextMenuItem->setVisible(canOpenDiagram);
 }
 
 void ModelsManager::onOpenDiagramFromProjectExplorer()
 {
-    if (ProjectExplorer::ProjectTree::instance()->currentNode() == d->contextMenuOwnerNode) {
-        qmt::MDiagram *diagram = 0;
+    if (ProjectExplorer::ProjectTree::findCurrentNode() == d->contextMenuOwnerNode) {
+        qmt::MDiagram *diagram = nullptr;
         foreach (const ManagedModel &managedModel, d->managedModels) {
             if ((diagram = managedModel.m_documentController->pxNodeController()->findDiagramForExplorerNode(d->contextMenuOwnerNode))) {
                 openDiagram(managedModel.m_documentController, diagram);

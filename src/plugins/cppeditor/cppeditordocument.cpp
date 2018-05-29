@@ -133,7 +133,7 @@ TextEditor::CompletionAssistProvider *CppEditorDocument::completionAssistProvide
     return m_completionAssistProvider;
 }
 
-TextEditor::QuickFixAssistProvider *CppEditorDocument::quickFixAssistProvider() const
+TextEditor::IAssistProvider *CppEditorDocument::quickFixAssistProvider() const
 {
     return CppEditorPlugin::instance()->quickFixProvider();
 }
@@ -201,12 +201,17 @@ void CppEditorDocument::onAboutToReload()
 {
     QTC_CHECK(!m_fileIsBeingReloaded);
     m_fileIsBeingReloaded = true;
+
+    processor()->invalidateDiagnostics();
 }
 
 void CppEditorDocument::onReloadFinished()
 {
     QTC_CHECK(m_fileIsBeingReloaded);
     m_fileIsBeingReloaded = false;
+
+    m_processorRevision = document()->revision();
+    processDocument();
 }
 
 void CppEditorDocument::reparseWithPreferredParseContext(const QString &parseContextId)
@@ -250,6 +255,9 @@ void CppEditorDocument::onFilePathChanged(const Utils::FileName &oldPath,
 
 void CppEditorDocument::scheduleProcessDocument()
 {
+    if (m_fileIsBeingReloaded)
+        return;
+
     m_processorRevision = document()->revision();
     m_processorTimer.start();
     processor()->editorDocumentTimerRestarted();
@@ -386,7 +394,7 @@ const MinimizableInfoBars &CppEditorDocument::minimizableInfoBars() const
 CppTools::BaseEditorDocumentProcessor *CppEditorDocument::processor()
 {
     if (!m_processor) {
-        m_processor.reset(mm()->editorDocumentProcessor(this));
+        m_processor.reset(mm()->createEditorDocumentProcessor(this));
         connect(m_processor.data(), &CppTools::BaseEditorDocumentProcessor::projectPartInfoUpdated,
                 [this] (const CppTools::ProjectPartInfo &info)
         {

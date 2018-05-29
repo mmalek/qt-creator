@@ -29,6 +29,8 @@
 #include "abi.h"
 #include "toolchainconfigwidget.h"
 
+#include <QFutureWatcher>
+
 QT_FORWARD_DECLARE_CLASS(QLabel)
 QT_FORWARD_DECLARE_CLASS(QVersionNumber)
 
@@ -57,6 +59,7 @@ public:
     explicit MsvcToolChain(const QString &name, const Abi &abi,
                            const QString &varsBat, const QString &varsBatArg,
                            Core::Id l, Detection d = ManualDetection);
+    MsvcToolChain(const MsvcToolChain &other);
     MsvcToolChain();
 
     Utils::FileNameList suggestedMkspecList() const override;
@@ -82,13 +85,16 @@ protected:
 
     Utils::Environment readEnvironmentSetting(const Utils::Environment& env) const final;
     // Function must be thread-safe!
-    QByteArray msvcPredefinedMacros(const QStringList cxxflags,
-                                    const Utils::Environment &env) const override;
+    Macros msvcPredefinedMacros(const QStringList cxxflags,
+                                const Utils::Environment &env) const override;
 
 private:
-    QList<Utils::EnvironmentItem> environmentModifications() const;
+    static void environmentModifications(QFutureInterface<QList<Utils::EnvironmentItem> > &future,
+                                         QString vcvarsBat, QString varsBatArg);
+    void initEnvModWatcher(const QFuture<QList<Utils::EnvironmentItem>> &future);
 
     mutable QList<Utils::EnvironmentItem> m_environmentModifications;
+    mutable QFutureWatcher<QList<Utils::EnvironmentItem>> m_envModWatcher;
 
     QString m_varsBatArg; // Argument
 };

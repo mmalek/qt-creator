@@ -30,21 +30,14 @@
 #include "mockpchcreator.h"
 #include "mockprojectparts.h"
 
+#include <filepathcaching.h>
 #include <pchmanagerserver.h>
 #include <precompiledheadersupdatedmessage.h>
+#include <refactoringdatabaseinitializer.h>
 #include <removepchprojectpartsmessage.h>
 #include <updatepchprojectpartsmessage.h>
 
 namespace {
-
-using testing::ElementsAre;
-using testing::UnorderedElementsAre;
-using testing::ByMove;
-using testing::NiceMock;
-using testing::Return;
-using testing::_;
-using testing::IsEmpty;
-
 using Utils::PathString;
 using Utils::SmallString;
 using ClangBackEnd::V2::FileContainer;
@@ -54,13 +47,19 @@ using ClangBackEnd::TaskFinishStatus;
 class PchManagerServer : public ::testing::Test
 {
     void SetUp() override;
+    ClangBackEnd::FilePathId id(Utils::SmallStringView path) const
+    {
+        return filePathCache.filePathId(ClangBackEnd::FilePathView(path));
+    }
 
 protected:
     NiceMock<MockPchCreator> mockPchCreator;
     NiceMock<MockClangPathWatcher> mockClangPathWatcher;
     NiceMock<MockProjectParts> mockProjectParts;
-    ClangBackEnd::StringCache<Utils::PathString> filePathCache;
-    ClangBackEnd::PchManagerServer server{filePathCache, mockClangPathWatcher, mockPchCreator, mockProjectParts};
+    Sqlite::Database database{":memory:", Sqlite::JournalMode::Memory};
+    ClangBackEnd::RefactoringDatabaseInitializer<Sqlite::Database> initializer{database};
+    ClangBackEnd::FilePathCaching filePathCache{database};
+    ClangBackEnd::PchManagerServer server{mockClangPathWatcher, mockPchCreator, mockProjectParts};
     NiceMock<MockPchManagerClient> mockPchManagerClient;
     SmallString projectPartId1 = "project1";
     SmallString projectPartId2 = "project2";
@@ -68,15 +67,19 @@ protected:
     PathString main2Path = TESTDATA_DIR "/includecollector_main2.cpp";
     PathString header1Path = TESTDATA_DIR "/includecollector_header1.h";
     PathString header2Path = TESTDATA_DIR "/includecollector_header2.h";
-    std::vector<ClangBackEnd::IdPaths> idPaths = {{projectPartId1, {1, 2}}};
+    std::vector<ClangBackEnd::IdPaths> idPaths = {{projectPartId1, {{1, 1}, {1, 2}}}};
     ProjectPartContainer projectPart1{projectPartId1.clone(),
                                       {"-I", TESTDATA_DIR, "-Wno-pragma-once-outside-header"},
-                                      {header1Path.clone()},
-                                      {main1Path.clone()}};
+                                      {{"DEFINE", "1"}},
+                                      {"/includes"},
+                                      {id(header1Path)},
+                                      {id(main1Path)}};
     ProjectPartContainer projectPart2{projectPartId2.clone(),
                                       {"-x", "c++-header", "-Wno-pragma-once-outside-header"},
-                                      {header2Path.clone()},
-                                      {main2Path.clone()}};
+                                      {{"DEFINE", "1"}},
+                                      {"/includes"},
+                                      {id(header2Path)},
+                                      {id(main2Path)}};
     std::vector<ProjectPartContainer> projectParts{projectPart1, projectPart2};
     FileContainer generatedFile{{"/path/to/", "file"}, "content", {}};
     ClangBackEnd::UpdatePchProjectPartsMessage updatePchProjectPartsMessage{Utils::clone(projectParts),
@@ -147,7 +150,7 @@ TEST_F(PchManagerServer, SetPathWatcherNotifier)
 {
     EXPECT_CALL(mockClangPathWatcher, setNotifier(_));
 
-    ClangBackEnd::PchManagerServer server{filePathCache, mockClangPathWatcher, mockPchCreator, mockProjectParts};
+    ClangBackEnd::PchManagerServer server{mockClangPathWatcher, mockPchCreator, mockProjectParts};
 }
 
 TEST_F(PchManagerServer, CallProjectsInProjectPartsForIncludeChange)

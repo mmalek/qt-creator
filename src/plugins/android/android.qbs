@@ -15,6 +15,7 @@ Project {
         Depends { name: "QtSupport" }
         Depends { name: "TextEditor" }
         Depends { name: "Utils" }
+        Depends { name: "app_version_header" }
 
         files: [
             "android_global.h",
@@ -23,8 +24,6 @@ Project {
             "adbcommandswidget.h",
             "adbcommandswidget.ui",
             "addnewavddialog.ui",
-            "androidanalyzesupport.cpp",
-            "androidanalyzesupport.h",
             "androidavdmanager.cpp",
             "androidavdmanager.h",
             "androidconfigurations.cpp",
@@ -69,10 +68,14 @@ Project {
             "androidmanifesteditorfactory.h",
             "androidmanifesteditorwidget.cpp",
             "androidmanifesteditorwidget.h",
+            "androidpackageinstallationstep.cpp",
+            "androidpackageinstallationstep.h",
             "androidplugin.cpp",
             "androidplugin.h",
             "androidpotentialkit.cpp",
             "androidpotentialkit.h",
+            "androidqmltoolingsupport.cpp",
+            "androidqmltoolingsupport.h",
             "androidqtsupport.cpp",
             "androidqtsupport.h",
             "androidqtversion.cpp",
@@ -92,6 +95,13 @@ Project {
             "androidrunner.h",
             "androidsdkmanager.cpp",
             "androidsdkmanager.h",
+            "androidsdkmanagerwidget.cpp",
+            "androidsdkmanagerwidget.h",
+            "androidsdkmanagerwidget.ui",
+            "androidsdkmodel.cpp",
+            "androidsdkmodel.h",
+            "androidsdkpackage.cpp",
+            "androidsdkpackage.h",
             "androidsettingspage.cpp",
             "androidsettingspage.h",
             "androidsettingswidget.cpp",
@@ -107,8 +117,6 @@ Project {
             "avddialog.h",
             "certificatesmodel.cpp",
             "certificatesmodel.h",
-            "javacompletionassistprovider.cpp",
-            "javacompletionassistprovider.h",
             "javaeditor.cpp",
             "javaeditor.h",
             "javaindenter.cpp",

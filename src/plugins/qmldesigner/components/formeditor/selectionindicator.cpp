@@ -82,8 +82,8 @@ static QPolygonF boundingRectInLayerItemSpaceForItem(FormEditorItem *item, QGrap
 static bool checkSingleSelection(const QList<FormEditorItem*> &itemList)
 {
     return !itemList.isEmpty()
-            && itemList.first()
-            && itemList.first()->qmlItemNode().view()->singleSelectedModelNode().isValid();
+            && itemList.constFirst()
+            && itemList.constFirst()->qmlItemNode().view()->singleSelectedModelNode().isValid();
 }
 
 const int labelHeight = 16;
@@ -109,11 +109,10 @@ void SelectionIndicator::setItems(const QList<FormEditorItem*> &itemList)
         pen.setJoinStyle(Qt::MiterJoin);
         pen.setColor(selectionColor);
         newSelectionIndicatorGraphicsItem->setPen(pen);
-        newSelectionIndicatorGraphicsItem->setCursor(m_cursor);
     }
 
     if (checkSingleSelection(itemList)) {
-        FormEditorItem *selectedItem = itemList.first();
+        FormEditorItem *selectedItem = itemList.constFirst();
         m_labelItem.reset(new QGraphicsPolygonItem(m_layerItem.data()));
 
         QGraphicsWidget *toolbar = DesignerActionManager::instance().createFormEditorToolBar(m_labelItem.get());
@@ -162,7 +161,7 @@ void SelectionIndicator::updateItems(const QList<FormEditorItem*> &itemList)
 
     if (checkSingleSelection(itemList)
             && m_labelItem) {
-        FormEditorItem *selectedItem = itemList.first();
+        FormEditorItem *selectedItem = itemList.constFirst();
         QPolygonF labelPolygon = boundingRectInLayerItemSpaceForItem(selectedItem, m_layerItem.data());
         QRectF labelRect = labelPolygon.boundingRect();
         QPointF pos = labelRect.topLeft();

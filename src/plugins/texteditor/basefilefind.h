@@ -33,15 +33,9 @@
 
 #include <QFuture>
 
-QT_BEGIN_NAMESPACE
-class QLabel;
-class QComboBox;
-QT_END_NAMESPACE
-
 namespace Utils { class FileIterator; }
 namespace Core {
 class IEditor;
-class IFindSupport;
 class SearchResult;
 class SearchResultItem;
 } // namespace Core
@@ -71,7 +65,7 @@ class TEXTEDITOR_EXPORT SearchEngine : public QObject
 {
     Q_OBJECT
 public:
-    SearchEngine();
+    SearchEngine(QObject *parent = nullptr);
     ~SearchEngine();
     virtual QString title() const = 0;
     virtual QString toolTip() const = 0; // add %1 placeholder where the find flags should be put

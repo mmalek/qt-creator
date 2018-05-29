@@ -32,6 +32,8 @@
 #include <QtCore/qvarlengtharray.h>
 #include <QtCore/qdebug.h>
 
+#include <utils/qtcfallthrough.h>
+
 QT_BEGIN_NAMESPACE
 Q_CORE_EXPORT double qstrtod(const char *s00, char const **se, bool *ok);
 QT_END_NAMESPACE
@@ -72,6 +74,7 @@ static inline QChar convertUnicode(QChar c1, QChar c2, QChar c3, QChar c4)
 Lexer::Lexer(Engine *engine)
     : _engine(engine)
     , _codePtr(0)
+    , _endPtr(0)
     , _lastLinePtr(0)
     , _tokenLinePtr(0)
     , _tokenStartPtr(0)
@@ -710,6 +713,11 @@ again:
                 return multilineStringLiteral ? T_MULTILINE_STRING_LITERAL : T_STRING_LITERAL;
             } else if (_char == QLatin1Char('\\')) {
                 scanChar();
+                if (_codePtr > _endPtr) {
+                    _errorCode = IllegalEscapeSequence;
+                    _errorMessage = QCoreApplication::translate("QmlParser", "End of file reached at escape sequence.");
+                    return T_ERROR;
+                }
 
                 QChar u;
 
@@ -753,7 +761,7 @@ again:
                         u = QLatin1Char('\0');
                         break;
                     }
-                    // fall through
+                    Q_FALLTHROUGH();
                 case '1':
                 case '2':
                 case '3':
@@ -900,7 +908,7 @@ int Lexer::scanNumber(QChar ch)
         }
     } else if (_char.isDigit() && !qmlMode()) {
         _errorCode = IllegalCharacter;
-        _errorMessage = QCoreApplication::translate("QmlParser", "Decimal numbers cannot start with \"0\".");
+        _errorMessage = QCoreApplication::translate("QmlParser", "Decimal numbers can't start with \"0\".");
         return T_ERROR;
     }
 

@@ -126,7 +126,7 @@ ProjectWelcomePage::ProjectWelcomePage()
     for (int i = 1; i <= actionsCount; ++i) {
         auto act = new QAction(tr("Open Session #%1").arg(i), this);
         Command *cmd = ActionManager::registerAction(act, sessionBase.withSuffix(i), welcomeContext);
-        cmd->setDefaultKeySequence(QKeySequence((UseMacShortcuts ? tr("Ctrl+Meta+%1") : tr("Ctrl+Alt+%1")).arg(i)));
+        cmd->setDefaultKeySequence(QKeySequence((useMacShortcuts ? tr("Ctrl+Meta+%1") : tr("Ctrl+Alt+%1")).arg(i)));
         connect(act, &QAction::triggered, this, [this, i] { openSessionAt(i - 1); });
 
         act = new QAction(tr("Open Recent Project #%1").arg(i), this);
@@ -233,7 +233,10 @@ protected:
 class SessionDelegate : public BaseDelegate
 {
 protected:
-    QString entryType() override { return tr("session", "Appears in \"Open session <name>\""); }
+    QString entryType() override
+    {
+        return ProjectWelcomePage::tr("session", "Appears in \"Open session <name>\"");
+    }
     QRect toolTipArea(const QRect &itemRect, const QModelIndex &idx) const override
     {
         // in expanded state bottom contains 'Clone', 'Rename', etc links, where the tool tip
@@ -382,9 +385,9 @@ public:
             if (m_activeSwitchToRect.contains(pos))
                 sessionModel->switchToSession(sessionName);
             else if (m_activeActionRects[0].contains(pos))
-                sessionModel->cloneSession(sessionName);
+                sessionModel->cloneSession(ICore::mainWindow(), sessionName);
             else if (m_activeActionRects[1].contains(pos))
-                sessionModel->renameSession(sessionName);
+                sessionModel->renameSession(ICore::mainWindow(), sessionName);
             else if (m_activeActionRects[2].contains(pos))
                 sessionModel->deleteSession(sessionName);
             return true;
@@ -413,7 +416,10 @@ private:
 
 class ProjectDelegate : public BaseDelegate
 {
-    QString entryType() override { return tr("project", "Appears in \"Open project <name>\""); }
+    QString entryType() override
+    {
+        return ProjectWelcomePage::tr("project", "Appears in \"Open project <name>\"");
+    }
     int shortcutRole() const override { return ProjectModel::ShortcutRole; }
 
 public:

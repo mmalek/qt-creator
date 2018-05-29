@@ -28,6 +28,7 @@
 #include "utils_global.h"
 
 QT_BEGIN_NAMESPACE
+class QJsonValue;
 class QStringList;
 QT_END_NAMESPACE
 
@@ -53,6 +54,8 @@ QTCREATOR_UTILS_EXPORT QString withTildeHomePath(const QString &path);
 // Removes first unescaped ampersand in text
 QTCREATOR_UTILS_EXPORT QString stripAccelerator(const QString &text);
 
+QTCREATOR_UTILS_EXPORT bool readMultiLineString(const QJsonValue &value, QString *out);
+
 class QTCREATOR_UTILS_EXPORT AbstractMacroExpander
 {
 public:
@@ -75,5 +78,7 @@ private:
 
 QTCREATOR_UTILS_EXPORT void expandMacros(QString *str, AbstractMacroExpander *mx);
 QTCREATOR_UTILS_EXPORT QString expandMacros(const QString &str, AbstractMacroExpander *mx);
+
+QTCREATOR_UTILS_EXPORT int parseUsedPortFromNetstatOutput(const QByteArray &line);
 
 } // namespace Utils

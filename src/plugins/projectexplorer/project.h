@@ -28,6 +28,7 @@
 #include "projectexplorer_export.h"
 
 #include "kit.h"
+#include "subscription.h"
 
 #include <coreplugin/id.h>
 #include <coreplugin/idocument.h>
@@ -47,8 +48,10 @@ namespace ProjectExplorer {
 class BuildInfo;
 class ContainerNode;
 class EditorConfiguration;
+class FolderNode;
 class NamedWidget;
 class Node;
+class ProjectConfiguration;
 class ProjectImporter;
 class ProjectNode;
 class ProjectPrivate;
@@ -85,7 +88,8 @@ public:
     enum ModelRoles {
         // Absolute file path
         FilePathRole = QFileSystemModel::FilePathRole,
-        EnabledRole
+        EnabledRole,
+        isParsingRole
     };
 
     Project(const QString &mimeType, const Utils::FileName &fileName,
@@ -94,6 +98,8 @@ public:
 
     QString displayName() const;
     Core::Id id() const;
+
+    QString mimeType() const;
 
     Core::IDocument *document() const;
     Utils::FileName projectFilePath() const;
@@ -117,7 +123,7 @@ public:
     Target *activeTarget() const;
     Target *target(Core::Id id) const;
     Target *target(Kit *k) const;
-    virtual bool supportsKit(Kit *k, QString *errorMessage = nullptr) const;
+    virtual bool supportsKit(const Kit *k, QString *errorMessage = nullptr) const;
 
     Target *createTarget(Kit *k);
     static bool copySteps(Target *sourceTarget, Target *newTarget);
@@ -127,14 +133,14 @@ public:
     enum class RestoreResult { Ok, Error, UserAbort };
     RestoreResult restoreSettings(QString *errorMessage);
 
-    enum FilesMode {
-        SourceFiles    = 0x1,
-        GeneratedFiles = 0x2,
-        AllFiles       = SourceFiles | GeneratedFiles
-    };
-    QStringList files(FilesMode fileMode,
-                      const std::function<bool(const Node *)> &filter = {}) const;
+    using NodeMatcher = std::function<bool(const Node*)>;
+    static const NodeMatcher AllFiles;
+    static const NodeMatcher SourceFiles;
+    static const NodeMatcher GeneratedFiles;
+
+    Utils::FileNameList files(const NodeMatcher &matcher) const;
     virtual QStringList filesGeneratedFrom(const QString &sourceFile) const;
+    bool isKnownFile(const Utils::FileName &filename) const;
 
     static QString makeUnique(const QString &preferredName, const QStringList &usedNames);
 
@@ -149,7 +155,6 @@ public:
     virtual bool needsConfiguration() const;
     virtual void configureAsExampleProject(const QSet<Core::Id> &platforms);
 
-    virtual bool requiresTargetPanel() const;
     virtual ProjectImporter *projectImporter() const;
 
     Kit::Predicate requiredKitPredicate() const;
@@ -163,6 +168,27 @@ public:
     void setup(QList<const BuildInfo *> infoList);
     Utils::MacroExpander *macroExpander() const;
 
+    bool isParsing() const;
+    bool hasParsingData() const;
+
+    template<typename S, typename R, typename T, typename ...Args1, typename ...Args2>
+    void subscribeSignal(void (S::*sig)(Args1...), R*recv, T (R::*sl)(Args2...)) {
+        new Internal::ProjectSubscription([sig, recv, sl, this](ProjectConfiguration *pc) {
+            if (S* sender = qobject_cast<S*>(pc))
+                return connect(sender, sig, recv, sl);
+            return QMetaObject::Connection();
+        }, recv, this);
+    }
+
+    template<typename S, typename R, typename T, typename ...Args1>
+    void subscribeSignal(void (S::*sig)(Args1...), R*recv, T sl) {
+        new Internal::ProjectSubscription([sig, recv, sl, this](ProjectConfiguration *pc) {
+            if (S* sender = qobject_cast<S*>(pc))
+                return connect(sender, sig, recv, sl);
+            return QMetaObject::Connection();
+        }, recv, this);
+    }
+
 signals:
     void displayNameChanged();
     void fileListChanged();
@@ -170,34 +196,45 @@ signals:
     // Note: activeTarget can be 0 (if no targets are defined).
     void activeTargetChanged(ProjectExplorer::Target *target);
 
+    void aboutToRemoveProjectConfiguration(ProjectExplorer::ProjectConfiguration *pc);
+    void removedProjectConfiguration(ProjectExplorer::ProjectConfiguration *pc);
+    void addedProjectConfiguration(ProjectExplorer::ProjectConfiguration *pc);
+
+    // *ANY* active project configuration changed somewhere in the tree. This might not be
+    // the one that would get started right now, since some part of the tree in between might
+    // not be active.
+    void activeProjectConfigurationChanged(ProjectExplorer::ProjectConfiguration *pc);
+
     void aboutToRemoveTarget(ProjectExplorer::Target *target);
     void removedTarget(ProjectExplorer::Target *target);
     void addedTarget(ProjectExplorer::Target *target);
 
-    void environmentChanged();
-    void buildConfigurationEnabledChanged();
-
-    void buildDirectoryChanged();
-
     void settingsLoaded();
     void aboutToSaveSettings();
 
-    void projectContextUpdated();
     void projectLanguagesUpdated();
 
-    void parsingFinished();
+    void parsingStarted();
+    void parsingFinished(bool success);
 
 protected:
     virtual RestoreResult fromMap(const QVariantMap &map, QString *errorMessage);
+    void createTargetFromMap(const QVariantMap &map, int index);
     virtual bool setupTarget(Target *t);
 
+    // Helper methods to manage parsing state and signalling
+    // Call in GUI thread before the actual parsing starts
+    void emitParsingStarted();
+    // Call in GUI thread right after the actual parsing is done
+    void emitParsingFinished(bool success);
+
     void setDisplayName(const QString &name);
-    void setRequiredKitPredicate(const Kit::Predicate &predicate);
+    // Used to pre-check kits in the TargetSetupPage. RequiredKitPredicate
+    // is used to select kits available in the TargetSetupPage
     void setPreferredKitPredicate(const Kit::Predicate &predicate);
 
     void setId(Core::Id id);
     void setRootProjectNode(ProjectNode *root); // takes ownership!
-    void setProjectContext(Core::Context context);
     void setProjectLanguages(Core::Context language);
     void addProjectLanguage(Core::Id id);
     void removeProjectLanguage(Core::Id id);
@@ -205,14 +242,15 @@ protected:
     virtual void projectLoaded(); // Called when the project is fully loaded.
 
 private:
-    void changeEnvironment();
-    void changeBuildConfigurationEnabled();
-    void onBuildDirectoryChanged();
+    // The predicate used to select kits available in TargetSetupPage.
+    void setRequiredKitPredicate(const Kit::Predicate &predicate);
 
+    void handleSubTreeChanged(FolderNode *node);
     void setActiveTarget(Target *target);
     ProjectPrivate *d;
 
     friend class Session;
+    friend class ContainerNode;
 };
 
 } // namespace ProjectExplorer

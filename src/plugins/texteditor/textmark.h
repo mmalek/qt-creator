@@ -42,7 +42,6 @@ QT_END_NAMESPACE
 
 namespace TextEditor {
 
-class BaseTextEditor;
 class TextDocument;
 
 class TEXTEDITOR_EXPORT TextMark
@@ -64,7 +63,20 @@ public:
     int lineNumber() const;
 
     virtual void paintIcon(QPainter *painter, const QRect &rect) const;
-    virtual void paintAnnotation(QPainter *painter, QRectF *annotationRect, const QFontMetrics &fm) const;
+    virtual void paintAnnotation(QPainter &painter, QRectF *annotationRect,
+                                 const qreal fadeInOffset, const qreal fadeOutOffset,
+                                 const QPointF &contentOffset) const;
+    struct AnnotationRects
+    {
+        QRectF fadeInRect;
+        QRectF annotationRect;
+        QRectF iconRect;
+        QRectF textRect;
+        QRectF fadeOutRect;
+        QString text;
+    };
+    AnnotationRects annotationRects(const QRectF &boundingRect, const QFontMetrics &fm,
+                                    const qreal fadeInOffset, const qreal fadeOutOffset) const;
     /// called if the filename of the document changed
     virtual void updateFileName(const QString &fileName);
     virtual void updateLineNumber(int lineNumber);
@@ -113,9 +125,9 @@ private:
     QString m_fileName;
     int m_lineNumber = 0;
     Priority m_priority = LowPriority;
-    bool m_visible = false;
     QIcon m_icon;
-    Utils::Theme::Color m_color;
+    Utils::Theme::Color m_color = Utils::Theme::TextColorNormal;
+    bool m_visible = false;
     bool m_hasColor = false;
     Core::Id m_category;
     double m_widthFactor = 1.0;

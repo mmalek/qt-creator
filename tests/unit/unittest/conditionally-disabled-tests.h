@@ -26,14 +26,22 @@
 #include <QtGlobal>
 #include <clang-c/Index.h>
 
+#include <clangbackend_global.h>
+
 #ifdef Q_OS_WIN
 #  define DISABLED_ON_WINDOWS(x) DISABLED_##x
 #else
 #  define DISABLED_ON_WINDOWS(x) x
 #endif
 
-#if CINDEX_VERSION_MAJOR > 0 || CINDEX_VERSION_MINOR <= 35
-#  define DISABLED_ON_CLANG3(x) DISABLED_##x
+#ifdef IS_PRETTY_DECL_SUPPORTED
+#  define DISABLED_WITHOUT_PRETTYDECL_PATCH(x) x
 #else
-#  define DISABLED_ON_CLANG3(x) x
+#  define DISABLED_WITHOUT_PRETTYDECL_PATCH(x) DISABLED_##x
+#endif
+
+#ifdef IS_INVALIDDECL_SUPPORTED
+#  define DISABLED_WITHOUT_INVALIDDECL_PATCH(x) x
+#else
+#  define DISABLED_WITHOUT_INVALIDDECL_PATCH(x) DISABLED_##x
 #endif

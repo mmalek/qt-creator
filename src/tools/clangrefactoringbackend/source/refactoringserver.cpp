@@ -27,12 +27,10 @@
 
 #include "symbolfinder.h"
 #include "clangquery.h"
+#include "symbolindexing.h"
 
 #include <refactoringclientinterface.h>
-#include <requestsourcelocationforrenamingmessage.h>
-#include <requestsourcerangesanddiagnosticsforquerymessage.h>
-#include <sourcelocationsforrenamingmessage.h>
-#include <sourcerangesanddiagnosticsforquerymessage.h>
+#include <clangrefactoringmessages.h>
 
 #include <QCoreApplication>
 
@@ -41,13 +39,16 @@
 
 namespace ClangBackEnd {
 
-RefactoringServer::RefactoringServer()
+RefactoringServer::RefactoringServer(SymbolIndexingInterface &symbolIndexing,
+                                     FilePathCachingInterface &filePathCache)
+    : m_symbolIndexing(symbolIndexing),
+      m_filePathCache(filePathCache)
 {
     m_pollTimer.setInterval(100);
 
     QObject::connect(&m_pollTimer,
                      &QTimer::timeout,
-                     std::bind(&RefactoringServer::pollSourceRangesAndDiagnosticsForQueryMessages, this));
+                     std::bind(&RefactoringServer::pollSourceRangesForQueryMessages, this));
 }
 
 void RefactoringServer::end()
@@ -57,12 +58,12 @@ void RefactoringServer::end()
 
 void RefactoringServer::requestSourceLocationsForRenamingMessage(RequestSourceLocationsForRenamingMessage &&message)
 {
-    SymbolFinder symbolFinder(message.line(), message.column());
+    SymbolFinder symbolFinder(message.line(), message.column(), m_filePathCache);
 
-    symbolFinder.addFile(message.filePath().directory(),
-                         message.filePath().name(),
-                         message.unsavedContent(),
-                         message.commandLine());
+    symbolFinder.addFile(std::string(message.filePath().directory()),
+                         std::string(message.filePath().name()),
+                         std::string(message.unsavedContent()),
+                         std::vector<std::string>(message.commandLine()));
 
     symbolFinder.findSymbol();
 
@@ -74,9 +75,34 @@ void RefactoringServer::requestSourceLocationsForRenamingMessage(RequestSourceLo
 void RefactoringServer::requestSourceRangesAndDiagnosticsForQueryMessage(
         RequestSourceRangesAndDiagnosticsForQueryMessage &&message)
 {
-    gatherSourceRangesAndDiagnosticsForQueryMessages(message.takeSources(),
+    ClangQuery clangQuery(m_filePathCache, message.takeQuery());
+
+    clangQuery.addFile(std::string(message.source().filePath().directory()),
+                       std::string(message.source().filePath().name()),
+                       std::string(message.source().unsavedFileContent()),
+                       std::vector<std::string>(message.source().commandLineArguments()));
+
+    clangQuery.findLocations();
+
+    client()->sourceRangesAndDiagnosticsForQueryMessage({clangQuery.takeSourceRanges(),
+                                                         clangQuery.takeDiagnosticContainers()});
+}
+
+void RefactoringServer::requestSourceRangesForQueryMessage(RequestSourceRangesForQueryMessage &&message)
+{
+    gatherSourceRangesForQueryMessages(message.takeSources(),
                                                      message.takeUnsavedContent(),
-                                                     message.takeQuery());
+                                       message.takeQuery());
+}
+
+void RefactoringServer::updatePchProjectParts(UpdatePchProjectPartsMessage &&message)
+{
+    m_symbolIndexing.updateProjectParts(message.takeProjectsParts(), message.takeGeneratedFiles());
+}
+
+void RefactoringServer::removePchProjectParts(RemovePchProjectPartsMessage &&)
+{
+
 }
 
 void RefactoringServer::cancel()
@@ -91,22 +117,22 @@ bool RefactoringServer::isCancelingJobs() const
     return m_gatherer.isFinished();
 }
 
-void RefactoringServer::pollSourceRangesAndDiagnosticsForQueryMessages()
+void RefactoringServer::pollSourceRangesForQueryMessages()
 {
     for (auto &&message : m_gatherer.finishedMessages())
-        client()->sourceRangesAndDiagnosticsForQueryMessage(std::move(message));
+        client()->sourceRangesForQueryMessage(std::move(message));
 
     if (!m_gatherer.isFinished())
-        m_gatherer.startCreateNextSourceRangesAndDiagnosticsMessages();
+        m_gatherer.startCreateNextSourceRangesMessages();
     else
         m_pollTimer.stop();
 }
 
-void RefactoringServer::waitThatSourceRangesAndDiagnosticsForQueryMessagesAreFinished()
+void RefactoringServer::waitThatSourceRangesForQueryMessagesAreFinished()
 {
     while (!m_gatherer.isFinished()) {
         m_gatherer.waitForFinished();
-        pollSourceRangesAndDiagnosticsForQueryMessages();
+        pollSourceRangesForQueryMessages();
     }
 }
 
@@ -120,7 +146,7 @@ void RefactoringServer::setGathererProcessingSlotCount(uint count)
     m_gatherer.setProcessingSlotCount(count);
 }
 
-void RefactoringServer::gatherSourceRangesAndDiagnosticsForQueryMessages(
+void RefactoringServer::gatherSourceRangesForQueryMessages(
         std::vector<V2::FileContainer> &&sources,
         std::vector<V2::FileContainer> &&unsaved,
         Utils::SmallString &&query)

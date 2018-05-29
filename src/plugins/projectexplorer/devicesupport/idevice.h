@@ -34,6 +34,7 @@
 #include <QList>
 #include <QObject>
 #include <QSharedPointer>
+#include <QUrl>
 #include <QVariantMap>
 
 #include <functional>
@@ -57,6 +58,7 @@ class Connection;
 class DeviceProcess;
 class DeviceProcessList;
 class Kit;
+class Runnable;
 class RunControl;
 class RunWorker;
 
@@ -110,7 +112,7 @@ public:
     typedef QSharedPointer<const PortsGatheringMethod> Ptr;
 
     virtual ~PortsGatheringMethod() = default;
-    virtual QByteArray commandLine(QAbstractSocket::NetworkLayerProtocol protocol) const = 0;
+    virtual Runnable runnable(QAbstractSocket::NetworkLayerProtocol protocol) const = 0;
     virtual QList<Utils::Port> usedPorts(const QByteArray &commandOutput) const = 0;
 };
 
@@ -198,6 +200,9 @@ public:
 
     QString debugServerPath() const;
     void setDebugServerPath(const QString &path);
+
+    QString qmlsceneCommand() const;
+    void setQmlsceneCommand(const QString &path);
 
 protected:
     IDevice();

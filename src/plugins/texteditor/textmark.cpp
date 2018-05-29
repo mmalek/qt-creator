@@ -70,9 +70,6 @@ public:
     QColor textColor;
 
 private:
-    static double clipHsl(double value);
-
-private:
     static QHash<SourceColors, AnnotationColors> m_colorCache;
 };
 
@@ -91,10 +88,11 @@ TextMark::TextMark(const QString &fileName, int lineNumber, Id category, double 
 
 TextMark::~TextMark()
 {
-    TextMarkRegistry::remove(this);
+    if (!m_fileName.isEmpty())
+        TextMarkRegistry::remove(this);
     if (m_baseTextDocument)
         m_baseTextDocument->removeMark(this);
-    m_baseTextDocument = 0;
+    m_baseTextDocument = nullptr;
 }
 
 QString TextMark::fileName() const
@@ -123,42 +121,76 @@ void TextMark::paintIcon(QPainter *painter, const QRect &rect) const
     m_icon.paint(painter, rect, Qt::AlignCenter);
 }
 
-void TextMark::paintAnnotation(QPainter *painter,
-                               QRectF *annotationRect,
-                               const QFontMetrics &fm) const
+void TextMark::paintAnnotation(QPainter &painter, QRectF *annotationRect,
+                               const qreal fadeInOffset, const qreal fadeOutOffset,
+                               const QPointF &contentOffset) const
 {
     QString text = lineAnnotation();
     if (text.isEmpty())
         return;
 
-    const bool drawIcon = !m_icon.isNull();
-    int textWidth = fm.width(text);
-    constexpr qreal margin = 1;
-    const qreal iconHeight = annotationRect->height() - 2 * margin;
-    const qreal iconWidth = iconHeight * m_widthFactor + 2 * margin;
-    qreal annotationWidth = (drawIcon ? textWidth + iconWidth : textWidth) + margin;
-    if (annotationRect->left() + annotationWidth > annotationRect->right()) {
-        textWidth = int(annotationRect->width() - (drawIcon ? iconWidth + margin : margin));
-        text = fm.elidedText(text, Qt::ElideRight, textWidth);
-        annotationWidth = annotationRect->width();
-    }
-    const QColor markColor = m_hasColor ? Utils::creatorTheme()->color(m_color).toHsl()
-                                        : painter->pen().color();
-    const AnnotationColors &colors =
-            AnnotationColors::getAnnotationColors(markColor, painter->background().color());
+    const AnnotationRects &rects = annotationRects(*annotationRect, painter.fontMetrics(),
+                                                   fadeInOffset, fadeOutOffset);
+    const QColor &markColor = m_hasColor ? Utils::creatorTheme()->color(m_color).toHsl()
+                                         : painter.pen().color();
+    const AnnotationColors &colors = AnnotationColors::getAnnotationColors(
+                markColor, painter.background().color());
 
-    painter->save();
-    annotationRect->setWidth(annotationWidth);
-    painter->setPen(colors.rectColor);
-    painter->setBrush(colors.rectColor);
-    painter->drawRect(*annotationRect);
-    painter->setPen(colors.textColor);
-    if (drawIcon) {
-        paintIcon(painter, annotationRect->adjusted(
-                      margin, margin, -(textWidth + 2 * margin), -margin).toAlignedRect());
+    painter.save();
+    QLinearGradient grad(rects.fadeInRect.topLeft() - contentOffset,
+                         rects.fadeInRect.topRight() - contentOffset);
+    grad.setColorAt(0.0, Qt::transparent);
+    grad.setColorAt(1.0, colors.rectColor);
+    painter.fillRect(rects.fadeInRect, grad);
+    painter.fillRect(rects.annotationRect, colors.rectColor);
+    painter.setPen(colors.textColor);
+    paintIcon(&painter, rects.iconRect.toAlignedRect());
+    painter.drawText(rects.textRect, Qt::AlignLeft, rects.text);
+    if (rects.fadeOutRect.isValid()) {
+        grad = QLinearGradient(rects.fadeOutRect.topLeft() - contentOffset,
+                               rects.fadeOutRect.topRight() - contentOffset);
+        grad.setColorAt(0.0, colors.rectColor);
+        grad.setColorAt(1.0, Qt::transparent);
+        painter.fillRect(rects.fadeOutRect, grad);
     }
-    painter->drawText(annotationRect->adjusted(iconWidth, 0, 0, 0), Qt::AlignLeft, text);
-    painter->restore();
+    painter.restore();
+    annotationRect->setRight(rects.fadeOutRect.right());
+}
+
+TextMark::AnnotationRects TextMark::annotationRects(const QRectF &boundingRect,
+                                                    const QFontMetrics &fm,
+                                                    const qreal fadeInOffset,
+                                                    const qreal fadeOutOffset) const
+{
+    AnnotationRects rects;
+    rects.text = lineAnnotation();
+    if (rects.text.isEmpty())
+        return rects;
+    rects.fadeInRect = boundingRect;
+    rects.fadeInRect.setWidth(fadeInOffset);
+    rects.annotationRect = boundingRect;
+    rects.annotationRect.setLeft(rects.fadeInRect.right());
+    const bool drawIcon = !m_icon.isNull();
+    constexpr qreal margin = 1;
+    rects.iconRect = QRectF(rects.annotationRect.left(), boundingRect.top(),
+                            0, boundingRect.height());
+    if (drawIcon)
+        rects.iconRect.setWidth(rects.iconRect.height() * m_widthFactor);
+    rects.textRect = QRectF(rects.iconRect.right() + margin, boundingRect.top(),
+                            qreal(fm.width(rects.text)), boundingRect.height());
+    rects.annotationRect.setRight(rects.textRect.right() + margin);
+    if (rects.annotationRect.right() > boundingRect.right()) {
+        rects.textRect.setRight(boundingRect.right() - margin);
+        rects.text = fm.elidedText(rects.text, Qt::ElideRight, int(rects.textRect.width()));
+        rects.annotationRect.setRight(boundingRect.right());
+        rects.fadeOutRect = QRectF(rects.annotationRect.topRight(),
+                                   rects.annotationRect.bottomRight());
+    } else {
+        rects.fadeOutRect = boundingRect;
+        rects.fadeOutRect.setLeft(rects.annotationRect.right());
+        rects.fadeOutRect.setWidth(fadeOutOffset);
+    }
+    return rects;
 }
 
 void TextMark::updateLineNumber(int lineNumber)
@@ -366,26 +398,27 @@ QHash<AnnotationColors::SourceColors, AnnotationColors> AnnotationColors::m_colo
 AnnotationColors &AnnotationColors::getAnnotationColors(const QColor &markColor,
                                                         const QColor &backgroundColor)
 {
+    auto highClipHsl = [](qreal value) {
+        return std::max(0.7, std::min(0.9, value));
+    };
+    auto lowClipHsl = [](qreal value) {
+        return std::max(0.1, std::min(0.3, value));
+    };
     AnnotationColors &colors = m_colorCache[{markColor, backgroundColor}];
     if (!colors.rectColor.isValid() || !colors.textColor.isValid()) {
-        const double backgroundSaturation = clipHsl(markColor.hslSaturationF() / 2);
-        const double backgroundLightness = clipHsl(backgroundColor.lightnessF());
-        const double foregroundLightness = clipHsl(backgroundLightness > 0.5
-                                                    ? backgroundLightness - 0.5
-                                                    : backgroundLightness + 0.5);
-        colors.rectColor.setHslF(markColor.hslHueF(),
-                                 backgroundSaturation,
-                                 backgroundLightness);
+        const double backgroundLightness = backgroundColor.lightnessF();
+        const double foregroundLightness = backgroundLightness > 0.5
+                ? lowClipHsl(backgroundLightness - 0.5)
+                : highClipHsl(backgroundLightness + 0.5);
+
+        colors.rectColor = markColor;
+        colors.rectColor.setAlphaF(0.15);
+
         colors.textColor.setHslF(markColor.hslHueF(),
                                  markColor.hslSaturationF(),
                                  foregroundLightness);
     }
     return colors;
-}
-
-double AnnotationColors::clipHsl(double value)
-{
-    return std::max(0.15, std::min(0.85, value));
 }
 
 } // namespace TextEditor

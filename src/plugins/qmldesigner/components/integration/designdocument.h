@@ -23,14 +23,15 @@
 **
 ****************************************************************************/
 
-#ifndef DesignDocument_h
-#define DesignDocument_h
+#pragma once
 
 #include <model.h>
 #include <rewriterview.h>
 #include <basetexteditmodifier.h>
 #include <componenttextmodifier.h>
 #include <subcomponentmanager.h>
+
+#include <coreplugin/icontext.h>
 
 #include <QObject>
 #include <QString>
@@ -76,7 +77,7 @@ public:
     Model *currentModel() const;
     Model *documentModel() const;
 
-    QString contextHelpId() const;
+    void contextHelpId(const Core::IContext::HelpIdCallback &callback) const;
     QList<DocumentMessage> qmlParseWarnings() const;
     bool hasQmlParseWarnings() const;
     QList<DocumentMessage> qmlParseErrors() const;
@@ -155,6 +156,3 @@ private: // variables
 };
 
 } // namespace QmlDesigner
-
-
-#endif // DesignDocument_h

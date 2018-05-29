@@ -36,6 +36,7 @@
 #include "qmt/diagram/dinheritance.h"
 #include "qmt/diagram/ddependency.h"
 #include "qmt/diagram/dassociation.h"
+#include "qmt/diagram/dconnection.h"
 
 #include "qmt/model/melement.h"
 #include "qmt/model/mobject.h"
@@ -53,7 +54,6 @@
 namespace qmt {
 
 DFactory::DFactory()
-    : m_product(0)
 {
 }
 
@@ -147,6 +147,14 @@ void DFactory::visitMAssociation(const MAssociation *association)
     auto diagramAssociation = new DAssociation();
     m_product = diagramAssociation;
     visitMRelation(association);
+}
+
+void DFactory::visitMConnection(const MConnection *connection)
+{
+    QMT_CHECK(!m_product);
+    auto diagramConnection = new DConnection();
+    m_product = diagramConnection;
+    visitMRelation(connection);
 }
 
 } // namespace qmt

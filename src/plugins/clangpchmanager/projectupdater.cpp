@@ -27,12 +27,15 @@
 
 #include "pchmanagerclient.h"
 
+#include <filepathid.h>
 #include <pchmanagerserverinterface.h>
 #include <removepchprojectpartsmessage.h>
 #include <updatepchprojectpartsmessage.h>
 
-#include <cpptools/clangcompileroptionsbuilder.h>
+#include <cpptools/compileroptionsbuilder.h>
 #include <cpptools/projectpart.h>
+
+#include <utils/algorithm.h>
 
 #include <algorithm>
 #include <functional>
@@ -48,14 +51,14 @@ public:
         sources.reserve(size);
     }
 
-    Utils::PathStringVector headers;
-    Utils::PathStringVector sources;
+    ClangBackEnd::FilePathIds headers;
+    ClangBackEnd::FilePathIds sources;
 };
 
-ProjectUpdater::ProjectUpdater(ClangBackEnd::PchManagerServerInterface &server,
-                               PchManagerClient &client)
+ProjectUpdater::ProjectUpdater(ClangBackEnd::ProjectManagementServerInterface &server,
+                               ClangBackEnd::FilePathCachingInterface &filePathCache)
     : m_server(server),
-      m_client(client)
+    m_filePathCache(filePathCache)
 {
 }
 
@@ -75,9 +78,6 @@ void ProjectUpdater::removeProjectParts(const QStringList &projectPartIds)
     ClangBackEnd::RemovePchProjectPartsMessage message{Utils::SmallStringVector(projectPartIds)};
 
     m_server.removePchProjectParts(std::move(message));
-
-    for (const QString &projectPartiId : projectPartIds)
-        m_client.precompiledHeaderRemoved(projectPartiId);
 }
 
 void ProjectUpdater::setExcludedPaths(Utils::PathStringVector &&excludedPaths)
@@ -88,14 +88,17 @@ void ProjectUpdater::setExcludedPaths(Utils::PathStringVector &&excludedPaths)
 void ProjectUpdater::addToHeaderAndSources(HeaderAndSources &headerAndSources,
                                            const CppTools::ProjectFile &projectFile) const
 {
+    using ClangBackEnd::FilePathView;
+
     Utils::PathString path = projectFile.path;
     bool exclude = std::binary_search(m_excludedPaths.begin(), m_excludedPaths.end(), path);
 
     if (!exclude) {
+        ClangBackEnd::FilePathId filePathId = m_filePathCache.filePathId(FilePathView(path));
         if (projectFile.isSource())
-            headerAndSources.sources.push_back(path);
+            headerAndSources.sources.push_back(filePathId);
         else if (projectFile.isHeader())
-            headerAndSources.headers.push_back(path);
+            headerAndSources.headers.push_back(filePathId);
     }
 }
 
@@ -113,35 +116,34 @@ HeaderAndSources ProjectUpdater::headerAndSourcesFromProjectPart(
 
 QStringList ProjectUpdater::compilerArguments(CppTools::ProjectPart *projectPart)
 {
-    using CppTools::ClangCompilerOptionsBuilder;
+    using CppTools::CompilerOptionsBuilder;
+    CompilerOptionsBuilder builder(*projectPart, CLANG_VERSION, CLANG_RESOURCE_DIR);
+    return builder.build(CppTools::ProjectFile::CXXHeader, CompilerOptionsBuilder::PchUsage::None);
+}
 
-        ClangCompilerOptionsBuilder builder(*projectPart, CLANG_VERSION, CLANG_RESOURCE_DIR);
+ClangBackEnd::CompilerMacros ProjectUpdater::createCompilerMacros(const ProjectExplorer::Macros &projectMacros)
+{
+    auto macros =  Utils::transform<ClangBackEnd::CompilerMacros>(projectMacros,
+                                                                  [] (const ProjectExplorer::Macro &macro) {
+        return ClangBackEnd::CompilerMacro{macro.key, macro.value};
+    });
 
-        builder.addWordWidth();
-        builder.addTargetTriple();
-        builder.addLanguageOption(CppTools::ProjectFile::CXXHeader);
-        builder.addOptionsForLanguage(/*checkForBorlandExtensions*/ true);
-        builder.enableExceptions();
+    std::sort(macros.begin(), macros.end());
 
-        builder.addDefineToAvoidIncludingGccOrMinGwIntrinsics();
-        builder.addDefineFloat128ForMingw();
-        builder.addToolchainAndProjectDefines();
-        builder.undefineCppLanguageFeatureMacrosForMsvc2015();
+    return macros;
+}
 
-        builder.addPredefinedMacrosAndHeaderPathsOptions();
-        builder.addWrappedQtHeadersIncludePath();
-        builder.addPrecompiledHeaderOptions(ClangCompilerOptionsBuilder::PchUsage::None);
-        builder.addHeaderPathOptions();
-        builder.addProjectConfigFileInclude();
+Utils::SmallStringVector ProjectUpdater::createIncludeSearchPaths(
+        const CppTools::ProjectPartHeaderPaths &projectPartHeaderPaths)
+{
+    Utils::SmallStringVector includePaths;
 
-        builder.addMsvcCompatibilityVersion();
+    for (const CppTools::ProjectPartHeaderPath &projectPartHeaderPath : projectPartHeaderPaths) {
+        if (projectPartHeaderPath.isValid())
+            includePaths.emplace_back(projectPartHeaderPath.path);
+    }
 
-        builder.add("-fmessage-length=0");
-        builder.add("-fmacro-backtrace-limit=0");
-        builder.add("-w");
-        builder.add("-ferror-limit=100000");
-
-        return builder.options();
+    return includePaths;
 }
 
 ClangBackEnd::V2::ProjectPartContainer ProjectUpdater::toProjectPartContainer(
@@ -154,6 +156,8 @@ ClangBackEnd::V2::ProjectPartContainer ProjectUpdater::toProjectPartContainer(
 
     return ClangBackEnd::V2::ProjectPartContainer(projectPart->displayName,
                                                   Utils::SmallStringVector(arguments),
+                                                  createCompilerMacros(projectPart->projectMacros),
+                                                  createIncludeSearchPaths(projectPart->headerPaths),
                                                   std::move(headerAndSources.headers),
                                                   std::move(headerAndSources.sources));
 }

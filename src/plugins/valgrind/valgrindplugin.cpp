@@ -43,7 +43,6 @@
 
 #include <projectexplorer/projectexplorer.h>
 
-#include <QtPlugin>
 #include <QCoreApplication>
 #include <QPointer>
 
@@ -58,7 +57,8 @@ static ValgrindGlobalSettings *theGlobalSettings = 0;
 class ValgrindOptionsPage : public IOptionsPage
 {
 public:
-    explicit ValgrindOptionsPage()
+    explicit ValgrindOptionsPage(QObject *parent)
+        : IOptionsPage(parent)
     {
         setId(ANALYZER_VALGRIND_SETTINGS);
         setDisplayName(QCoreApplication::translate("Valgrind::Internal::ValgrindOptionsPage", "Valgrind"));
@@ -103,20 +103,6 @@ public:
         resetProjectToGlobalSettings();
         setRunConfigWidgetCreator([this] { return new Debugger::AnalyzerRunConfigWidget(this); });
     }
-
-    ValgrindRunConfigurationAspect *create(RunConfiguration *parent) const override
-    {
-        return new ValgrindRunConfigurationAspect(parent);
-    }
-};
-
-class ValgrindRunControlFactory : public IRunControlFactory
-{
-public:
-    IRunConfigurationAspect *createRunConfigurationAspect(RunConfiguration *rc) override
-    {
-        return new ValgrindRunConfigurationAspect(rc);
-    }
 };
 
 ValgrindPlugin::~ValgrindPlugin()
@@ -130,8 +116,9 @@ bool ValgrindPlugin::initialize(const QStringList &, QString *)
     theGlobalSettings = new ValgrindGlobalSettings;
     theGlobalSettings->readSettings();
 
-    addAutoReleasedObject(new ValgrindOptionsPage);
-    addAutoReleasedObject(new ValgrindRunControlFactory);
+    new ValgrindOptionsPage(this);
+
+    RunConfiguration::registerAspect<ValgrindRunConfigurationAspect>();
 
     return true;
 }

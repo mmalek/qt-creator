@@ -15,6 +15,7 @@ SUBDIRS += \
     profilewriter \
     rust \
     treeviewfind \
+    toolchaincache \
     qtcprocess \
     json \
     utils \

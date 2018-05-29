@@ -331,7 +331,7 @@ void f14()
 
 using IntegerAlias = int;
 using SecondIntegerAlias = IntegerAlias;
-using IntegerTypedef = int;
+typedef int IntegerTypedef;
 using Function = void (*)();
 
 
@@ -482,12 +482,12 @@ void f25()
     NonConstPointerArgument(x);
 }
 
-void ConstPointerArgument(const int *argument);
-
+void PointerToConstArgument(const int *argument);
+void ConstPointerArgument(int *const argument);
 void f26()
 {
     int *x;
-
+    PointerToConstArgument(x);
     ConstPointerArgument(x);
 }
 
@@ -565,3 +565,37 @@ void g(OtherOperator o, int var)
 {
     o(var);
 }
+
+void NonConstPointerArgument(int &argument);
+
+struct PointerGetterClass
+{
+    int &getter();
+};
+
+void f32()
+{
+    PointerGetterClass x;
+
+    NonConstPointerArgument(x.getter());
+}
+
+namespace N { template <typename T> void SizeIs(); }
+using N::SizeIs;
+
+void BaseClass::VirtualFunction() {}
+
+class WithVirtualFunctionDefined {
+  virtual void VirtualFunctionDefinition() {};
+};
+
+namespace NFoo { namespace NBar { namespace NTest { class NamespaceTypeSpelling; } } }
+
+Undeclared u;
+
+#include "../../../../share/qtcreator/cplusplus/wrappedQtHeaders/QtCore/qobjectdefs.h"
+
+class Property {
+    Q_PROPERTY(const volatile unsigned long long * prop READ getProp WRITE setProp NOTIFY propChanged)
+    Q_PROPERTY(const QString str READ getStr)
+};

@@ -156,10 +156,10 @@ QtOptionsPage::QtOptionsPage()
 {
     setId(Constants::QTVERSION_SETTINGS_PAGE_ID);
     setDisplayName(QCoreApplication::translate("QtSupport", Constants::QTVERSION_SETTINGS_PAGE_NAME));
-    setCategory(ProjectExplorer::Constants::PROJECTEXPLORER_SETTINGS_CATEGORY);
+    setCategory(ProjectExplorer::Constants::KITS_SETTINGS_CATEGORY);
     setDisplayCategory(QCoreApplication::translate("ProjectExplorer",
-        ProjectExplorer::Constants::PROJECTEXPLORER_SETTINGS_TR_CATEGORY));
-    setCategoryIcon(Utils::Icon(ProjectExplorer::Constants::PROJECTEXPLORER_SETTINGS_CATEGORY_ICON));
+        ProjectExplorer::Constants::KITS_SETTINGS_TR_CATEGORY));
+    setCategoryIcon(Utils::Icon(ProjectExplorer::Constants::KITS_SETTINGS_CATEGORY_ICON));
 }
 
 QWidget *QtOptionsPage::widget()
@@ -337,7 +337,7 @@ void QtOptionsPageWidget::toolChainsUpdated()
 
 void QtOptionsPageWidget::qtVersionsDumpUpdated(const FileName &qmakeCommand)
 {
-    m_model->forItemsAtLevel<2>([this, qmakeCommand](QtVersionItem *item) {
+    m_model->forItemsAtLevel<2>([qmakeCommand](QtVersionItem *item) {
         if (item->version()->qmakeCommand() == qmakeCommand)
             item->version()->recheckDumper();
     });
@@ -769,7 +769,7 @@ void QtOptionsPageWidget::apply()
 
     QList<BaseQtVersion *> versions;
 
-    m_model->forItemsAtLevel<2>([this, &versions](QtVersionItem *item) {
+    m_model->forItemsAtLevel<2>([&versions](QtVersionItem *item) {
         item->setChanged(false);
         versions.append(item->version()->clone());
     });

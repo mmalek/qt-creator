@@ -26,12 +26,12 @@
 #include "coreplugin.h"
 #include "designmode.h"
 #include "editmode.h"
-#include "idocument.h"
 #include "helpmanager.h"
-#include "mainwindow.h"
-#include "modemanager.h"
+#include "idocument.h"
 #include "infobar.h"
 #include "iwizardfactory.h"
+#include "mainwindow.h"
+#include "modemanager.h"
 #include "reaper_p.h"
 #include "themechooser.h"
 
@@ -44,6 +44,7 @@
 #include <coreplugin/coreconstants.h>
 #include <coreplugin/fileutils.h>
 
+#include <app/app_version.h>
 #include <extensionsystem/pluginerroroverview.h>
 #include <extensionsystem/pluginmanager.h>
 #include <extensionsystem/pluginspec.h>
@@ -69,7 +70,6 @@ using namespace Utils;
 CorePlugin::CorePlugin()
   : m_mainWindow(0)
   , m_editMode(0)
-  , m_designMode(0)
   , m_locator(0)
 {
     qRegisterMetaType<Id>();
@@ -82,17 +82,9 @@ CorePlugin::~CorePlugin()
     Find::destroy();
 
     delete m_locator;
+    delete m_editMode;
 
-    if (m_editMode) {
-        removeObject(m_editMode);
-        delete m_editMode;
-    }
-
-    if (m_designMode) {
-        if (m_designMode->designModeIsRequired())
-            removeObject(m_designMode);
-        delete m_designMode;
-    }
+    DesignMode::destroyModeIfRequired();
 
     delete m_mainWindow;
     setCreatorTheme(0);
@@ -131,8 +123,9 @@ bool CorePlugin::initialize(const QStringList &arguments, QString *errorMessage)
             continue;
         const QJsonObject metaData = plugin->metaData();
         const QJsonValue mimetypes = metaData.value("Mimetypes");
-        if (mimetypes.isString())
-            Utils::addMimeTypes(plugin->name() + ".mimetypes", mimetypes.toString().trimmed().toUtf8());
+        QString mimetypeString;
+        if (Utils::readMultiLineString(mimetypes, &mimetypeString))
+            Utils::addMimeTypes(plugin->name() + ".mimetypes", mimetypeString.trimmed().toUtf8());
     }
 
     if (ThemeEntry::availableThemes().isEmpty()) {
@@ -151,14 +144,10 @@ bool CorePlugin::initialize(const QStringList &arguments, QString *errorMessage)
         m_mainWindow->setOverrideColor(args.overrideColor);
     m_locator = new Locator;
     qsrand(QDateTime::currentDateTime().toTime_t());
-    const bool success = m_mainWindow->init(errorMessage);
-    if (success) {
-        m_editMode = new EditMode;
-        addObject(m_editMode);
-        ModeManager::activateMode(m_editMode->id());
-        m_designMode = new DesignMode;
-        InfoBar::initializeGloballySuppressed();
-    }
+    m_mainWindow->init();
+    m_editMode = new EditMode;
+    ModeManager::activateMode(m_editMode->id());
+    InfoBar::initialize(ICore::settings(), creatorTheme());
 
     IWizardFactory::initialize();
 
@@ -166,7 +155,7 @@ bool CorePlugin::initialize(const QStringList &arguments, QString *errorMessage)
     SaveFile::initializeUmask();
 
     Find::initialize();
-    m_locator->initialize(this, arguments, errorMessage);
+    m_locator->initialize();
 
     MacroExpander *expander = Utils::globalMacroExpander();
     expander->registerVariable("CurrentDate:ISO", tr("The current date (ISO)."),
@@ -182,18 +171,25 @@ bool CorePlugin::initialize(const QStringList &arguments, QString *errorMessage)
     expander->registerVariable("CurrentTime:Locale", tr("The current time (Locale)."),
                                []() { return QTime::currentTime().toString(Qt::DefaultLocaleShortDate); });
     expander->registerVariable("Config:DefaultProjectDirectory", tr("The configured default directory for projects."),
-                               []() { return DocumentManager::projectsDirectory(); });
+                               []() { return DocumentManager::projectsDirectory().toString(); });
     expander->registerVariable("Config:LastFileDialogDirectory", tr("The directory last visited in a file dialog."),
                                []() { return DocumentManager::fileDialogLastVisitedDirectory(); });
-    expander->registerVariable("HostOs:isWindows", tr("Is Qt Creator running on Windows?"),
+    expander->registerVariable("HostOs:isWindows",
+                               tr("Is %1 running on Windows?").arg(Constants::IDE_DISPLAY_NAME),
                                []() { return QVariant(Utils::HostOsInfo::isWindowsHost()).toString(); });
-    expander->registerVariable("HostOs:isOSX", tr("Is Qt Creator running on OS X?"),
+    expander->registerVariable("HostOs:isOSX",
+                               tr("Is %1 running on OS X?").arg(Constants::IDE_DISPLAY_NAME),
                                []() { return QVariant(Utils::HostOsInfo::isMacHost()).toString(); });
-    expander->registerVariable("HostOs:isLinux", tr("Is Qt Creator running on Linux?"),
+    expander->registerVariable("HostOs:isLinux",
+                               tr("Is %1 running on Linux?").arg(Constants::IDE_DISPLAY_NAME),
                                []() { return QVariant(Utils::HostOsInfo::isLinuxHost()).toString(); });
-    expander->registerVariable("HostOs:isUnix", tr("Is Qt Creator running on any unix-based platform?"),
+    expander->registerVariable("HostOs:isUnix",
+                               tr("Is %1 running on any unix-based platform?")
+                                   .arg(Constants::IDE_DISPLAY_NAME),
                                []() { return QVariant(Utils::HostOsInfo::isAnyUnixHost()).toString(); });
-    expander->registerVariable("IDE:ResourcePath", tr("The directory where Qt Creator finds its pre-installed resources."),
+    expander->registerVariable("IDE:ResourcePath",
+                               tr("The directory where %1 finds its pre-installed resources.")
+                                   .arg(Constants::IDE_DISPLAY_NAME),
                                []() { return ICore::resourcePath(); });
     expander->registerPrefix("CurrentDate:", tr("The current date (QDate formatstring)."),
                              [](const QString &fmt) { return QDate::currentDate().toString(fmt); });
@@ -202,20 +198,16 @@ bool CorePlugin::initialize(const QStringList &arguments, QString *errorMessage)
     expander->registerVariable("UUID", tr("Generate a new UUID."),
                                []() { return QUuid::createUuid().toString(); });
 
-    expander->registerPrefix("#:", tr("A comment."), [](const QString &) { return QStringLiteral(""); });
-
-    // Make sure all wizards are there when the user might access the keyboard shortcuts:
-    connect(ICore::instance(), &ICore::optionsDialogRequested, []() { IWizardFactory::allWizardFactories(); });
+    expander->registerPrefix("#:", tr("A comment."), [](const QString &) { return QString(); });
 
     Utils::PathChooser::setAboutToShowContextMenuHandler(&CorePlugin::addToPathChooserContextMenu);
 
-    return success;
+    return true;
 }
 
 void CorePlugin::extensionsInitialized()
 {
-    if (m_designMode->designModeIsRequired())
-        addObject(m_designMode);
+    DesignMode::createModeIfRequired();
     Find::extensionsInitialized();
     m_locator->extensionsInitialized();
     m_mainWindow->extensionsInitialized();
@@ -283,5 +275,6 @@ ExtensionSystem::IPlugin::ShutdownFlag CorePlugin::aboutToShutdown()
 {
     Find::aboutToShutdown();
     m_mainWindow->aboutToShutdown();
+    HelpManager::aboutToShutdown();
     return SynchronousShutdown;
 }

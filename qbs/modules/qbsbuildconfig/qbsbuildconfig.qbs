@@ -4,15 +4,19 @@ import qbs.FileInfo
 Module {
     Depends { name: "qtc" }
 
+    property bool priority: 1 // TODO: Remove declaration after 1.11 is out.
+
     property bool enableUnitTests: false
     property bool enableProjectFileUpdates: true
     property bool installApiHeaders: false
+    property bool enableBundledQt: false
     property string libInstallDir: qtc.ide_library_path
     property stringList libRPaths: qbs.targetOS.contains("macos")
             ? ["@loader_path/" + FileInfo.relativePath('/' + appInstallDir, '/' + libInstallDir)]
             : ["$ORIGIN/..", "$ORIGIN/../" + qtc.ide_library_path]
     property string resourcesInstallDir: qtc.ide_data_path + "/qbs"
-    property string pluginsInstallDir: qtc.ide_plugin_path
+    property string pluginsInstallDir: qtc.ide_plugin_path + "/qbs/plugins"
+    property string qmlTypeDescriptionsInstallDir: qtc.ide_data_path + "/qml-type-descriptions"
     property string appInstallDir: qtc.ide_bin_path
     property string libexecInstallDir: qtc.ide_libexec_path
     property bool installHtml: false

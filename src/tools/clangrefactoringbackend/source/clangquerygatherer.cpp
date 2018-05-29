@@ -29,7 +29,7 @@
 
 namespace ClangBackEnd {
 
-ClangQueryGatherer::ClangQueryGatherer(StringCache<Utils::PathString, std::mutex> *filePathCache,
+ClangQueryGatherer::ClangQueryGatherer(FilePathCachingInterface *filePathCache,
                                        std::vector<V2::FileContainer> &&sources,
                                        std::vector<V2::FileContainer> &&unsaved,
                                        Utils::SmallString &&query)
@@ -41,47 +41,47 @@ ClangQueryGatherer::ClangQueryGatherer(StringCache<Utils::PathString, std::mutex
 {
 }
 
-SourceRangesAndDiagnosticsForQueryMessage
-ClangQueryGatherer::createSourceRangesAndDiagnosticsForSource(
-        StringCache<Utils::PathString, std::mutex> *filePathCache,
+SourceRangesForQueryMessage
+ClangQueryGatherer::createSourceRangesForSource(
+        FilePathCachingInterface *filePathCache,
         V2::FileContainer &&source,
         const std::vector<V2::FileContainer> &unsaved,
         Utils::SmallString &&query)
 {
     ClangQuery clangQuery(*filePathCache, std::move(query));
 
-    clangQuery.addFile(source.filePath().directory(),
-                       source.filePath().name(),
-                       source.takeUnsavedFileContent(),
-                       source.takeCommandLineArguments());
+    clangQuery.addFile(std::string(source.filePath().directory()),
+                       std::string(source.filePath().name()),
+                       std::string(source.takeUnsavedFileContent()),
+                       std::vector<std::string>(source.takeCommandLineArguments()));
 
     clangQuery.addUnsavedFiles(unsaved);
 
     clangQuery.findLocations();
 
-    return {clangQuery.takeSourceRanges(), clangQuery.takeDiagnosticContainers()};
+    return {clangQuery.takeSourceRanges()};
 }
 
-bool ClangQueryGatherer::canCreateSourceRangesAndDiagnostics() const
+bool ClangQueryGatherer::canCreateSourceRanges() const
 {
     return !m_sources.empty();
 }
 
-SourceRangesAndDiagnosticsForQueryMessage ClangQueryGatherer::createNextSourceRangesAndDiagnostics()
+SourceRangesForQueryMessage ClangQueryGatherer::createNextSourceRanges()
 {
-    auto message = createSourceRangesAndDiagnosticsForSource(m_filePathCache,
-                                                             std::move(m_sources.back()),
-                                                             m_unsaved,
-                                                             m_query.clone());
+    auto message = createSourceRangesForSource(m_filePathCache,
+                                               std::move(m_sources.back()),
+                                               m_unsaved,
+                                               m_query.clone());
     m_sources.pop_back();
 
     return message;
 }
 
-ClangQueryGatherer::Future ClangQueryGatherer::startCreateNextSourceRangesAndDiagnosticsMessage()
+ClangQueryGatherer::Future ClangQueryGatherer::startCreateNextSourceRangesMessage()
 {
     Future future = std::async(std::launch::async,
-                               createSourceRangesAndDiagnosticsForSource,
+                               createSourceRangesForSource,
                                m_filePathCache,
                                std::move(m_sources.back()),
                                m_unsaved,
@@ -92,12 +92,12 @@ ClangQueryGatherer::Future ClangQueryGatherer::startCreateNextSourceRangesAndDia
     return future;
 }
 
-void ClangQueryGatherer::startCreateNextSourceRangesAndDiagnosticsMessages()
+void ClangQueryGatherer::startCreateNextSourceRangesMessages()
 {
     std::vector<ClangQueryGatherer::Future> futures;
 
     while (!m_sources.empty() && m_sourceFutures.size() < m_processingSlotCount)
-        m_sourceFutures.push_back(startCreateNextSourceRangesAndDiagnosticsMessage());
+        m_sourceFutures.push_back(startCreateNextSourceRangesMessage());
 }
 
 void ClangQueryGatherer::waitForFinished()
@@ -121,9 +121,9 @@ const std::vector<ClangQueryGatherer::Future> &ClangQueryGatherer::sourceFutures
     return m_sourceFutures;
 }
 
-std::vector<SourceRangesAndDiagnosticsForQueryMessage> ClangQueryGatherer::allCurrentProcessedMessages()
+std::vector<SourceRangesForQueryMessage> ClangQueryGatherer::allCurrentProcessedMessages()
 {
-    std::vector<SourceRangesAndDiagnosticsForQueryMessage> messages;
+    std::vector<SourceRangesForQueryMessage> messages;
 
     for (Future &future : m_sourceFutures)
         messages.push_back(m_sourceRangeFilter.removeDuplicates(future.get()));
@@ -131,9 +131,9 @@ std::vector<SourceRangesAndDiagnosticsForQueryMessage> ClangQueryGatherer::allCu
     return messages;
 }
 
-std::vector<SourceRangesAndDiagnosticsForQueryMessage> ClangQueryGatherer::finishedMessages()
+std::vector<SourceRangesForQueryMessage> ClangQueryGatherer::finishedMessages()
 {
-    std::vector<SourceRangesAndDiagnosticsForQueryMessage> messages;
+    std::vector<SourceRangesForQueryMessage> messages;
 
     for (auto &&future : finishedFutures())
         messages.push_back(m_sourceRangeFilter.removeDuplicates(future.get()));

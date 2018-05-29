@@ -36,7 +36,9 @@
 #include <qmldebug/qmloutputparser.h>
 
 namespace QmlProfiler {
+namespace Internal {
 
+class QmlProfilerTool;
 class QmlProfilerRunner : public ProjectExplorer::RunWorker
 {
     Q_OBJECT
@@ -50,41 +52,34 @@ public:
 
     void registerProfilerStateManager( QmlProfilerStateManager *profilerState );
 
-    void notifyRemoteSetupDone(Utils::Port port);
-    void notifyRemoteSetupFailed(const QString &errorMessage);
     void cancelProcess();
     void notifyRemoteFinished();
+
+signals:
+    void starting(QmlProfilerRunner *self);
 
 private:
     void start() override;
     void stop() override;
 
-    void wrongSetupMessageBoxFinished(int);
     void profilerStateChanged();
 
     class QmlProfilerRunnerPrivate;
     QmlProfilerRunnerPrivate *d;
 };
 
-class LocalQmlProfilerSupport : public ProjectExplorer::RunWorker
+class LocalQmlProfilerSupport : public ProjectExplorer::SimpleTargetRunner
 {
     Q_OBJECT
 
 public:
-    LocalQmlProfilerSupport(ProjectExplorer::RunControl *runControl);
-    LocalQmlProfilerSupport(ProjectExplorer::RunControl *runControl,
+    LocalQmlProfilerSupport(QmlProfilerTool *profilerTool, ProjectExplorer::RunControl *runControl);
+    LocalQmlProfilerSupport(QmlProfilerTool *profilerTool, ProjectExplorer::RunControl *runControl,
                             const QUrl &serverUrl);
 
-    void start() override;
-    void stop() override;
-
-signals:
-    void localRunnerStarted();
-    void localRunnerStopped();
-
 private:
-    ProjectExplorer::SimpleTargetRunner *m_profilee;
     QmlProfilerRunner *m_profiler;
 };
 
+} // namespace Internal
 } // namespace QmlProfiler

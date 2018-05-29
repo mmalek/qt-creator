@@ -29,7 +29,6 @@
 #include <texteditor/codeassist/keywordscompletionassist.h>
 
 QT_BEGIN_NAMESPACE
-class QUrl;
 QT_END_NAMESPACE
 
 namespace QmakeProjectManager {
@@ -38,10 +37,12 @@ namespace Internal {
 class ProFileHoverHandler : public TextEditor::BaseHoverHandler
 {
 public:
-    explicit ProFileHoverHandler(const TextEditor::Keywords &keywords);
+    ProFileHoverHandler();
 
 private:
-    void identifyMatch(TextEditor::TextEditorWidget *editorWidget, int pos) override;
+    void identifyMatch(TextEditor::TextEditorWidget *editorWidget,
+                       int pos,
+                       ReportPriority report) override;
     void identifyQMakeKeyword(const QString &text, int pos);
 
     enum ManualKind {

@@ -28,14 +28,13 @@ import operator
 
 # for easier re-usage (because Python hasn't an enum type)
 class Targets:
-    ALL_TARGETS = tuple(map(lambda x: 2 ** x , range(6)))
+    ALL_TARGETS = tuple(map(lambda x: 2 ** x , range(5)))
 
-    (DESKTOP_474_GCC,
-     DESKTOP_480_DEFAULT,
+    (DESKTOP_4_8_7_DEFAULT,
      EMBEDDED_LINUX,
-     DESKTOP_531_DEFAULT,
-     DESKTOP_541_GCC,
-     DESKTOP_561_DEFAULT) = ALL_TARGETS
+     DESKTOP_5_3_1_DEFAULT,
+     DESKTOP_5_4_1_GCC,
+     DESKTOP_5_6_1_DEFAULT) = ALL_TARGETS
 
     @staticmethod
     def availableTargetClasses():
@@ -43,7 +42,7 @@ class Targets:
         if platform.system() in ('Windows', 'Microsoft'):
             availableTargets.remove(Targets.EMBEDDED_LINUX)
         elif platform.system() == 'Darwin':
-            availableTargets.remove(Targets.DESKTOP_541_GCC)
+            availableTargets.remove(Targets.DESKTOP_5_4_1_GCC)
         return availableTargets
 
     @staticmethod
@@ -55,26 +54,20 @@ class Targets:
 
     @staticmethod
     def qt4Classes():
-        return (Targets.DESKTOP_474_GCC | Targets.DESKTOP_480_DEFAULT
-                | Targets.EMBEDDED_LINUX)
+        return (Targets.DESKTOP_4_8_7_DEFAULT | Targets.EMBEDDED_LINUX)
 
     @staticmethod
     def getStringForTarget(target):
-        if target == Targets.DESKTOP_474_GCC:
-            return "Desktop 474 GCC"
-        elif target == Targets.DESKTOP_480_DEFAULT:
-            if platform.system() in ('Windows', 'Microsoft'):
-                return "Desktop 480 MSVC2010"
-            else:
-                return "Desktop 480 GCC"
+        if target == Targets.DESKTOP_4_8_7_DEFAULT:
+            return "Desktop 4.8.7 default"
         elif target == Targets.EMBEDDED_LINUX:
             return "Embedded Linux"
-        elif target == Targets.DESKTOP_531_DEFAULT:
-            return "Desktop 531 default"
-        elif target == Targets.DESKTOP_541_GCC:
-            return "Desktop 541 GCC"
-        elif target == Targets.DESKTOP_561_DEFAULT:
-            return "Desktop 561 default"
+        elif target == Targets.DESKTOP_5_3_1_DEFAULT:
+            return "Desktop 5.3.1 default"
+        elif target == Targets.DESKTOP_5_4_1_GCC:
+            return "Desktop 5.4.1 GCC"
+        elif target == Targets.DESKTOP_5_6_1_DEFAULT:
+            return "Desktop 5.6.1 default"
         else:
             return None
 
@@ -90,7 +83,7 @@ class Targets:
 
     @staticmethod
     def getDefaultKit():
-        return Targets.DESKTOP_531_DEFAULT
+        return Targets.DESKTOP_5_3_1_DEFAULT
 
 # this class holds some constants for easier usage inside the Projects view
 class ProjectSettings:
@@ -176,9 +169,9 @@ class Qt5Path:
 
     @staticmethod
     def getPaths(pathSpec):
-        qt5targets = [Targets.DESKTOP_531_DEFAULT, Targets.DESKTOP_561_DEFAULT]
+        qt5targets = [Targets.DESKTOP_5_3_1_DEFAULT, Targets.DESKTOP_5_6_1_DEFAULT]
         if platform.system() != 'Darwin':
-            qt5targets.append(Targets.DESKTOP_541_GCC)
+            qt5targets.append(Targets.DESKTOP_5_4_1_GCC)
         if pathSpec == Qt5Path.DOCS:
             return map(lambda target: Qt5Path.docsPath(target), qt5targets)
         elif pathSpec == Qt5Path.EXAMPLES:
@@ -192,7 +185,7 @@ class Qt5Path:
         if target not in Targets.ALL_TARGETS:
             raise Exception("Unexpected target '%s'" % str(target))
 
-        matcher = re.match("^Desktop (5\\d{2}).*$", Targets.getStringForTarget(target))
+        matcher = re.match("^Desktop (5\.\\d{1,2}\.\\d{1,2}).*$", Targets.getStringForTarget(target))
         if matcher is None:
             raise Exception("Currently this is supported for Desktop Qt5 only, got target '%s'"
                             % str(Targets.getStringForTarget(target)))
@@ -218,9 +211,18 @@ class Qt5Path:
             return os.path.expanduser("~/Qt5.%d.1" % qt5Minor)
 
     @staticmethod
-    def examplesPath(target):
+    def toVersionTuple(versionString):
+        return tuple(map(__builtin__.int, versionString.split(".")))
+
+    @staticmethod
+    def getQtMinorAndPatchVersion(target):
         qtVersionStr = Qt5Path.__preCheckAndExtractQtVersionStr__(target)
-        qtMinorVersion = __builtin__.int(qtVersionStr[1])
+        versionTuple = Qt5Path.toVersionTuple(qtVersionStr)
+        return versionTuple[1], versionTuple[2]
+
+    @staticmethod
+    def examplesPath(target):
+        qtMinorVersion, qtPatchVersion = Qt5Path.getQtMinorAndPatchVersion(target)
         if qtMinorVersion == 2:
             path = "examples"
         else:
@@ -230,11 +232,20 @@ class Qt5Path:
 
     @staticmethod
     def docsPath(target):
-        qtVersionStr = Qt5Path.__preCheckAndExtractQtVersionStr__(target)
-        qtMinorVersion = __builtin__.int(qtVersionStr[1])
+        qtMinorVersion, qtPatchVersion = Qt5Path.getQtMinorAndPatchVersion(target)
         if qtMinorVersion == 2:
             path = "doc"
         else:
             path = "Docs/Qt-5.%d" % qtMinorVersion
 
         return os.path.join(Qt5Path.__createPlatformQtPath__(qtMinorVersion), path)
+
+class TestSection:
+    def __init__(self, description):
+        self.description = description
+
+    def __enter__(self):
+        test.startSection(self.description)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        test.endSection()

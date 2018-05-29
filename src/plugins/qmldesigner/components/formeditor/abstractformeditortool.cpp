@@ -131,7 +131,31 @@ bool AbstractFormEditorTool::topSelectedItemIsMovable(const QList<QGraphicsItem*
     }
 
     return false;
+}
 
+bool AbstractFormEditorTool::selectedItemCursorInMovableArea(const QPointF &pos)
+{
+    if (!view()->hasSingleSelectedModelNode())
+        return false;
+
+    const ModelNode selectedNode = view()->singleSelectedModelNode();
+
+    FormEditorItem *item = scene()->itemForQmlItemNode(selectedNode);
+
+    if (!item)
+        return false;
+
+     if (!topSelectedItemIsMovable({item}))
+         return false;
+
+    const QPolygonF boundingRectInSceneSpace(item->mapToScene(item->qmlItemNode().instanceBoundingRect()));
+    QRectF boundingRect = boundingRectInSceneSpace.boundingRect();
+    QRectF innerRect = boundingRect;
+
+    innerRect.adjust(2, 2, -2, -2);
+    boundingRect.adjust(-2, -20, 2, 2);
+
+    return !innerRect.contains(pos) && boundingRect.contains(pos);
 }
 
 bool AbstractFormEditorTool::topItemIsResizeHandle(const QList<QGraphicsItem*> &/*itemList*/)
@@ -241,7 +265,7 @@ void AbstractFormEditorTool::mouseReleaseEvent(const QList<QGraphicsItem*> & ite
         QmlItemNode currentSelectedNode;
 
         if (view()->selectedModelNodes().count() == 1) {
-            currentSelectedNode = view()->selectedModelNodes().first();
+            currentSelectedNode = view()->selectedModelNodes().constFirst();
 
             if (!containsItemNode(itemList, currentSelectedNode)) {
                 QmlItemNode selectedNode;
@@ -327,5 +351,10 @@ FormEditorItem *AbstractFormEditorTool::containerFormEditorItem(const QList<QGra
 void AbstractFormEditorTool::clear()
 {
     m_itemList.clear();
+}
+
+void AbstractFormEditorTool::start()
+{
+
 }
 }

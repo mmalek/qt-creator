@@ -132,8 +132,9 @@ void runSilverSeacher(FutureInterfaceType &fi, FileFindParameters parameters)
 
 namespace SilverSearcher {
 
-FindInFilesSilverSearcher::FindInFilesSilverSearcher()
-    : m_widget(0),
+FindInFilesSilverSearcher::FindInFilesSilverSearcher(QObject *parent)
+    : SearchEngine(parent),
+      m_widget(0),
       m_path("ag"),
       m_toolName("SilverSearcher")
 {
@@ -146,7 +147,7 @@ FindInFilesSilverSearcher::FindInFilesSilverSearcher()
     if (!isEnabled()) {
         auto layout = new QHBoxLayout(m_widget);
         layout->setMargin(0);
-        QLabel *label = new QLabel(tr("SilverSearcher is not available on system"));
+        QLabel *label = new QLabel(tr("Silver Searcher is not available on the system."));
         label->setStyleSheet("QLabel { color : red; }");
         layout->addWidget(label);
     }

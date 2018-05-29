@@ -38,7 +38,7 @@ class TEXTEDITOR_EXPORT FunctionHintProposalWidget : public IAssistProposalWidge
 
 public:
     FunctionHintProposalWidget();
-    ~FunctionHintProposalWidget();
+    ~FunctionHintProposalWidget() override;
 
     void setAssistant(CodeAssistant *assistant) override;
     void setReason(AssistReason reason) override;
@@ -62,6 +62,9 @@ private:
     void updateContent();
     void updatePosition();
     void abort();
+
+    int loadSelectedHint() const;
+    void storeSelectedHint();
 
 private:
     FunctionHintProposalWidgetPrivate *d;

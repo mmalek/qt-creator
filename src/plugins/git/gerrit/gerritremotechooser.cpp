@@ -60,7 +60,7 @@ GerritRemoteChooser::GerritRemoteChooser(QWidget *parent) :
 
     connect(m_remoteComboBox, &QComboBox::currentTextChanged,
             this, &GerritRemoteChooser::handleRemoteChanged);
-    m_resetRemoteButton->setIcon(Utils::Icons::RESET_TOOLBAR.icon());
+    m_resetRemoteButton->setIcon(Utils::Icons::RESET.icon());
     connect(m_resetRemoteButton, &QToolButton::clicked,
             this, [this] { updateRemotes(true); });
 }
@@ -80,6 +80,11 @@ void GerritRemoteChooser::setFallbackEnabled(bool value)
     m_enableFallback = value;
 }
 
+void GerritRemoteChooser::setAllowDups(bool value)
+{
+    m_allowDups = value;
+}
+
 bool GerritRemoteChooser::setCurrentRemote(const QString &remoteName)
 {
     for (int i = 0, total = m_remoteComboBox->count(); i < total; ++i) {
@@ -94,9 +99,9 @@ bool GerritRemoteChooser::setCurrentRemote(const QString &remoteName)
 bool GerritRemoteChooser::updateRemotes(bool forceReload)
 {
     QTC_ASSERT(!m_repository.isEmpty() || !m_parameters, return false);
+    m_updatingRemotes = true;
     m_remoteComboBox->clear();
     m_remotes.clear();
-    m_updatingRemotes = true;
     QString errorMessage; // Mute errors. We'll just fallback to the defaults
     QMap<QString, QString> remotesList =
             Git::Internal::GitPlugin::client()->synchronousRemotesList(m_repository, &errorMessage);
@@ -118,9 +123,11 @@ bool GerritRemoteChooser::updateRemotes(bool forceReload)
 
 void GerritRemoteChooser::addRemote(const GerritServer &server, const QString &name)
 {
-    for (auto remote : m_remotes) {
-        if (remote.second == server)
-            return;
+    if (!m_allowDups) {
+        for (auto remote : m_remotes) {
+            if (remote.second == server)
+                return;
+        }
     }
     m_remoteComboBox->addItem(server.host + QString(" (%1)").arg(name));
     m_remotes.push_back({ name, server });

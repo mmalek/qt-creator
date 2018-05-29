@@ -26,9 +26,12 @@
 #include "androiddevice.h"
 #include "androidconstants.h"
 #include "androidsignaloperation.h"
+#include "androidconfigurations.h"
 
 #include <projectexplorer/runconfiguration.h>
 #include <projectexplorer/runnables.h>
+
+#include <utils/url.h>
 
 #include <QCoreApplication>
 
@@ -45,6 +48,7 @@ AndroidDevice::AndroidDevice()
 {
     setDisplayName(QCoreApplication::translate("Android::Internal::AndroidDevice", "Run on Android"));
     setDeviceState(DeviceReadyToUse);
+    setQmlsceneCommand(AndroidConfigurations::currentConfig().deviceQmlsceneCommand());
 }
 
 AndroidDevice::AndroidDevice(const AndroidDevice &other)
@@ -107,6 +111,7 @@ IDevice::Ptr AndroidDevice::clone() const
 QUrl AndroidDevice::toolControlChannel(const ControlChannelHint &) const
 {
     QUrl url;
+    url.setScheme(Utils::urlTcpScheme());
     url.setHost("localhost");
     return url;
 }

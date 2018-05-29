@@ -31,14 +31,13 @@
 
 #include <QAction>
 #include <QCoreApplication>
-#include <QDebug>
 
 #include <coreplugin/icore.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/actionmanager/command.h>
+#include <coreplugin/coreconstants.h>
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/id.h>
-#include <extensionsystem/pluginmanager.h>
 
 namespace ImageViewer {
 namespace Internal {
@@ -50,8 +49,8 @@ bool ImageViewerPlugin::initialize(const QStringList &arguments, QString *errorM
     Q_UNUSED(arguments)
     Q_UNUSED(errorMessage)
 
-    m_factory = new ImageViewerFactory(this);
-    addAutoReleasedObject(m_factory);
+    (void) new ImageViewerFactory(this);
+
     return true;
 }
 
@@ -62,61 +61,66 @@ static inline ImageViewer *currentImageViewer()
 
 void ImageViewerPlugin::extensionsInitialized()
 {
-    QAction *a = registerNewAction(Constants::ACTION_ZOOM_IN, tr("Zoom In"),
-                                   QKeySequence(tr("Ctrl++")));
-    connect(a, &QAction::triggered, this, [this]() {
+    QAction *a = registerNewAction(Core::Constants::ZOOM_IN);
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->zoomIn();
     });
 
-    a = registerNewAction(Constants::ACTION_ZOOM_OUT, tr("Zoom Out"),
-                          QKeySequence(tr("Ctrl+-")));
-    connect(a, &QAction::triggered, this, [this]() {
+    a = registerNewAction(Core::Constants::ZOOM_OUT);
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->zoomOut();
     });
 
-    a = registerNewAction(Constants::ACTION_ORIGINAL_SIZE, tr("Original Size"),
-                          QKeySequence(Core::UseMacShortcuts ? tr("Meta+0") : tr("Ctrl+0")));
-    connect(a, &QAction::triggered, this, [this]() {
+    a = registerNewAction(Core::Constants::ZOOM_RESET);
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->resetToOriginalSize();
     });
 
     a = registerNewAction(Constants::ACTION_FIT_TO_SCREEN, tr("Fit to Screen"),
                           QKeySequence(tr("Ctrl+=")));
-    connect(a, &QAction::triggered, this, [this]() {
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->fitToScreen();
     });
 
     a = registerNewAction(Constants::ACTION_BACKGROUND, tr("Switch Background"),
                           QKeySequence(tr("Ctrl+[")));
-    connect(a, &QAction::triggered, this, [this]() {
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->switchViewBackground();
     });
 
     a = registerNewAction(Constants::ACTION_OUTLINE, tr("Switch Outline"),
                           QKeySequence(tr("Ctrl+]")));
-    connect(a, &QAction::triggered, this, [this]() {
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->switchViewOutline();
     });
 
     a = registerNewAction(Constants::ACTION_TOGGLE_ANIMATION, tr("Toggle Animation"),
                           QKeySequence());
-    connect(a, &QAction::triggered, this, [this]() {
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->togglePlay();
     });
 
     a = registerNewAction(Constants::ACTION_EXPORT_IMAGE, tr("Export Image"),
                           QKeySequence());
-    connect(a, &QAction::triggered, this, [this]() {
+    connect(a, &QAction::triggered, this, []() {
         if (ImageViewer *iv = currentImageViewer())
             iv->exportImage();
     });
+
+    a = registerNewAction(Constants::ACTION_EXPORT_MULTI_IMAGES, tr("Export Multiple Images"),
+                          QKeySequence());
+    connect(a, &QAction::triggered, this, []() {
+        if (ImageViewer *iv = currentImageViewer())
+            iv->exportMultiImages();
+    });
+
 }
 
 QAction *ImageViewerPlugin::registerNewAction(Core::Id id,
@@ -125,7 +129,8 @@ QAction *ImageViewerPlugin::registerNewAction(Core::Id id,
     Core::Context context(Constants::IMAGEVIEWER_ID);
     QAction *action = new QAction(title, this);
     Core::Command *command = Core::ActionManager::registerAction(action, id, context);
-    command->setDefaultKeySequence(key);
+    if (!key.isEmpty())
+        command->setDefaultKeySequence(key);
     return action;
 }
 

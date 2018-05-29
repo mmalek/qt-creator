@@ -402,7 +402,7 @@ void RewriterView::applyChanges()
     try {
         modelToTextMerger()->applyChanges();
         if (!errors().isEmpty())
-            enterErrorState(errors().first().description());
+            enterErrorState(errors().constFirst().description());
     } catch (const Exception &e) {
         const QString content = textModifierContent();
         qDebug().noquote() << "RewriterException:" << m_rewritingErrorMessage;
@@ -417,7 +417,7 @@ void RewriterView::applyChanges()
         qDebug().noquote() << "RewriterException: " << m_rewritingErrorMessage;
         qDebug().noquote() << "Content: " << content;
         if (!errors().isEmpty())
-            qDebug().noquote() << "Error:" << errors().first().description();
+            qDebug().noquote() << "Error:" << errors().constFirst().description();
         throw RewritingException(__LINE__, __FUNCTION__, __FILE__, qPrintable(m_rewritingErrorMessage), content);
     }
 }
@@ -612,17 +612,6 @@ ModelNode RewriterView::nodeAtTextCursorPosition(int cursorPosition) const
     return nodeAtTextCursorPositionRekursive(rootModelNode(), cursorPosition);
 }
 
-bool RewriterView::nodeContainsCursor(const ModelNode &node, int cursorPosition) const
-{
-    const int nodeTextLength = nodeLength(node);
-    const int nodeTextOffset = nodeOffset(node);
-
-    if (isInNodeDefinition(nodeTextOffset, nodeTextLength, cursorPosition))
-        return true;
-
-    return false;
-}
-
 bool RewriterView::renameId(const QString& oldId, const QString& newId)
 {
     if (textModifier()) {
@@ -679,7 +668,7 @@ QString RewriterView::convertTypeToImportAlias(const QString &type) const
     if (type.contains('.')) {
         QStringList nameComponents = type.split('.');
         url = getUrlFromType(type);
-        simplifiedType = nameComponents.last();
+        simplifiedType = nameComponents.constLast();
     }
 
     QString alias;

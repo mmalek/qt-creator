@@ -31,6 +31,7 @@ except:
 import gdb
 import os
 import os.path
+import re
 import sys
 import struct
 import tempfile
@@ -702,7 +703,7 @@ class Dumper(DumperBase):
         self.typesToReport = {}
 
         if self.forceQtNamespace:
-            self.qtNamepaceToReport = self.qtNamespace()
+            self.qtNamespaceToReport = self.qtNamespace()
 
         if self.qtNamespaceToReport:
             self.output += ',qtnamespace="%s"' % self.qtNamespaceToReport
@@ -710,7 +711,7 @@ class Dumper(DumperBase):
 
         self.output += ',partial="%d"' % isPartial
         self.output += ',counts=%s' % self.counts
-        self.output += ',timimgs=%s' % self.timings
+        self.output += ',timings=%s' % self.timings
         self.reportResult(self.output)
 
     def parseAndEvaluate(self, exp):
@@ -741,7 +742,7 @@ class Dumper(DumperBase):
             typeName = "'" + typeName + "'"
         # 'class' is needed, see http://sourceware.org/bugzilla/show_bug.cgi?id=11912
         #exp = '((class %s*)%s)->%s(%s)' % (typeName, value.laddress, function, arg)
-        addr = value.laddress
+        addr = value.address()
         if addr is None:
            addr = self.pokeValue(value)
         #warn('PTR: %s -> %s(%s)' % (value, function, addr))
@@ -750,7 +751,7 @@ class Dumper(DumperBase):
         result = gdb.parse_and_eval(exp)
         #warn('  -> %s' % result)
         res = self.fromNativeValue(result)
-        if value.laddress is None:
+        if value.address() is None:
             self.releaseValue(addr)
         return res
 
@@ -995,10 +996,11 @@ class Dumper(DumperBase):
     def handleNewObjectFile(self, objfile):
         name = objfile.filename
         if self.isWindowsTarget():
-            isQtCoreObjFile = name.find('Qt5Cored.dll') >= 0 or name.find('Qt5Core.dll') >= 0
+            qtCoreMatch = re.match('.*Qt5?Core[^/.]*d?\.dll', name)
         else:
-            isQtCoreObjFile = name.find('/libQt5Core') >= 0
-        if isQtCoreObjFile:
+            qtCoreMatch = re.match('.*/libQt5?Core[^/.]\.so', name)
+
+        if qtCoreMatch is not None:
             self.handleQtCoreLoaded(objfile)
 
     def handleQtCoreLoaded(self, objfile):
@@ -1016,6 +1018,13 @@ class Dumper(DumperBase):
                     # [11] b 0x7ffff683c000 _ZN4MynsL17msgHandlerGrabbedE
                     # section .tbss Myns::msgHandlerGrabbed  qlogging.cpp
                     ns = re.split('_ZN?(\d*)(\w*)L17msgHandlerGrabbedE? ', line)[2]
+                    if len(ns):
+                        ns += '::'
+                    break
+                if line.find('currentThreadData ') >= 0:
+                    # [ 0] b 0x7ffff67d3000 _ZN2UUL17currentThreadDataE
+                    # section .tbss  UU::currentThreadData qthread_unix.cpp\\n
+                    ns = re.split('_ZN?(\d*)(\w*)L17currentThreadDataE? ', line)[2]
                     if len(ns):
                         ns += '::'
                     break
@@ -1056,11 +1065,16 @@ class Dumper(DumperBase):
             typeName = typeName[0:pos]
         if typeName in self.qqEditable and not simpleType:
             #self.qqEditable[typeName](self, expr, value)
-            expr = gdb.parse_and_eval(expr)
+            expr = self.parseAndEvaluate(expr)
             self.qqEditable[typeName](self, expr, value)
         else:
             cmd = 'set variable (%s)=%s' % (expr, value)
             gdb.execute(cmd)
+
+    def appendSolibSearchPath(self, args):
+        new = list(map(self.hexdecode, args['path']))
+        old = [gdb.parameter('solib-search-path')]
+        gdb.execute('set solib-search-path %s' % args['separator'].join(old + new))
 
     def watchPoint(self, args):
         self.reportToken(args)

@@ -52,7 +52,6 @@ public:
     Q_INVOKABLE QSet<QString> searchMatches(const QString &databaseFilePath,
                                           const QString &term, int limit);
 signals:
-    void linkActivated(const QUrl &link) const;
     void linksActivated(const QMap<QString, QUrl> &links, const QString &key) const;
 
 private:
@@ -61,7 +60,7 @@ private:
     QStringList m_helpDatabases;
     QSet<QString> m_keywordCache;
     QString m_searchTermCache;
-    bool m_needsUpdate;
+    bool m_needsUpdate = true;
     QMutex m_mutex;
     QIcon m_icon;
 };

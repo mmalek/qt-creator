@@ -25,7 +25,6 @@
 
 #include "androidplugin.h"
 
-#include "androidanalyzesupport.h"
 #include "androidconfigurations.h"
 #include "androidconstants.h"
 #include "androiddebugsupport.h"
@@ -36,36 +35,53 @@
 #include "androidgdbserverkitinformation.h"
 #include "androidmanager.h"
 #include "androidmanifesteditorfactory.h"
+#include "androidpackageinstallationstep.h"
 #include "androidpotentialkit.h"
+#include "androidqmltoolingsupport.h"
 #include "androidqtversionfactory.h"
 #include "androidrunconfiguration.h"
 #include "androidruncontrol.h"
 #include "androidsettingspage.h"
 #include "androidtoolchain.h"
-#include "javacompletionassistprovider.h"
 #include "javaeditor.h"
 
 #ifdef HAVE_QBS
 #  include "androidqbspropertyprovider.h"
 #endif
 
-#include <coreplugin/icore.h>
-
 #include <projectexplorer/devicesupport/devicemanager.h>
+#include <projectexplorer/kitinformation.h>
 #include <projectexplorer/kitmanager.h>
+#include <projectexplorer/target.h>
 
 #include <qtsupport/qtversionmanager.h>
 
-#include <QtPlugin>
-
 using namespace ProjectExplorer;
 using namespace ProjectExplorer::Constants;
-using namespace Android::Internal;
 
 namespace Android {
+namespace Internal {
 
-AndroidPlugin::AndroidPlugin()
-{ }
+class AndroidPluginPrivate
+{
+public:
+    AndroidConfigurations androidConfiguration;
+    AndroidSettingsPage settingsPage;
+    AndroidDeployQtStepFactory deployQtStepFactory;
+    AndroidQtVersionFactory qtVersionFactory;
+    AndroidToolChainFactory toolChainFactory;
+    AndroidDeployConfigurationFactory deployConfigurationFactory;
+    AndroidDeviceFactory deviceFactory;
+    AndroidPotentialKit potentialKit;
+    JavaEditorFactory javaEditorFactory;
+    AndroidPackageInstallationFactory packackeInstallationFactory;
+    AndroidManifestEditorFactory manifestEditorFactory;
+};
+
+AndroidPlugin::~AndroidPlugin()
+{
+    delete d;
+}
 
 bool AndroidPlugin::initialize(const QStringList &arguments, QString *errorMessage)
 {
@@ -74,27 +90,31 @@ bool AndroidPlugin::initialize(const QStringList &arguments, QString *errorMessa
 
     RunControl::registerWorker<AndroidRunConfiguration, AndroidRunSupport>(NORMAL_RUN_MODE);
     RunControl::registerWorker<AndroidRunConfiguration, AndroidDebugSupport>(DEBUG_RUN_MODE);
-    RunControl::registerWorker<AndroidRunConfiguration, AndroidQmlProfilerSupport>(QML_PROFILER_RUN_MODE);
+    RunControl::registerWorker<AndroidRunConfiguration, AndroidQmlToolingSupport>(
+                QML_PROFILER_RUN_MODE);
+    RunControl::registerWorker<AndroidRunConfiguration, AndroidQmlToolingSupport>(
+                QML_PREVIEW_RUN_MODE);
 
-    new AndroidConfigurations(this);
+    RunControl::registerWorker(QML_PREVIEW_RUN_MODE, [](RunControl *runControl) -> RunWorker* {
+        const Runnable runnable = runControl->runConfiguration()->runnable();
+        QTC_ASSERT(runnable.is<StandardRunnable>(), return nullptr);
+        const StandardRunnable standardRunnable = runnable.as<StandardRunnable>();
+        return new AndroidQmlToolingSupport(runControl, standardRunnable.executable,
+                                            standardRunnable.commandLineArguments);
+    }, [](RunConfiguration *runConfig) {
+        return runConfig->isEnabled()
+                && runConfig->id().name().startsWith("QmlProjectManager.QmlRunConfiguration")
+                && DeviceTypeKitInformation::deviceTypeId(runConfig->target()->kit())
+                    == Android::Constants::ANDROID_DEVICE_TYPE;
+    });
 
-    addAutoReleasedObject(new Internal::AndroidDeployQtStepFactory);
-    addAutoReleasedObject(new Internal::AndroidSettingsPage);
-    addAutoReleasedObject(new Internal::AndroidQtVersionFactory);
-    addAutoReleasedObject(new Internal::AndroidToolChainFactory);
-    addAutoReleasedObject(new Internal::AndroidDeployConfigurationFactory);
-    addAutoReleasedObject(new Internal::AndroidDeviceFactory);
-    addAutoReleasedObject(new Internal::AndroidPotentialKit);
-    addAutoReleasedObject(new Internal::JavaEditorFactory);
+    d = new AndroidPluginPrivate;
+
     KitManager::registerKitInformation(new Internal::AndroidGdbServerKitInformation);
-
-    addAutoReleasedObject(new Internal::AndroidManifestEditorFactory);
 
     connect(KitManager::instance(), &KitManager::kitsLoaded,
             this, &AndroidPlugin::kitsRestored);
 
-    connect(DeviceManager::instance(), &DeviceManager::devicesLoaded,
-            this, &AndroidPlugin::updateDevice);
     return true;
 }
 
@@ -107,9 +127,5 @@ void AndroidPlugin::kitsRestored()
                this, &AndroidPlugin::kitsRestored);
 }
 
-void AndroidPlugin::updateDevice()
-{
-    AndroidConfigurations::updateAndroidDevice();
-}
-
+} // namespace Internal
 } // namespace Android

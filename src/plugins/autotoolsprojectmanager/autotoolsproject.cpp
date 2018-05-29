@@ -73,7 +73,6 @@ AutotoolsProject::AutotoolsProject(const Utils::FileName &fileName) :
     m_cppCodeModelUpdater(new CppTools::CppProjectUpdater(this))
 {
     setId(Constants::AUTOTOOLS_PROJECT_ID);
-    setProjectContext(Core::Context(Constants::PROJECT_CONTEXT));
     setProjectLanguages(Core::Context(ProjectExplorer::Constants::CXX_LANGUAGE_ID));
     setDisplayName(projectDirectory().fileName());
 }
@@ -119,6 +118,7 @@ Project::RestoreResult AutotoolsProject::fromMap(const QVariantMap &map, QString
 
 void AutotoolsProject::loadProjectTree()
 {
+    emitParsingStarted();
     if (m_makefileParserThread) {
         // The thread is still busy parsing a previus configuration.
         // Wait until the thread has been finished and delete it.
@@ -218,7 +218,7 @@ void AutotoolsProject::makefileParsingFinished()
     m_makefileParserThread->deleteLater();
     m_makefileParserThread = nullptr;
 
-    emit parsingFinished();
+    emitParsingFinished(true);
 }
 
 void AutotoolsProject::onFileChanged(const QString &file)
@@ -275,8 +275,10 @@ void AutotoolsProject::updateCppCodeModel()
 
     CppTools::ProjectPart::QtVersion activeQtVersion = CppTools::ProjectPart::NoQt;
     if (QtSupport::BaseQtVersion *qtVersion = QtSupport::QtKitInformation::qtVersion(k)) {
-        if (qtVersion->qtVersion() < QtSupport::QtVersionNumber(5,0,0))
-            activeQtVersion = CppTools::ProjectPart::Qt4;
+        if (qtVersion->qtVersion() <= QtSupport::QtVersionNumber(4,8,6))
+            activeQtVersion = CppTools::ProjectPart::Qt4_8_6AndOlder;
+        else if (qtVersion->qtVersion() < QtSupport::QtVersionNumber(5,0,0))
+            activeQtVersion = CppTools::ProjectPart::Qt4Latest;
         else
             activeQtVersion = CppTools::ProjectPart::Qt5;
     }
@@ -295,7 +297,7 @@ void AutotoolsProject::updateCppCodeModel()
             ? target->activeBuildConfiguration()->buildDirectory().toString() : QString();
 
     rpp.setIncludePaths(filterIncludes(absSrc, absBuild, m_makefileParserThread->includePaths()));
-    rpp.setDefines(m_makefileParserThread->defines());
+    rpp.setMacros(m_makefileParserThread->macros());
     rpp.setFiles(m_files);
 
     m_cppCodeModelUpdater->update({this, cToolChain, cxxToolChain, k, {rpp}});

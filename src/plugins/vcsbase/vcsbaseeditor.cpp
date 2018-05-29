@@ -943,9 +943,8 @@ void VcsBaseEditorWidget::slotCursorPositionChanged()
     if (section != -1) {
         QComboBox *entriesComboBox = d->entriesComboBox();
         if (entriesComboBox->currentIndex() != section) {
-            const bool blocked = entriesComboBox->blockSignals(true);
+            QSignalBlocker blocker(entriesComboBox);
             entriesComboBox->setCurrentIndex(section);
-            entriesComboBox->blockSignals(blocked);
         }
     }
 }
@@ -1304,14 +1303,14 @@ int VcsBaseEditor::lineNumberOfCurrentEditor(const QString &currentFile)
     const BaseTextEditor *eda = qobject_cast<const BaseTextEditor *>(ed);
     if (!eda)
         return -1;
-    const int cursorLine = eda->currentLine();
+    const int cursorLine = eda->textCursor().blockNumber();
     auto const edw = qobject_cast<const TextEditorWidget *>(ed->widget());
     if (edw) {
-        const int firstLine = edw->firstVisibleLine();
-        const int lastLine = edw->lastVisibleLine();
+        const int firstLine = edw->firstVisibleBlockNumber();
+        const int lastLine = edw->lastVisibleBlockNumber();
         if (firstLine <= cursorLine && cursorLine < lastLine)
             return cursorLine;
-        return edw->centerVisibleLine();
+        return edw->centerVisibleBlockNumber();
     }
     return cursorLine;
 }
@@ -1398,7 +1397,7 @@ void VcsBaseEditorWidget::setCommand(VcsCommand *command)
     }
     d->m_command = command;
     if (command) {
-        d->m_progressIndicator = new Utils::ProgressIndicator(Utils::ProgressIndicator::Large);
+        d->m_progressIndicator = new Utils::ProgressIndicator(Utils::ProgressIndicatorSize::Large);
         d->m_progressIndicator->attachToWidget(this);
         connect(command, &VcsCommand::finished, this, &VcsBaseEditorWidget::reportCommandFinished);
         QTimer::singleShot(100, this, &VcsBaseEditorWidget::showProgressIndicator);

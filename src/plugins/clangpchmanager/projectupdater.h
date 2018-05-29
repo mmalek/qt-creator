@@ -25,17 +25,26 @@
 
 #pragma once
 
-#include <clangpchmanager_global.h>
+#include "clangpchmanager_global.h"
 
+#include <compilermacro.h>
 #include <filecontainerv2.h>
+#include <filepathcachinginterface.h>
+
+namespace ProjectExplorer {
+class Macro;
+using Macros = QVector<Macro>;
+}
 
 namespace CppTools {
 class ProjectPart;
 class ProjectFile;
+class ProjectPartHeaderPath;
+using ProjectPartHeaderPaths = QVector<ProjectPartHeaderPath>;
 }
 
 namespace ClangBackEnd {
-class PchManagerServerInterface;
+class ProjectManagementServerInterface;
 
 namespace V2 {
 class ProjectPartContainer;
@@ -51,11 +60,11 @@ namespace ClangPchManager {
 class HeaderAndSources;
 class PchManagerClient;
 
-class ProjectUpdater
+class CLANGPCHMANAGER_EXPORT ProjectUpdater
 {
 public:
-    ProjectUpdater(ClangBackEnd::PchManagerServerInterface &server,
-                   PchManagerClient &client);
+    ProjectUpdater(ClangBackEnd::ProjectManagementServerInterface &server,
+                   ClangBackEnd::FilePathCachingInterface &filePathCache);
 
     void updateProjectParts(const std::vector<CppTools::ProjectPart *> &projectParts,
                             ClangBackEnd::V2::FileContainers &&generatedFiles);
@@ -72,13 +81,17 @@ unittest_public:
     void addToHeaderAndSources(HeaderAndSources &headerAndSources,
                                const CppTools::ProjectFile &projectFile) const;
     static QStringList compilerArguments(CppTools::ProjectPart *projectPart);
+    static ClangBackEnd::CompilerMacros createCompilerMacros(
+            const ProjectExplorer::Macros &projectMacros);
+    static Utils::SmallStringVector createIncludeSearchPaths(
+            const CppTools::ProjectPartHeaderPaths &projectPartHeaderPaths);
     static Utils::PathStringVector createExcludedPaths(
             const ClangBackEnd::V2::FileContainers &generatedFiles);
 
 private:
     Utils::PathStringVector m_excludedPaths;
-    ClangBackEnd::PchManagerServerInterface &m_server;
-    PchManagerClient &m_client;
+    ClangBackEnd::ProjectManagementServerInterface &m_server;
+    ClangBackEnd::FilePathCachingInterface &m_filePathCache;
 };
 
 } // namespace ClangPchManager

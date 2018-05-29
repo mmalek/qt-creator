@@ -23,6 +23,8 @@
 **
 ****************************************************************************/
 
+#include "cppeditor.h"
+#include "cppeditorwidget.h"
 #include "cppeditorplugin.h"
 #include "cppeditortestcase.h"
 #include "cppquickfixassistant.h"
@@ -46,6 +48,7 @@
 using namespace Core;
 using namespace CPlusPlus;
 using namespace CppEditor::Internal::Tests;
+using namespace CppTools;
 using namespace TextEditor;
 
 using CppTools::Tests::TestIncludePaths;

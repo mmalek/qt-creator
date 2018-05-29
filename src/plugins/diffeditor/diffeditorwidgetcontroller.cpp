@@ -65,7 +65,7 @@ DiffEditorWidgetController::DiffEditorWidgetController(QWidget *diffEditorWidget
 void DiffEditorWidgetController::setDocument(DiffEditorDocument *document)
 {
     if (!m_progressIndicator) {
-        m_progressIndicator = new Utils::ProgressIndicator(Utils::ProgressIndicator::Large);
+        m_progressIndicator = new Utils::ProgressIndicator(Utils::ProgressIndicatorSize::Large);
         m_progressIndicator->attachToWidget(m_diffEditorWidget);
         m_progressIndicator->hide();
     }
@@ -289,7 +289,7 @@ void DiffEditorWidgetController::slotSendChunkToCodePaster()
     if (patch.isEmpty())
         return;
 
-    pasteService->postText(patch, QLatin1String(Constants::DIFF_EDITOR_MIMETYPE));
+    pasteService->postText(patch, Constants::DIFF_EDITOR_MIMETYPE);
 }
 
 void DiffEditorWidgetController::slotApplyChunk()

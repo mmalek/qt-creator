@@ -54,12 +54,17 @@ public:
     void prependChild(TreeItem *item);
     void appendChild(TreeItem *item);
     void insertChild(int pos, TreeItem *item);
+    void insertOrderedChild(TreeItem *item,
+        const std::function<bool(const TreeItem *, const TreeItem *)> &cmp);
+
+    void removeChildAt(int pos);
     void removeChildren();
     void sortChildren(const std::function<bool(const TreeItem *, const TreeItem *)> &cmp);
     void update();
     void updateAll();
     void updateColumn(int column);
     void expand();
+    void collapse();
     TreeItem *firstChild() const;
     TreeItem *lastChild() const;
     int level() const;
@@ -78,7 +83,8 @@ public:
     void forSelectedChildren(const std::function<bool(TreeItem *)> &pred) const;
     void forAllChildren(const std::function<void(TreeItem *)> &pred) const;
     TreeItem *findAnyChild(const std::function<bool(TreeItem *)> &pred) const;
-    // like findAnyChild() but processes children from bottom to top
+    // like findAnyChild() but processes children in exact reverse order
+    // (bottom to top, most inner children first)
     TreeItem *reverseFindAnyChild(const std::function<bool(TreeItem *)> &pred) const;
 
     // Levels are 1-based: Child at Level 1 is an immediate child.
@@ -90,6 +96,7 @@ private:
     void operator=(const TreeItem &) = delete;
 
     void clear();
+    void removeItemAt(int pos);
     void propagateModel(BaseTreeModel *m);
 
     TreeItem *m_parent; // Not owned.
@@ -133,6 +140,14 @@ public:
     ParentType *parent() const {
         return static_cast<ParentType *>(TreeItem::parent());
     }
+
+    void insertOrderedChild(ChildType *item, const std::function<bool(const ChildType *, const ChildType *)> &cmp)
+    {
+        const auto cmp0 = [cmp](const TreeItem *lhs, const TreeItem *rhs) {
+            return cmp(static_cast<const ChildType *>(lhs), static_cast<const ChildType *>(rhs));
+        };
+        TreeItem::insertOrderedChild(item, cmp0);
+    }
 };
 
 class QTCREATOR_UTILS_EXPORT StaticTreeItem : public TreeItem
@@ -175,9 +190,9 @@ protected:
     QVariant data(const QModelIndex &idx, int role) const override;
     QModelIndex index(int, int, const QModelIndex &idx = QModelIndex()) const override;
     QModelIndex parent(const QModelIndex &idx) const override;
+    QModelIndex sibling(int row, int column, const QModelIndex &idx) const override;
     Qt::ItemFlags flags(const QModelIndex &idx) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role) const override;
-    bool hasChildren(const QModelIndex &idx) const override;
 
     bool canFetchMore(const QModelIndex &idx) const override;
     void fetchMore(const QModelIndex &idx) override;
@@ -187,6 +202,7 @@ protected:
 
 signals:
     void requestExpansion(QModelIndex);
+    void requestCollapse(QModelIndex);
 
 protected:
     friend class TreeItem;
@@ -301,7 +317,7 @@ public:
     }
 
     template <class Predicate>
-    BestItem *findNonRooItem(const Predicate &pred) const {
+    BestItem *findNonRootItem(const Predicate &pred) const {
         const auto pred0 = [pred](TreeItem *treeItem) -> bool { return pred(static_cast<BestItem *>(treeItem)); };
         return static_cast<BestItem *>(m_root->findAnyChild(pred0));
     }

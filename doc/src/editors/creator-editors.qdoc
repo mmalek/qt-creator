@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2016 The Qt Company Ltd.
+** Copyright (C) 2017 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the Qt Creator documentation.
@@ -187,10 +187,36 @@
 
     \endlist
 
-    In addition, you can run static checks on the QML and JavaScript code in
-    your project to find common problems.
+    When using the Clang code model, errors and warnings are additionally marked
+    with icons and annotated. If a \l{http://clang.llvm.org/diagnostics.html}
+    {Clang fix-it} is available, you can execute it by clicking the
+    \inlineimage refactormarker.png
+    icon and pressing \key Enter.
+
+    In the following figure, a semicolon is missing at the end of the
+    line.
+
+    \image qtcreator-syntaxerror-clang.png
+
+    In the following figure, the variable is not used.
+
+    \image qtcreator-semanticerror-clang.png
+
+    To specify the position where the annotations are displayed, select
+    \uicontrol Tools > \uicontrol Options > \uicontrol {Text Editor} >
+    \uicontrol Display > \uicontrol {Line annotations}, and then
+    select whether to display the annotations directly next to the code,
+    aligned to the right of the code, or in the right margin. Showing annotations
+    between lines can be useful if there is usually not enough space to
+    display annotations next to the text.
+
+    If you hide the annotations by deselecting the check box, you can move the
+    mouse pointer over an icon to view them.
 
     \section1 Checking JSON Data Structure
+
+    You can run static checks on the QML and JavaScript code in
+    your project to find common problems.
 
     \QC validates instances of JSON entities against
     \l{http://tools.ietf.org/html/draft-zyp-json-schema-03}
@@ -209,7 +235,7 @@
     in Windows. To check JSON data structure, copy the JSON schema file to the
     above folder.
 
-    \section1 Checking JavaScript and QML Syntax
+    \section2 Checking JavaScript and QML Syntax
 
     To run the checks, select \uicontrol Tools > \uicontrol {QML/JS} >
     \uicontrol {Run Checks} or press \key {Ctrl+Shift+C}. The results are shown
@@ -217,10 +243,11 @@
     pane.
 
 
-    \section1 List of JavaScript and QML Checks
+    \section2 List of JavaScript and QML Checks
 
     Many of the JavaScript checks are similar to the ones in Douglas Crockford's
-    \l{http://www.jslint.com}{JSLint} tool.
+    \l{http://www.jslint.com}{JSLint} tool. For more information about JSLint
+    errors, see \l{http://linterrors.com/js}{JSLint Error Explanations}.
 
     \table
     \header
@@ -287,25 +314,33 @@
         \li M10
         \li Error
         \li Duplicate property binding
-        \li
+        \li See also: \l{http://linterrors.com/js/duplicate-key-a}
+            {Duplicate key '{a}'}.
 
     \row
         \li M11
         \li Error
         \li Id expected
-        \li
+        \li See also:
+            \l{http://linterrors.com/js/expected-an-identifier-and-instead-saw-a-a-reserved-word}
+            {Expected an identifier and instead saw '{a}' (a reserved word)}.
 
     \row
         \li M14
         \li Error
         \li Invalid id
-        \li
+        \li See also:
+            \l{http://linterrors.com/js/expected-an-identifier-and-instead-saw-a-a-reserved-word}
+            {Expected an identifier and instead saw '{a}' (a reserved word)}.
+
 
     \row
         \li M15
         \li Error
         \li Duplicate id
         \li Ids in a file must be unique.
+            See also: \l{http://linterrors.com/js/duplicate-key-a}
+            {Duplicate key '{a}'}.
 
     \row
         \li M16
@@ -345,7 +380,7 @@
         \li M23
         \li Warning
         \li Do not use \c eval
-        \li
+        \li See also: \l{http://linterrors.com/js/eval-is-evil}{eval is evil}.
 
     \row
         \li M28
@@ -357,7 +392,8 @@
         \li M29
         \li Warning
         \li Do not use \c with
-        \li
+        \li See also: \l{http://linterrors.com/js/unexpected-with}
+            {Unexpected 'with'}.
 
     \row
         \li M30
@@ -407,44 +443,51 @@
         \li M108
         \li Warning
         \li Function \c name is used before its declaration
-        \li
+        \li See also: \l{http://linterrors.com/js/a-was-used-before-it-was-defined}
+            {{a} was used before it was defined}.
 
     \row
         \li M109
         \li Warning
         \li Do not use \c Boolean as a constructor
-        \li
+        \li See also: \l{http://linterrors.com/js/do-not-use-a-as-a-constructor}
+            {Do not use {a} as a constructor}.
 
     \row
         \li M110
         \li Warning
         \li Do not use \c String as a constructor
-        \li
+        \li See also: \l{http://linterrors.com/js/do-not-use-a-as-a-constructor}
+            {Do not use {a} as a constructor}.
 
     \row
         \li M111
         \li Warning
         \li Do not use \c Object as a constructor
-        \li
+        \li See also: \l{http://linterrors.com/js/do-not-use-a-as-a-constructor}
+            {Do not use {a} as a constructor}.
 
     \row
         \li M112
         \li Warning
         \li Do not use \c Array as a constructor
-        \li
+        \li See also: \l{http://linterrors.com/js/do-not-use-a-as-a-constructor}
+            {Do not use {a} as a constructor}.
 
     \row
         \li M113
         \li Warning
         \li Do not use \c Function as a constructor
-        \li
+        \li See also: \l{http://linterrors.com/js/do-not-use-a-as-a-constructor}
+            {Do not use {a} as a constructor}.
 
     \row
         \li M114
         \li Hint
         \li The \c function keyword and the opening parenthesis should be
             separated by a single space
-        \li
+        \li See also: \l{http://linterrors.com/js/expected-exactly-one-space-between-a-and-b}
+            {Expected exactly one space between {a} and {b}}.
 
     \row
         \li M115
@@ -464,13 +507,15 @@
         \li M117
         \li Warning
         \li Confusing pluses
-        \li
+        \li See also: \l{http://linterrors.com/js/confusing-pluses}
+            {Confusing pluses}.
 
     \row
         \li M119
         \li Warning
         \li Confusing minuses
-        \li
+        \li See also: \l{http://linterrors.com/js/confusing-minuses}
+            {Confusing minuses}.
 
     \row
         \li M121
@@ -512,7 +557,9 @@
         \li M201
         \li Hint
         \li Place var declarations at the start of a function
-        \li
+        \li See also:
+            \l{http://linterrors.com/js/move-var-declarations-to-the-top-of-the-function}
+            {Move 'var' declarations to the top of the function}.
 
     \row
         \li M202
@@ -654,13 +701,15 @@
         \li M307
         \li Warning
         \li Use \c new only with functions that start with an uppercase letter
-        \li
+        \li See also: \l{http://linterrors.com/js/do-not-use-a-as-a-constructor}
+            {Do not use {a} as a constructor}.
 
     \row
         \li M308
         \li Warning
         \li Do not use \c Number as a constructor
-        \li
+        \li See also: \l{http://linterrors.com/js/do-not-use-a-as-a-constructor}
+            {Do not use {a} as a constructor}.
 
     \row
         \li M309
@@ -750,7 +799,9 @@
         \li M323
         \li Error
         \li \c Number elements expected in array value
-        \li
+        \li See also:
+            \l{http://linterrors.com/js/the-array-literal-notation-is-preferrable}
+            {The array literal notation [] is preferable}.
 
     \row
         \li M324
@@ -787,6 +838,12 @@
     To inspect QML and JavaScript properties, methods, and enums, move the
     cursor over them and select \uicontrol Tools > \uicontrol {QML/JS} >
     \uicontrol {Inspect API for Element Under Cursor}.
+
+    \section1 Automatically Formatting QML/JS Files
+
+    To automatically format QML/JS files upon saving, select \uicontrol Tools >
+    \uicontrol Options > \uicontrol {Qt Quick} > \uicontrol {QML/JS Editing} >
+    \uicontrol {Enable auto format on file save}.
 */
 
 
@@ -1956,6 +2013,9 @@
 
     \section1 Renaming Symbols
 
+    You can rename symbols in all files in a project. When you rename a class,
+    you can also change filenames that match the class name.
+
     To rename a specific symbol in a Qt project:
 
     \list 1
@@ -1973,15 +2033,18 @@
             \image qtcreator-refactoring-replace.png
 
         \li To replace all selected instances, enter the name of the new symbol
-            in the \uicontrol {Replace with} text box and click
-            \uicontrol Replace.
+            in the \uicontrol {Replace with} text box.
 
             To omit an instance, uncheck the check-box next to the instance.
+
+        \li If the symbol is a class, select the \uicontrol {Rename files} check
+            box to also change the filenames that match the class name.
+
+        \li  Select \uicontrol Replace.
 
             \note This action replaces all selected instances of the symbol in
             all files listed in the \uicontrol {Search Results} pane. You cannot
             undo this action.
-
     \endlist
 
     \note Renaming local symbols does not open the \uicontrol {Search Results}
@@ -2758,7 +2821,10 @@
 
     It is also possible to enter only a part of a search string. As you type,
     the locator shows the occurrences of that string regardless of where in the
-    name of an component it appears.
+    name of an component it appears. Some locator filters, such as colon and
+    \c m, support \e fuzzy matching, which means that you can enter the
+    uppercase letters to locate a symbol when using camel case or the letters
+    after the underscore when using snake case.
 
     To narrow down the search results, you can use the following wildcard
     characters:
@@ -2785,6 +2851,9 @@
         \li Locating files belonging to your project (\c {p}), such as source,
             header resource, and \c {.ui} files, or to any project (\c {a})
 
+        \li Locating bookmarks (\c {b}).
+            For more information, see \l{Using Bookmarks}.
+
         \li Locating class (\c {c}), enum, and function (m) definitions in your
             project or anywhere referenced from your project (\c {:})
 
@@ -2800,10 +2869,15 @@
         \li Running text editing macros that you record and save (\c {rm}). For
             more information, see \l{Using Text Editing Macros}
 
+        \li Executing JavaScript (\c {=}), especially useful for calculations.
+            For more information, see \l{Executing JavaScript}.
+
         \li Executing shell commands (\c {!})
 
         \li Executing version control system commands (\c {git}). For more
             information, see \l{Using Version Control Systems}
+
+        \li Triggering menu items from the main menu (\c {t})
 
         \li Running external tools (\c x)
 
@@ -2824,8 +2898,12 @@
 
         \li Activate the locator.
 
-        \li Enter \c{: QDataStream} (\c{:} (colon) followed by a
-            \key Space and the symbol name (QDataStream)).
+        \li Enter a colon (:) followed by a space and the upper case letters in
+            the symbol name (QDataStream):
+
+            \code
+            : qds
+            \endcode
 
             The locator lists the results.
 
@@ -2840,6 +2918,10 @@
     For example, to create a new file and open it in the editor, type \c f
     followed by \key Space, followed by path and file name, and then press
     \key Enter.
+
+    You can use the filter that triggers menu commands to open sessions. Enter
+    \c {t yoursess} or \c {t sess yoursess} to trigger \uicontrol File >
+    \uicontrol Sessions > \e yoursessionname.
 
     By default, the following filters are enabled and you do not need to use
     their prefixes explicitly:
@@ -2978,4 +3060,86 @@
 
     \endlist
 
+    \section1 Executing JavaScript
+
+    The locator provides access to a JavaScript interpreter, that can be used to
+    perform calculations.
+
+    Beside simple mathematical operations, like ((1 + 2) * 3), the following
+    built-in functions exist:
+
+    \table
+        \header
+            \li  Function
+            \li  Purpose
+        \row
+            \li  abs(x)
+            \li  Returns the absolute value of x
+        \row
+            \li  acos(x)
+            \li  Returns the arccosine of x, in radians
+        \row
+            \li  asin(x)
+            \li  Returns the arcsine of x, in radians
+        \row
+            \li  atan(x)
+            \li  Returns the arctangent of x, in radians
+        \row
+            \li  atan2(x, y)
+            \li  Returns the arctangent of the quotient of its arguments
+        \row
+            \li  bin(x)
+            \li  Returns the binary representation of x
+        \row
+            \li  ceil(x)
+            \li  Returns the value of x rounded up to the next integer
+        \row
+            \li  cos(x)
+            \li  Returns the cosine of x (x is in radians)
+        \row
+            \li  exp(x)
+            \li  Returns the value of E to the power of x
+        \row
+            \li  e()
+            \li  Returns Euler's number E (2.71828...)
+        \row
+            \li  floor(x)
+            \li  Returns the value of x rounded down to the next integer
+        \row
+            \li  hex(x)
+            \li  Returns the hexadecimal representation of x
+        \row
+            \li  log(x)
+            \li  Returns the natural logarithm (base E) of x
+        \row
+            \li  max(x, y)
+            \li  Returns the higher value of x and y
+        \row
+            \li  min(x, y)
+            \li  Returns the lower value of x and y
+        \row
+            \li  oct(x)
+            \li  Returns the octal representation of x
+        \row
+            \li  pi()
+            \li  Returns PI (3.14159...)
+        \row
+            \li  pow(x, y)
+            \li  Returns the value of x to the power of y
+        \row
+            \li  random()
+            \li  Returns a random number between 0 and 1
+        \row
+            \li  round(x)
+            \li  Returns the value of x rounded to the next integer
+        \row
+            \li  sin(x)
+            \li  Returns the sine of x (x is in radians)
+        \row
+            \li  sqrt(x)
+            \li  Returns the square root of x
+        \row
+            \li  tan(x)
+            \li  Returns the tangent of x (x is in radians)
+        \endtable
 */
