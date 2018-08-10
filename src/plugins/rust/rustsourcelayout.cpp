@@ -43,9 +43,8 @@ bool isIn(const QTextCursor &cursor, bool (*predicate)(TokenType))
     const int cursorPos = cursor.positionInBlock();
     const QTextBlock block = cursor.block();
     const QTextBlock previousBlock = block.previous();
-    const QString text = block.text();
 
-    Lexer lexer(&text,
+    Lexer lexer(block.text(),
                 SourceLayout::multiLineState(previousBlock),
                 SourceLayout::multiLineParam(previousBlock),
                 SourceLayout::braceDepth(previousBlock));

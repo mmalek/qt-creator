@@ -37,8 +37,8 @@ class EditorWidget : public TextEditor::TextEditorWidget
 protected:
     void contextMenuEvent(QContextMenuEvent *e) override;
 
-    Link findLinkAt(const QTextCursor &textCursor, bool resolveTarget = true,
-                    bool inNextSplit = false) override;
+    Utils::Link findLinkAt(
+            const QTextCursor &textCursor, bool resolveTarget, bool inNextSplit) override;
 };
 
 } // namespace Internal

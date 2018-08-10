@@ -74,7 +74,7 @@ struct Result
     QString detail;
     Type type;
 
-    static Type toType(QStringRef str);
+    static Type toType(QStringView str);
 
     static QIcon icon(Type type);
 };

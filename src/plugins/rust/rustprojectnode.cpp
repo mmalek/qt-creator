@@ -24,6 +24,7 @@
 ****************************************************************************/
 
 #include "rustprojectnode.h"
+#include "rustproject.h"
 
 #include <projectexplorer/projectnodes.h>
 #include <projectexplorer/projectnodes.h>
@@ -31,42 +32,32 @@
 namespace Rust {
 namespace Internal {
 
-ProjectNode::ProjectNode(const Utils::FileName &projectFilePath)
+ProjectNode::ProjectNode(Project &project, const Utils::FileName &projectFilePath)
     : ProjectExplorer::ProjectNode(projectFilePath)
+    , m_project(project)
 {}
 
 bool ProjectNode::addFiles(const QStringList &filePaths, QStringList *notAdded)
 {
-    Q_UNUSED(filePaths)
-    Q_UNUSED(notAdded)
-    emit changed();
-    return true;
+    return m_project.addFiles(filePaths, notAdded);
 }
 
 bool ProjectNode::removeFiles(const QStringList &filePaths, QStringList *notRemoved)
 {
-    Q_UNUSED(filePaths)
-    Q_UNUSED(notRemoved)
-    emit changed();
-    return true;
+    return m_project.removeFiles(filePaths, notRemoved);
 }
 
 bool ProjectNode::deleteFiles(const QStringList &filePaths)
 {
-    Q_UNUSED(filePaths)
-    emit changed();
-    return true;
+    return m_project.deleteFiles(filePaths);
 }
 
 bool ProjectNode::renameFile(const QString &filePath, const QString &newFilePath)
 {
-    Q_UNUSED(filePath)
-    Q_UNUSED(newFilePath)
-    emit changed();
-    return true;
+    return m_project.renameFile(filePath, newFilePath);
 }
 
-bool ProjectNode::supportsAction(ProjectExplorer::ProjectAction action, ProjectExplorer::Node *node) const
+bool ProjectNode::supportsAction(ProjectExplorer::ProjectAction action, const Node *node) const
 {
     switch (node->nodeType()) {
     case ProjectExplorer::NodeType::File:

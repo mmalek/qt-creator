@@ -133,11 +133,19 @@ QVector<TargetArch> getTargetArchs(const Utils::Environment& environment)
 
 } // namespace
 
+ToolChainManager *ToolChainManager::m_instance = nullptr;
+
 ToolChainManager::ToolChainManager(QObject *parent)
     : QObject(parent),
       m_environment(makeEnvironment())
 {
     settingsChanged();
+    m_instance = this;
+}
+
+ToolChainManager::~ToolChainManager()
+{
+    m_instance = nullptr;
 }
 
 const ToolChain *ToolChainManager::toolChain(Core::Id id) const

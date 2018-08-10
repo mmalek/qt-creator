@@ -86,17 +86,22 @@ enum class CharState {
 };
 
 template<typename Container>
-bool binarySearch(const Container& cont, QStringRef text)
+bool contains(const Container& cont, QStringView text)
 {
-    return std::binary_search(cont.begin(), cont.end(), text);
+    return std::any_of(
+                cont.begin(),
+                cont.end(),
+                [&text](const QStringView &element) {
+        return std::equal(element.cbegin(), element.end(), text.cbegin(), text.cend());
+    });
 }
 
-bool isKeyword(QStringRef text)
+bool isKeyword(QStringView text)
 {
-    return binarySearch(KEYWORDS, text);
+    return contains(KEYWORDS, text);
 }
 
-int skipWhile(int pos, QStringRef buf, bool (*predicate)(QChar))
+int skipWhile(int pos, QStringView buf, bool (*predicate)(QChar))
 {
     do
     {
@@ -122,29 +127,29 @@ bool isOctDigit(const QChar c)
     return c >= CHAR_0 && c <= CHAR_7;
 }
 
-bool isIntType(QStringRef text)
+bool isIntType(QStringView text)
 {
-    return binarySearch(INT_TYPES, text);
+    return contains(INT_TYPES, text);
 }
 
-bool isFloatType(QStringRef text)
+bool isFloatType(QStringView text)
 {
-    return binarySearch(FLOAT_TYPES, text);
+    return contains(FLOAT_TYPES, text);
 }
 
-bool isPrimitiveType(QStringRef text)
+bool isPrimitiveType(QStringView text)
 {
-    return isIntType(text) || isFloatType(text) || binarySearch(OTHER_PRIMITIVE_TYPES, text);
+    return isIntType(text) || isFloatType(text) || contains(OTHER_PRIMITIVE_TYPES, text);
 }
 
-bool isStdType(QStringRef text)
+bool isStdType(QStringView text)
 {
-    return binarySearch(STD_TYPES, text);
+    return contains(STD_TYPES, text);
 }
 
-bool isStdEnum(QStringRef text)
+bool isStdEnum(QStringView text)
 {
-    return binarySearch(STD_ENUMS, text);
+    return contains(STD_ENUMS, text);
 }
 
 bool isEscapedChar(const QChar c)
@@ -180,18 +185,18 @@ bool isShortOperator(const QChar c)
     return false;
 }
 
-int isLongOperator(QStringRef text)
+int isLongOperator(QStringView text)
 {
-    for (const QLatin1String& s : LONG_OPERATORS) {
+    for (const auto& s : LONG_OPERATORS) {
         if (text.startsWith(s)) {
-            return s.size();
+            return static_cast<int>(s.size());
         }
     }
 
     return 0;
 }
 
-int processChar(QStringRef buf, const QChar quote)
+int processChar(QStringView buf, const QChar quote)
 {
     CharState chState = CharState::Start;
 
@@ -249,7 +254,7 @@ int processChar(QStringRef buf, const QChar quote)
 }
 
 std::tuple<State, int>
-processNumSuffix(QStringRef buf, State state)
+processNumSuffix(QStringView buf, State state)
 {
     int pos = 0;
 
@@ -279,7 +284,7 @@ processNumSuffix(QStringRef buf, State state)
 }
 
 std::tuple<State, int, bool>
-processBinNumber(QChar character, QStringRef buf, State state)
+processBinNumber(QChar character, QStringView buf, State state)
 {
     if (isBinDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -289,7 +294,7 @@ processBinNumber(QChar character, QStringRef buf, State state)
 }
 
 std::tuple<State, int, bool>
-processHexNumber(QChar character, QStringRef buf, State state)
+processHexNumber(QChar character, QStringView buf, State state)
 {
     if (isHexDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -299,7 +304,7 @@ processHexNumber(QChar character, QStringRef buf, State state)
 }
 
 std::tuple<State, int, bool>
-processOctNumber(QChar character, QStringRef buf, State state)
+processOctNumber(QChar character, QStringView buf, State state)
 {
     if (isOctDigit(character) || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -309,7 +314,7 @@ processOctNumber(QChar character, QStringRef buf, State state)
 }
 
 std::tuple<State, int, bool>
-processDecNumber(QChar character, QStringRef buf, State state)
+processDecNumber(QChar character, QStringView buf, State state)
 {
     if (character.isNumber() || character == CHAR_UNDERSCORE) {
         if (state == State::Zero) {
@@ -331,7 +336,7 @@ processDecNumber(QChar character, QStringRef buf, State state)
 }
 
 std::tuple<State, int, bool>
-processFloatNumber(QChar character, QStringRef buf, State state)
+processFloatNumber(QChar character, QStringView buf, State state)
 {
     if (character.isNumber() || character == CHAR_UNDERSCORE) {
         return std::make_tuple(state, 0, false);
@@ -352,11 +357,11 @@ Token Lexer::next()
         m_pos = skipWhile(m_pos, m_buf, &isEol);
     }
 
-    int begin = (state != State::Default) ? m_pos : -1;
+    int begin = (state != State::Default) ? m_pos : 0;
 
     for (; m_pos >= 0 && m_pos < m_buf.size(); ++m_pos) {
         const QChar character = m_buf[m_pos];
-        const QStringRef slice = m_buf.mid(m_pos);
+        const QStringView slice = m_buf.mid(m_pos);
 
         if (state == State::Default) {
             if (slice.startsWith(RAW_STRING_START) || slice.startsWith(RAW_BYTE_STRING_START)) {
@@ -367,7 +372,7 @@ Token Lexer::next()
                 state = State::RawString;
                 if (m_pos < m_buf.size() && m_buf[m_pos] == CHAR_DOUBLE_QUOTE) {
                     m_multiLineState = MultiLineState::String;
-                    m_multiLineParam = m_pos - posAfterPrefix;
+                    m_multiLineParam = static_cast<quint8>(m_pos - posAfterPrefix);
                     ++m_depth;
                 }
             } else if (character.isNumber()) {
@@ -617,7 +622,7 @@ Token Lexer::next()
         }
     }
 
-    TokenType tokenType = [] (const State state, const QStringRef text) {
+    TokenType tokenType = [] (const State state, const QStringView text) {
         if (text.isEmpty()) {
             return TokenType::None;
         } else {

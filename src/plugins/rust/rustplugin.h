@@ -30,20 +30,20 @@
 namespace Rust {
 namespace Internal {
 
-class ToolChainManager;
-
 class Plugin final : public ExtensionSystem::IPlugin
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.qt-project.Qt.QtCreatorPlugin" FILE "Rust.json")
 
 public:
+    ~Plugin();
+
     bool initialize(const QStringList &arguments, QString *errorMessage) override;
 
     void extensionsInitialized() override;
 
 private:
-    ToolChainManager* m_toolChainManager = nullptr;
+    class PluginPrivate *d = nullptr;
 };
 
 } // namespace Internal

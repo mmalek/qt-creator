@@ -32,7 +32,7 @@ namespace Internal {
 namespace Settings {
 namespace {
 
-Q_CONSTEXPR QLatin1String GROUP{"Rust"};
+QLatin1String GROUP{"Rust"};
 
 } // namespace
 

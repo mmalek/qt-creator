@@ -58,9 +58,10 @@ void EditorWidget::contextMenuEvent(QContextMenuEvent *e)
     delete menu;
 }
 
-TextEditor::TextEditorWidget::Link EditorWidget::findLinkAt(const QTextCursor &textCursor,
-                                                            bool /*resolveTarget*/,
-                                                            bool /*inNextSplit*/)
+Utils::Link EditorWidget::findLinkAt(
+        const QTextCursor &textCursor,
+        bool /*resolveTarget*/,
+        bool /*inNextSplit*/)
 {
     if (!SourceLayout::isInCommentOrString(textCursor)) {
         auto results = Racer::run(Racer::Request::FindDefinition,
@@ -69,7 +70,7 @@ TextEditor::TextEditorWidget::Link EditorWidget::findLinkAt(const QTextCursor &t
 
         if (!results.isEmpty()) {
             const Racer::Result& result = results.first();
-            Link link(result.filePath, result.line, result.column);
+            Utils::Link link(result.filePath, result.line, result.column);
             if (const Slice slice = SourceLayout::identAtCursor(textCursor)) {
                 link.linkTextStart = slice.begin;
                 link.linkTextEnd = slice.begin + slice.length;
@@ -78,7 +79,7 @@ TextEditor::TextEditorWidget::Link EditorWidget::findLinkAt(const QTextCursor &t
         }
     }
 
-    return Link();
+    return {};
 }
 
 } // namespace Internal

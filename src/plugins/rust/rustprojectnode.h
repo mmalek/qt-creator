@@ -32,21 +32,21 @@ namespace Utils { class FileName; }
 namespace Rust {
 namespace Internal {
 
+class Project;
+
 class ProjectNode final : public ProjectExplorer::ProjectNode
 {
-    Q_OBJECT
-
 public:
-    ProjectNode(const Utils::FileName &projectFilePath);
+    ProjectNode(Project &project, const Utils::FileName &projectFilePath);
 
-    bool addFiles(const QStringList &, QStringList *) override;
-    bool removeFiles(const QStringList &, QStringList *) override;
-    bool deleteFiles(const QStringList &) override;
-    bool renameFile(const QString &, const QString &) override;
-    bool supportsAction(ProjectExplorer::ProjectAction action, Node *node) const override;
+    bool addFiles(const QStringList &filePaths, QStringList *notAdded) override;
+    bool removeFiles(const QStringList &filePaths, QStringList *notRemoved) override;
+    bool deleteFiles(const QStringList &filePaths) override;
+    bool renameFile(const QString &filePath, const QString &newFilePath) override;
+    bool supportsAction(ProjectExplorer::ProjectAction action, const Node *node) const override;
 
-signals:
-    void changed();
+private:
+    Project &m_project;
 };
 
 } // namespace Internal

@@ -57,23 +57,42 @@ const char MAIN_MENU[] = "Rust.Tools.Menu";
 
 } // namespace
 
+class PluginPrivate
+{
+public:
+    PluginPrivate()
+        : toolsOptionsPage(toolChainManager)
+    {
+    }
+
+    ToolChainManager toolChainManager;
+    ToolsOptionsPage toolsOptionsPage;
+    BuildConfigurationFactory buildConfigurationFactory;
+    BuildStepFactory buildStepFactory;
+    TestStepFactory testStepFactory;
+    BenchStepFactory benchStepFactory;
+    CleanStepFactory cleanStepFactory;
+    RunConfigurationFactory runConfigurationFactory;
+    EditorFactory editorFactory;
+};
+
+Plugin::~Plugin()
+{
+    delete d;
+}
+
 bool Plugin::initialize(const QStringList &arguments, QString *errorMessage)
 {
     Q_UNUSED(arguments)
     Q_UNUSED(errorMessage)
 
+    d = new PluginPrivate;
+
     ProjectExplorer::RunControl::registerWorker<RunConfiguration, ProjectExplorer::SimpleTargetRunner>
             (ProjectExplorer::Constants::NORMAL_RUN_MODE);
 
-    addAutoReleasedObject(m_toolChainManager = new ToolChainManager);
-    addAutoReleasedObject(new ToolsOptionsPage(*m_toolChainManager));
-    addAutoReleasedObject(new BuildConfigurationFactory(*m_toolChainManager));
-    addAutoReleasedObject(new BuildStepFactory(*m_toolChainManager));
-    addAutoReleasedObject(new RunConfigurationFactory);
-    addAutoReleasedObject(new EditorFactory);
-
-    ProjectExplorer::KitManager::registerKitInformation(new KitInformation(*m_toolChainManager));
-    ProjectExplorer::KitManager::registerKitInformation(new TargetArchInformation(*m_toolChainManager));
+    ProjectExplorer::KitManager::registerKitInformation(new KitInformation(d->toolChainManager));
+    ProjectExplorer::KitManager::registerKitInformation(new TargetArchInformation(d->toolChainManager));
 
     ProjectExplorer::ProjectManager::registerProjectType<Project>(MimeTypes::CARGO_MANIFEST);
 

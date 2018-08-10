@@ -131,7 +131,7 @@ void Highlighter::highlightBlock(const QString &text)
 
     int currentDepth = SourceLayout::braceDepth(previousBlock);
 
-    Lexer lexer(&text,
+    Lexer lexer(text,
                 SourceLayout::multiLineState(previousBlock),
                 SourceLayout::multiLineParam(previousBlock),
                 currentDepth);

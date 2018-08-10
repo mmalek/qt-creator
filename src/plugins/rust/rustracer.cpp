@@ -58,29 +58,29 @@ QLatin1String toString(Request request)
 
 constexpr std::size_t NUM_RESULT_TYPES = static_cast<std::size_t>(Result::Type::NumResultTypes);
 
-Q_CONSTEXPR std::array<QLatin1String, NUM_RESULT_TYPES> RESULT_TYPE_NAMES =
+Q_CONSTEXPR std::array<QStringView, NUM_RESULT_TYPES> RESULT_TYPE_NAMES =
 {
-    QLatin1String{"Struct"},
-    QLatin1String{"Module"},
-    QLatin1String{"MatchArm"},
-    QLatin1String{"Function"},
-    QLatin1String{"Crate"},
-    QLatin1String{"Let"},
-    QLatin1String{"IfLet"},
-    QLatin1String{"WhileLet"},
-    QLatin1String{"For"},
-    QLatin1String{"StructField"},
-    QLatin1String{"Impl"},
-    QLatin1String{"TraitImpl"},
-    QLatin1String{"Enum"},
-    QLatin1String{"EnumVariant"},
-    QLatin1String{"Type"},
-    QLatin1String{"FnArg"},
-    QLatin1String{"Trait"},
-    QLatin1String{"Const"},
-    QLatin1String{"Static"},
-    QLatin1String{"Macro"},
-    QLatin1String{"Builtin"}
+    QStringView{u"Struct"},
+    QStringView{u"Module"},
+    QStringView{u"MatchArm"},
+    QStringView{u"Function"},
+    QStringView{u"Crate"},
+    QStringView{u"Let"},
+    QStringView{u"IfLet"},
+    QStringView{u"WhileLet"},
+    QStringView{u"For"},
+    QStringView{u"StructField"},
+    QStringView{u"Impl"},
+    QStringView{u"TraitImpl"},
+    QStringView{u"Enum"},
+    QStringView{u"EnumVariant"},
+    QStringView{u"Type"},
+    QStringView{u"FnArg"},
+    QStringView{u"Trait"},
+    QStringView{u"Const"},
+    QStringView{u"Static"},
+    QStringView{u"Macro"},
+    QStringView{u"Builtin"}
 };
 
 } // namespace
@@ -134,7 +134,7 @@ QVector<Result> run(Request request, const QTextCursor& cursor, const QString &f
                 result.line = match.captured(2).toInt();
                 result.column = match.captured(3).toInt();
                 result.filePath = match.captured(4);
-                result.type = Result::toType(match.capturedRef(5));
+                result.type = Result::toType(match.capturedView(5));
                 result.detail = match.captured(6);
                 results.push_back(std::move(result));
             }
@@ -144,10 +144,11 @@ QVector<Result> run(Request request, const QTextCursor& cursor, const QString &f
     return results;
 }
 
-Result::Type Result::toType(QStringRef text)
+Result::Type Result::toType(QStringView text)
 {
     for (std::size_t i = 0; i < RESULT_TYPE_NAMES.size(); ++i) {
-        if (RESULT_TYPE_NAMES.at(i) == text) {
+        QStringView name = RESULT_TYPE_NAMES.at(i);
+        if (std::equal(name.cbegin(), name.cend(), text.cbegin(), text.cend())) {
             return static_cast<Result::Type>(i);
         }
     }

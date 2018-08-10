@@ -63,6 +63,7 @@ class ToolChainManager : public QObject
     Q_OBJECT
 public:
     explicit ToolChainManager(QObject *parent = nullptr);
+    ~ToolChainManager();
 
     const Utils::Environment& environment() const { return m_environment; }
 
@@ -77,6 +78,8 @@ public:
     static Utils::Environment makeEnvironment();
     static void addToEnvironment(Utils::Environment& environment);
 
+    static ToolChainManager* instance() { return m_instance; }
+
 public slots:
     void settingsChanged();
 
@@ -87,6 +90,7 @@ signals:
     void targetArchsReset();
 
 private:
+    static ToolChainManager* m_instance;
     Utils::Environment m_environment;
     QVector<ToolChain> m_toolChains;
     QVector<TargetArch> m_targetArchs;

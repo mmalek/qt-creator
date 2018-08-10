@@ -33,8 +33,6 @@
 namespace Rust {
 namespace Internal {
 
-class ToolChainManager;
-
 class BuildConfiguration final : public ProjectExplorer::BuildConfiguration
 {
     Q_OBJECT
@@ -42,24 +40,22 @@ class BuildConfiguration final : public ProjectExplorer::BuildConfiguration
 public:
     static const char ID[];
 
-    explicit BuildConfiguration(ProjectExplorer::Target *target, BuildType buildType = Unknown);
-    BuildConfiguration(ProjectExplorer::Target *target, BuildConfiguration *source);
+    explicit BuildConfiguration(ProjectExplorer::Target *target);
 
+    void initialize(const ProjectExplorer::BuildInfo *info) override;
     ProjectExplorer::NamedWidget *createConfigWidget() override;
-
     void addToEnvironment(Utils::Environment &env) const override;
+    BuildType buildType() const override { return m_buildType; }
 
     bool fromMap(const QVariantMap &map) override;
     QVariantMap toMap() const override;
 
     void setBuildType(BuildType buildType);
-    BuildType buildType() const override;
 
     static Utils::FileName buildDirectory(Utils::FileName projectDir, BuildType buildType);
 
 private:
     void updateBuildDirectory();
-
     BuildType m_buildType = Unknown;
 };
 
@@ -82,28 +78,20 @@ class BuildConfigurationFactory final : public ProjectExplorer::IBuildConfigurat
     Q_OBJECT
 
 public:
-    explicit BuildConfigurationFactory(const ToolChainManager& tcm, QObject *parent = nullptr);
+    explicit BuildConfigurationFactory();
 
     int priority(const ProjectExplorer::Target *parent) const override;
     QList<ProjectExplorer::BuildInfo *> availableBuilds(const ProjectExplorer::Target *parent) const override;
     int priority(const ProjectExplorer::Kit *k, const QString &projectPath) const override;
     QList<ProjectExplorer::BuildInfo *> availableSetups(const ProjectExplorer::Kit *k, const QString &projectPath) const override;
-    ProjectExplorer::BuildConfiguration *create(ProjectExplorer::Target *parent, const ProjectExplorer::BuildInfo *info) const override;
-    bool canRestore(const ProjectExplorer::Target *parent, const QVariantMap &map) const override;
-    ProjectExplorer::BuildConfiguration *restore(ProjectExplorer::Target *parent, const QVariantMap &map) override;
-    bool canClone(const ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) const override;
-    ProjectExplorer::BuildConfiguration *clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) override;
 
 private:
-    bool canHandle(const ProjectExplorer::Target *t) const;
+    bool canHandle(const ProjectExplorer::Target *t) const override;
     static Utils::FileName buildDirectory(const Utils::FileName &projectDir,
                                           ProjectExplorer::BuildConfiguration::BuildType buildType);
     ProjectExplorer::BuildInfo *createBuildInfo(const ProjectExplorer::Kit *k,
                                                 const Utils::FileName &projectDir,
                                                 ProjectExplorer::BuildConfiguration::BuildType buildType) const;
-
-private:
-    const ToolChainManager& m_toolChainManager;
 };
 
 } // namespace Internal

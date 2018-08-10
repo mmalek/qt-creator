@@ -50,8 +50,8 @@ constexpr int MIN_TYPED_CHARS_AUTOCOMPLETE = 3;
 
 void appendKeywords(QList<TextEditor::AssistProposalItemInterface *>& proposals)
 {
-    const auto addProposal = [&proposals](const QLatin1String& text) {
-        proposals.append(new RacerAssistProposalItem(Racer::Result::Type::Builtin, text));
+    const auto addProposal = [&proposals](const QStringView& text) {
+        proposals.append(new RacerAssistProposalItem(Racer::Result::Type::Builtin, text.toString()));
     };
 
     std::for_each(KEYWORDS.begin(), KEYWORDS.end(), addProposal);
@@ -61,7 +61,7 @@ void appendKeywords(QList<TextEditor::AssistProposalItemInterface *>& proposals)
 }
 
 template<typename F>
-void forEachFunArg(QStringRef declaration, F fn)
+void forEachFunArg(QStringView declaration, F fn)
 {
     Lexer lexer(declaration);
 
@@ -235,7 +235,7 @@ QString RacerFunctionHintProposalModel::text(int index) const
     if (m_currentArg >= 0) {
         int count = 0;
         Slice arg;
-        forEachFunArg(&declaration, [&count, &arg, this](const Slice& slice){
+        forEachFunArg(declaration, [&count, &arg, this](const Slice& slice){
             if (count == m_currentArg) {
                 arg = slice;
             }
@@ -259,7 +259,7 @@ QString RacerFunctionHintProposalModel::text(int index) const
 int RacerFunctionHintProposalModel::activeArgument(const QString &prefix) const
 {
     m_currentArg = 0;
-    forEachFunArg(&prefix, [this](const Slice&){ ++m_currentArg; });
+    forEachFunArg(prefix, [this](const Slice&){ ++m_currentArg; });
     return m_currentArg;
 }
 

@@ -53,12 +53,19 @@ class Project final : public ProjectExplorer::Project
     Q_OBJECT
 
 public:
+    static const char ID[];
+
     explicit Project(const Utils::FileName &fileName);
 
     bool needsConfiguration() const override;
-    bool supportsKit(ProjectExplorer::Kit *kit, QString *errorMessage) const override;
+    bool supportsKit(const ProjectExplorer::Kit *kit, QString *errorMessage) const override;
 
     const QVector<Product>& products() const { return m_products; }
+
+    bool addFiles(const QStringList &filePaths, QStringList *notAdded);
+    bool removeFiles(const QStringList &filePaths, QStringList *notRemoved);
+    bool deleteFiles(const QStringList &filePaths);
+    bool renameFile(const QString &filePath, const QString &newFilePath);
 
 private:
     void scheduleProjectScan();

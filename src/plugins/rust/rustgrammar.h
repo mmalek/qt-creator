@@ -26,7 +26,7 @@
 #pragma once
 
 #include <QChar>
-#include <QLatin1String>
+#include <QStringView>
 
 #include <array>
 
@@ -76,150 +76,164 @@ Q_CONSTEXPR QChar CHAR_X_LOWER = 0x0078; // x
 Q_CONSTEXPR QChar CHAR_BRACE_LEFT = 0x007B; // {
 Q_CONSTEXPR QChar CHAR_BRACE_RIGHT = 0x007D; // }
 
-Q_CONSTEXPR QLatin1String BYTE_START{"b\'"};
-Q_CONSTEXPR QLatin1String BYTE_STRING_START{"b\""};
-Q_CONSTEXPR QLatin1String RAW_STRING_START{"r#"};
-Q_CONSTEXPR QLatin1String RAW_STRING_END{"\"#"};
-Q_CONSTEXPR QLatin1String RAW_BYTE_STRING_START{"br#"};
-Q_CONSTEXPR QLatin1String ONE_LINE_COMMENT_START{"//"};
-Q_CONSTEXPR QLatin1String ONE_LINE_DOC1_COMMENT_START{"///"};
-Q_CONSTEXPR QLatin1String ONE_LINE_DOC2_COMMENT_START{"//!"};
-Q_CONSTEXPR QLatin1String MULTI_LINE_COMMENT_START{"/*"};
-Q_CONSTEXPR QLatin1String MULTI_LINE_DOC1_COMMENT_START{"/**"};
-Q_CONSTEXPR QLatin1String MULTI_LINE_DOC2_COMMENT_START{"/*!"};
-Q_CONSTEXPR QLatin1String MULTI_LINE_COMMENT_END{"*/"};
-Q_CONSTEXPR QLatin1String ATTRIBUTE_START{"#["};
-Q_CONSTEXPR QLatin1String ATTRIBUTE_NEG_START{"#!["};
-Q_CONSTEXPR QLatin1String RANGE_OPERATOR{".."};
-Q_CONSTEXPR QLatin1String PATH_SEPARATOR{"::"};
+Q_CONSTEXPR QStringView BYTE_START{u"b\'"};
+Q_CONSTEXPR QStringView BYTE_STRING_START{u"b\""};
+Q_CONSTEXPR QStringView RAW_STRING_START{u"r#"};
+Q_CONSTEXPR QStringView RAW_STRING_END{u"\"#"};
+Q_CONSTEXPR QStringView RAW_BYTE_STRING_START{u"br#"};
+Q_CONSTEXPR QStringView ONE_LINE_COMMENT_START{u"//"};
+Q_CONSTEXPR QStringView ONE_LINE_DOC1_COMMENT_START{u"///"};
+Q_CONSTEXPR QStringView ONE_LINE_DOC2_COMMENT_START{u"//!"};
+Q_CONSTEXPR QStringView MULTI_LINE_COMMENT_START{u"/*"};
+Q_CONSTEXPR QStringView MULTI_LINE_DOC1_COMMENT_START{u"/**"};
+Q_CONSTEXPR QStringView MULTI_LINE_DOC2_COMMENT_START{u"/*!"};
+Q_CONSTEXPR QStringView MULTI_LINE_COMMENT_END{u"*/"};
+Q_CONSTEXPR QStringView ATTRIBUTE_START{u"#["};
+Q_CONSTEXPR QStringView ATTRIBUTE_NEG_START{u"#!["};
+Q_CONSTEXPR QStringView RANGE_OPERATOR{u".."};
+Q_CONSTEXPR QStringView PATH_SEPARATOR{u"::"};
 
-Q_CONSTEXPR QLatin1String KEYWORD_ELSE{"else"};
-Q_CONSTEXPR QLatin1String KEYWORD_LC_SELF{"self"};
+Q_CONSTEXPR QStringView KEYWORD_ELSE{u"else"};
+Q_CONSTEXPR QStringView KEYWORD_LC_SELF{u"self"};
 
-Q_CONSTEXPR std::array<QLatin1String, 52> KEYWORDS =
+Q_CONSTEXPR std::array<QStringView, 52> KEYWORDS =
 {
-    QLatin1String{"Self"},
-    QLatin1String{"abstract"},
-    QLatin1String{"alignof"},
-    QLatin1String{"as"},
-    QLatin1String{"become"},
-    QLatin1String{"box"},
-    QLatin1String{"break"},
-    QLatin1String{"const"},
-    QLatin1String{"continue"},
-    QLatin1String{"crate"},
-    QLatin1String{"do"},
-    KEYWORD_ELSE,
-    QLatin1String{"enum"},
-    QLatin1String{"extern"},
-    QLatin1String{"false"},
-    QLatin1String{"final"},
-    QLatin1String{"fn"},
-    QLatin1String{"for"},
-    QLatin1String{"if"},
-    QLatin1String{"impl"},
-    QLatin1String{"in"},
-    QLatin1String{"let"},
-    QLatin1String{"loop"},
-    QLatin1String{"macro"},
-    QLatin1String{"match"},
-    QLatin1String{"mod"},
-    QLatin1String{"move"},
-    QLatin1String{"mut"},
-    QLatin1String{"offsetof"},
-    QLatin1String{"override"},
-    QLatin1String{"priv"},
-    QLatin1String{"proc"},
-    QLatin1String{"pub"},
-    QLatin1String{"pure"},
-    QLatin1String{"ref"},
-    QLatin1String{"return"},
-    KEYWORD_LC_SELF,
-    QLatin1String{"sizeof"},
-    QLatin1String{"static"},
-    QLatin1String{"struct"},
-    QLatin1String{"super"},
-    QLatin1String{"trait"},
-    QLatin1String{"true"},
-    QLatin1String{"type"},
-    QLatin1String{"typeof"},
-    QLatin1String{"unsafe"},
-    QLatin1String{"unsized"},
-    QLatin1String{"use"},
-    QLatin1String{"virtual"},
-    QLatin1String{"where"},
-    QLatin1String{"while"},
-    QLatin1String{"yield"}
+    {
+        QStringView{u"Self"},
+        QStringView{u"abstract"},
+        QStringView{u"alignof"},
+        QStringView{u"as"},
+        QStringView{u"become"},
+        QStringView{u"box"},
+        QStringView{u"break"},
+        QStringView{u"const"},
+        QStringView{u"continue"},
+        QStringView{u"crate"},
+        QStringView{u"do"},
+        KEYWORD_ELSE,
+        QStringView{u"enum"},
+        QStringView{u"extern"},
+        QStringView{u"false"},
+        QStringView{u"final"},
+        QStringView{u"fn"},
+        QStringView{u"for"},
+        QStringView{u"if"},
+        QStringView{u"impl"},
+        QStringView{u"in"},
+        QStringView{u"let"},
+        QStringView{u"loop"},
+        QStringView{u"macro"},
+        QStringView{u"match"},
+        QStringView{u"mod"},
+        QStringView{u"move"},
+        QStringView{u"mut"},
+        QStringView{u"offsetof"},
+        QStringView{u"override"},
+        QStringView{u"priv"},
+        QStringView{u"proc"},
+        QStringView{u"pub"},
+        QStringView{u"pure"},
+        QStringView{u"ref"},
+        QStringView{u"return"},
+        KEYWORD_LC_SELF,
+        QStringView{u"sizeof"},
+        QStringView{u"static"},
+        QStringView{u"struct"},
+        QStringView{u"super"},
+        QStringView{u"trait"},
+        QStringView{u"true"},
+        QStringView{u"type"},
+        QStringView{u"typeof"},
+        QStringView{u"unsafe"},
+        QStringView{u"unsized"},
+        QStringView{u"use"},
+        QStringView{u"virtual"},
+        QStringView{u"where"},
+        QStringView{u"while"},
+        QStringView{u"yield"},
+    }
 };
 
-Q_CONSTEXPR std::array<QLatin1String, 10> INT_TYPES =
+Q_CONSTEXPR std::array<QStringView, 10> INT_TYPES =
 {
-    QLatin1String{"i16"},
-    QLatin1String{"i32"},
-    QLatin1String{"i64"},
-    QLatin1String{"i8"},
-    QLatin1String{"isize"},
-    QLatin1String{"u16"},
-    QLatin1String{"u32"},
-    QLatin1String{"u64"},
-    QLatin1String{"u8"},
-    QLatin1String{"usize"}
+    {
+        QStringView{u"i16"},
+        QStringView{u"i32"},
+        QStringView{u"i64"},
+        QStringView{u"i8"},
+        QStringView{u"isize"},
+        QStringView{u"u16"},
+        QStringView{u"u32"},
+        QStringView{u"u64"},
+        QStringView{u"u8"},
+        QStringView{u"usize"},
+    }
 };
 
-Q_CONSTEXPR std::array<QLatin1String, 2> FLOAT_TYPES =
+Q_CONSTEXPR std::array<QStringView, 2> FLOAT_TYPES =
 {
-    QLatin1String{"f32"},
-    QLatin1String{"f64"}
+    {
+        QStringView{u"f32"},
+        QStringView{u"f64"},
+    }
 };
 
-Q_CONSTEXPR std::array<QLatin1String, 3> OTHER_PRIMITIVE_TYPES =
+Q_CONSTEXPR std::array<QStringView, 3> OTHER_PRIMITIVE_TYPES =
 {
-    QLatin1String{"bool"},
-    QLatin1String{"char"},
-    QLatin1String{"str"}
+    {
+        QStringView{u"bool"},
+        QStringView{u"char"},
+        QStringView{u"str"},
+    }
 };
 
-Q_CONSTEXPR std::array<QLatin1String, 5> STD_TYPES =
+Q_CONSTEXPR std::array<QStringView, 5> STD_TYPES =
 {
-    QLatin1String{"Box"},
-    QLatin1String{"Option"},
-    QLatin1String{"Result"},
-    QLatin1String{"String"},
-    QLatin1String{"Vec"}
+    {
+        QStringView{u"Box"},
+        QStringView{u"Option"},
+        QStringView{u"Result"},
+        QStringView{u"String"},
+        QStringView{u"Vec"},
+    }
 };
 
-Q_CONSTEXPR std::array<QLatin1String, 4> STD_ENUMS =
+Q_CONSTEXPR std::array<QStringView, 4> STD_ENUMS =
 {
-    QLatin1String{"Err"},
-    QLatin1String{"None"},
-    QLatin1String{"Ok"},
-    QLatin1String{"Some"}
+    {
+        QStringView{u"Err"},
+        QStringView{u"None"},
+        QStringView{u"Ok"},
+        QStringView{u"Some"},
+    }
 };
 
-Q_CONSTEXPR QLatin1String SHORT_OPERATORS{"=!?+-*/%&|^<>."};
+Q_CONSTEXPR QStringView SHORT_OPERATORS{u"=!?+-*/%&|^<>."};
 
-Q_CONSTEXPR std::array<QLatin1String, 20> LONG_OPERATORS =
+Q_CONSTEXPR std::array<QStringView, 20> LONG_OPERATORS =
 {
-    RANGE_OPERATOR,
-    QLatin1String{"<<"},
-    QLatin1String{">>"},
-    QLatin1String{"&&"},
-    QLatin1String{"||"},
-    QLatin1String{"=="},
-    QLatin1String{"!="},
-    QLatin1String{"<="},
-    QLatin1String{">="},
-    QLatin1String{"=>"},
-    QLatin1String{"+="},
-    QLatin1String{"-="},
-    QLatin1String{"*="},
-    QLatin1String{"/="},
-    QLatin1String{"%="},
-    QLatin1String{"&="},
-    QLatin1String{"|="},
-    QLatin1String{"^="},
-    QLatin1String{"<<="},
-    QLatin1String{">>="}
+    {
+        RANGE_OPERATOR,
+        QStringView{u"<<"},
+        QStringView{u">>"},
+        QStringView{u"&&"},
+        QStringView{u"||"},
+        QStringView{u"=="},
+        QStringView{u"!="},
+        QStringView{u"<="},
+        QStringView{u">="},
+        QStringView{u"=>"},
+        QStringView{u"+="},
+        QStringView{u"-="},
+        QStringView{u"*="},
+        QStringView{u"/="},
+        QStringView{u"%="},
+        QStringView{u"&="},
+        QStringView{u"|="},
+        QStringView{u"^="},
+        QStringView{u"<<="},
+        QStringView{u">>="},
+    }
 };
 
 namespace Grammar {

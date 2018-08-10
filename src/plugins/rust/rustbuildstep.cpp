@@ -24,8 +24,10 @@
 ****************************************************************************/
 
 #include "rustbuildstep.h"
+#include "rustbuildconfiguration.h"
 #include "rustcompileroutputparser.h"
 #include "rustkitinformation.h"
+#include "rustproject.h"
 #include "rustsettings.h"
 #include "rusttargetarchinformation.h"
 #include "rusttoolchainmanager.h"
@@ -44,27 +46,15 @@ namespace Internal {
 
 namespace {
 
-Q_CONSTEXPR QLatin1String EXTRA_ARGS_KEY("Rust.CargoStep.ExtraArgs");
-Q_CONSTEXPR QLatin1String SHOW_JSON_OUTPUT_KEY("Rust.CargoStep.ShowJsonOutput");
+QLatin1String EXTRA_ARGS_KEY("Rust.CargoStep.ExtraArgs");
+QLatin1String SHOW_JSON_OUTPUT_KEY("Rust.CargoStep.ShowJsonOutput");
 Q_CONSTEXPR QLatin1Char ARGS_SEPARATOR(' ');
 
 } // namespace
 
-CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id,
-                     const ToolChainManager& tcm, const QString &displayName)
+CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QString &displayName)
     : AbstractProcessStep(bsl, id),
-      m_toolChainManager(tcm),
       m_showJsonOnConsole(false)
-{
-    setDefaultDisplayName(displayName);
-    setDisplayName(displayName);
-}
-
-CargoStep::CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const QString &displayName)
-    : AbstractProcessStep(bsl, bs),
-      m_toolChainManager(bs->m_toolChainManager),
-      m_extraArgs(bs->m_extraArgs),
-      m_showJsonOnConsole(bs->m_showJsonOnConsole)
 {
     setDefaultDisplayName(displayName);
     setDisplayName(displayName);
@@ -79,7 +69,7 @@ bool CargoStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
     QStringList arguments;
 
     const Core::Id toolChainId = KitInformation::getToolChain(kit);
-    if (const ToolChain* toolChain = m_toolChainManager.toolChain(toolChainId)) {
+    if (const ToolChain* toolChain = toolChainManager().toolChain(toolChainId)) {
         if (!toolChain->fullToolChainName.isEmpty()) {
             arguments.append(QString("+%1").arg(toolChain->fullToolChainName));
         }
@@ -88,7 +78,7 @@ bool CargoStep::init(QList<const ProjectExplorer::BuildStep *> &earlierSteps)
     arguments += mainArgs();
 
     const Core::Id targetArchId = TargetArchInformation::getTargetArch(kit);
-    if (const TargetArch* targetArch = m_toolChainManager.targetArch(targetArchId)) {
+    if (const TargetArch* targetArch = toolChainManager().targetArch(targetArchId)) {
         arguments.append(QString("--target=%1").arg(targetArch->name));
     }
 
@@ -128,6 +118,13 @@ QString CargoStep::extraArgs() const
     return m_extraArgs.join(ARGS_SEPARATOR);
 }
 
+const ToolChainManager &CargoStep::toolChainManager() const
+{
+    ToolChainManager *tcm = ToolChainManager::instance();
+    Q_ASSERT(tcm);
+    return *tcm;
+}
+
 void CargoStep::setExtraArgs(const QString &value)
 {
     m_extraArgs = value.split(ARGS_SEPARATOR, QString::SkipEmptyParts);
@@ -156,13 +153,8 @@ void CargoStep::stdOutput(const QString &line)
 const char BuildStep::ID[] = "Rust.BuildStep";
 const char BuildStep::DISPLAY_NAME[] = "cargo build";
 
-BuildStep::BuildStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
-    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
-{
-}
-
-BuildStep::BuildStep(ProjectExplorer::BuildStepList *bsl, BuildStep *bs)
-    : CargoStep(bsl, bs, QLatin1String(DISPLAY_NAME))
+BuildStep::BuildStep(ProjectExplorer::BuildStepList *bsl)
+    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -175,16 +167,20 @@ QStringList BuildStep::mainArgs() const
     return args;
 }
 
+BuildStepFactory::BuildStepFactory()
+{
+    registerStep<BuildStep>(BuildStep::ID);
+    setDisplayName(BuildStep::DISPLAY_NAME);
+    setSupportedStepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
+    setSupportedConfiguration(BuildConfiguration::ID);
+    setSupportedProjectType(Project::ID);
+}
+
 const char TestStep::ID[] = "Rust.TestStep";
 const char TestStep::DISPLAY_NAME[] = "cargo test";
 
-TestStep::TestStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
-    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
-{
-}
-
-TestStep::TestStep(ProjectExplorer::BuildStepList *bsl, TestStep *bs)
-    : CargoStep(bsl, bs, QLatin1String(DISPLAY_NAME))
+TestStep::TestStep(ProjectExplorer::BuildStepList *bsl)
+    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -197,16 +193,20 @@ QStringList TestStep::mainArgs() const
     return args;
 }
 
+TestStepFactory::TestStepFactory()
+{
+    registerStep<TestStep>(TestStep::ID);
+    setDisplayName(TestStep::DISPLAY_NAME);
+    setSupportedStepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
+    setSupportedConfiguration(BuildConfiguration::ID);
+    setSupportedProjectType(Project::ID);
+}
+
 const char BenchStep::ID[] = "Rust.BenchStep";
 const char BenchStep::DISPLAY_NAME[] = "cargo bench";
 
-BenchStep::BenchStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
-    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
-{
-}
-
-BenchStep::BenchStep(ProjectExplorer::BuildStepList *bsl, BenchStep *bs)
-    : CargoStep(bsl, bs, QLatin1String(DISPLAY_NAME))
+BenchStep::BenchStep(ProjectExplorer::BuildStepList *bsl)
+    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -215,16 +215,20 @@ QStringList BenchStep::mainArgs() const
     return { QLatin1String("bench"), QLatin1String("--message-format=json") };
 }
 
+BenchStepFactory::BenchStepFactory()
+{
+    registerStep<BenchStep>(BenchStep::ID);
+    setDisplayName(BenchStep::DISPLAY_NAME);
+    setSupportedStepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
+    setSupportedConfiguration(BuildConfiguration::ID);
+    setSupportedProjectType(Project::ID);
+}
+
 const char CleanStep::ID[] = "Rust.CleanStep";
 const char CleanStep::DISPLAY_NAME[] = "cargo clean";
 
-CleanStep::CleanStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm)
-    : CargoStep(bsl, ID, tcm, QLatin1String(DISPLAY_NAME))
-{
-}
-
-CleanStep::CleanStep(ProjectExplorer::BuildStepList *bsl, CleanStep *bs)
-    : CargoStep(bsl, bs, QLatin1String(DISPLAY_NAME))
+CleanStep::CleanStep(ProjectExplorer::BuildStepList *bsl)
+    : CargoStep(bsl, ID, QLatin1String(DISPLAY_NAME))
 {
 }
 
@@ -235,6 +239,15 @@ QStringList CleanStep::mainArgs() const
         args.append(QLatin1String("--release"));
     }
     return args;
+}
+
+CleanStepFactory::CleanStepFactory()
+{
+    registerStep<BenchStep>(CleanStep::ID);
+    setDisplayName(CleanStep::DISPLAY_NAME);
+    setSupportedStepList(ProjectExplorer::Constants::BUILDSTEPS_CLEAN);
+    setSupportedConfiguration(BuildConfiguration::ID);
+    setSupportedProjectType(Project::ID);
 }
 
 BuildStepConfigWidget::BuildStepConfigWidget(CargoStep *step) :
@@ -254,59 +267,6 @@ BuildStepConfigWidget::BuildStepConfigWidget(CargoStep *step) :
 
 BuildStepConfigWidget::~BuildStepConfigWidget()
 {
-}
-
-BuildStepFactory::BuildStepFactory(const ToolChainManager& tcm, QObject *parent)
-    : ProjectExplorer::IBuildStepFactory(parent),
-      m_toolChainManager(tcm)
-{
-}
-
-QList<ProjectExplorer::BuildStepInfo> BuildStepFactory::availableSteps(ProjectExplorer::BuildStepList *parent) const
-{
-    if (parent->id() == ProjectExplorer::Constants::BUILDSTEPS_BUILD) {
-        return { { BuildStep::ID, QLatin1String(BuildStep::DISPLAY_NAME) },
-                 { TestStep::ID, QLatin1String(TestStep::DISPLAY_NAME) },
-                 { BenchStep::ID, QLatin1String(BenchStep::DISPLAY_NAME) } };
-    } else if (parent->id() == ProjectExplorer::Constants::BUILDSTEPS_CLEAN) {
-        return {{ CleanStep::ID, QLatin1String(CleanStep::DISPLAY_NAME) }};
-    } else {
-        return {};
-    }
-}
-
-ProjectExplorer::BuildStep *BuildStepFactory::create(ProjectExplorer::BuildStepList *parent, Core::Id id)
-{
-    if (id == BuildStep::ID) {
-        return new BuildStep(parent, m_toolChainManager);
-    } else if (id == TestStep::ID) {
-        return new TestStep(parent, m_toolChainManager);
-    } else if (id == BenchStep::ID) {
-        return new BenchStep(parent, m_toolChainManager);
-    } else if (id == CleanStep::ID) {
-        return new CleanStep(parent, m_toolChainManager);
-    } else {
-        return nullptr;
-    }
-}
-
-ProjectExplorer::BuildStep *BuildStepFactory::clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *source)
-{
-    QTC_ASSERT(parent, return nullptr);
-    QTC_ASSERT(source, return nullptr);
-
-    QScopedPointer<ProjectExplorer::BuildStep> result;
-    if (BuildStep* bs = qobject_cast<BuildStep*>(source)) {
-        result.reset(new BuildStep(parent, bs));
-    } else if (TestStep* bs = qobject_cast<TestStep*>(source)) {
-        result.reset(new TestStep(parent, bs));
-    } else if (BenchStep* bs = qobject_cast<BenchStep*>(source)) {
-        result.reset(new BenchStep(parent, bs));
-    } else if (CleanStep* bs = qobject_cast<CleanStep*>(source)) {
-        result.reset(new CleanStep(parent, bs));
-    }
-
-    return result && result->fromMap(source->toMap()) ? result.take() : nullptr;
 }
 
 } // namespace Internal

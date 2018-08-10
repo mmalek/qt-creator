@@ -56,18 +56,31 @@ constexpr int BUILD_TYPE_RELEASE = 1;
 
 const char BuildConfiguration::ID[] = "Rust.BuildConfiguration";
 
-BuildConfiguration::BuildConfiguration(ProjectExplorer::Target *target, BuildType buildType)
-    : ProjectExplorer::BuildConfiguration(target, ID),
-      m_buildType(buildType)
+BuildConfiguration::BuildConfiguration(ProjectExplorer::Target *target)
+    : ProjectExplorer::BuildConfiguration(target, ID)
 {
     updateBuildDirectory();
 }
 
-BuildConfiguration::BuildConfiguration(ProjectExplorer::Target *target, BuildConfiguration *source)
-    : ProjectExplorer::BuildConfiguration(target, source),
-      m_buildType(source->m_buildType)
+void BuildConfiguration::initialize(const ProjectExplorer::BuildInfo *info)
 {
-    updateBuildDirectory();
+    ProjectExplorer::BuildConfiguration::initialize(info);
+
+    m_buildType = info->buildType;
+    setDisplayName(info->displayName);
+    setDefaultDisplayName(info->displayName);
+
+    Utils::FileName buildDir = info->buildDirectory;
+    if (buildDir.isEmpty()) {
+        buildDir = buildDirectory(target()->project()->projectDirectory(), info->buildType);
+    }
+    setBuildDirectory(buildDir);
+
+    auto *buildSteps = stepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
+    buildSteps->appendStep(new BuildStep(buildSteps));
+
+    auto *cleanSteps = stepList(ProjectExplorer::Constants::BUILDSTEPS_CLEAN);
+    cleanSteps->appendStep(new CleanStep(buildSteps));
 }
 
 ProjectExplorer::NamedWidget *BuildConfiguration::createConfigWidget()
@@ -118,11 +131,6 @@ void BuildConfiguration::setBuildType(BuildType buildType)
     }
 }
 
-BuildConfiguration::BuildType BuildConfiguration::buildType() const
-{
-    return m_buildType;
-}
-
 Utils::FileName BuildConfiguration::buildDirectory(Utils::FileName path, BuildType buildType)
 {
     path.appendPath(QLatin1String("target"));
@@ -161,12 +169,13 @@ BuildConfigurationWidget::~BuildConfigurationWidget()
 {
 }
 
-BuildConfigurationFactory::BuildConfigurationFactory(const ToolChainManager& tcm, QObject *parent)
-    : ProjectExplorer::IBuildConfigurationFactory(parent),
-      m_toolChainManager(tcm)
+BuildConfigurationFactory::BuildConfigurationFactory()
 {
-
+    registerBuildConfiguration<BuildConfiguration>(BuildConfiguration::ID);
+    setSupportedProjectType(Project::ID);
+    setSupportedProjectMimeTypeName(MimeTypes::CARGO_MANIFEST);
 }
+
 int BuildConfigurationFactory::priority(const ProjectExplorer::Target *parent) const
 {
     return canHandle(parent) ? 0 : -1;
@@ -196,56 +205,6 @@ QList<ProjectExplorer::BuildInfo *> BuildConfigurationFactory::availableSetups(c
     release->displayName = tr("Release");
 
     return { debug, release };
-}
-
-ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::create(ProjectExplorer::Target *parent, const ProjectExplorer::BuildInfo *info) const
-{
-    QTC_ASSERT(info->factory() == this, return nullptr);
-    QTC_ASSERT(info->kitId == parent->kit()->id(), return nullptr);
-    QTC_ASSERT(!info->displayName.isEmpty(), return nullptr);
-
-    BuildConfiguration* buildConfiguration = new BuildConfiguration(parent, info->buildType);
-    buildConfiguration->setDisplayName(info->displayName);
-    buildConfiguration->setDefaultDisplayName(info->displayName);
-
-    Utils::FileName buildDir = info->buildDirectory;
-    if (buildDir.isEmpty()) {
-        buildDir = buildDirectory(parent->project()->projectDirectory(), info->buildType);
-    }
-    buildConfiguration->setBuildDirectory(buildDir);
-
-    ProjectExplorer::BuildStepList* buildSteps = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_BUILD);
-    buildSteps->appendStep(new BuildStep(buildSteps, m_toolChainManager));
-
-    ProjectExplorer::BuildStepList* cleanSteps = buildConfiguration->stepList(ProjectExplorer::Constants::BUILDSTEPS_CLEAN);
-    cleanSteps->appendStep(new CleanStep(cleanSteps, m_toolChainManager));
-
-    return buildConfiguration;
-}
-
-bool BuildConfigurationFactory::canRestore(const ProjectExplorer::Target *parent, const QVariantMap &map) const
-{
-    return canHandle(parent) && ProjectExplorer::idFromMap(map) == BuildConfiguration::ID;
-}
-
-ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::restore(ProjectExplorer::Target *parent, const QVariantMap &map)
-{
-    QTC_ASSERT(canRestore(parent, map), return nullptr);
-    QScopedPointer<BuildConfiguration> result(new BuildConfiguration(parent));
-    return result->fromMap(map) ? result.take() : nullptr;
-}
-
-bool BuildConfigurationFactory::canClone(const ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source) const
-{
-    return canHandle(parent) && qobject_cast<BuildConfiguration *>(source);
-}
-
-ProjectExplorer::BuildConfiguration *BuildConfigurationFactory::clone(ProjectExplorer::Target *parent, ProjectExplorer::BuildConfiguration *source)
-{
-    if (!canClone(parent, source))
-        return nullptr;
-    BuildConfiguration *buildConfiguration = static_cast<BuildConfiguration *>(source);
-    return new BuildConfiguration(parent, buildConfiguration);
 }
 
 bool BuildConfigurationFactory::canHandle(const ProjectExplorer::Target *t) const

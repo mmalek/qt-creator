@@ -39,9 +39,7 @@ class CargoStep : public ProjectExplorer::AbstractProcessStep
     Q_OBJECT
 
 public:
-    CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id,
-              const ToolChainManager& tcm, const QString& displayName);
-    CargoStep(ProjectExplorer::BuildStepList *bsl, CargoStep *bs, const QString& displayName);
+    CargoStep(ProjectExplorer::BuildStepList *bsl, Core::Id id, const QString& displayName);
 
     bool init(QList<const ProjectExplorer::BuildStep *> &earlierSteps) final;
 
@@ -54,7 +52,7 @@ public:
     bool showJsonOutput() const { return m_showJsonOnConsole; }
     virtual QStringList mainArgs() const = 0;
 
-    const ToolChainManager& toolChainManager() const { return m_toolChainManager; }
+    const ToolChainManager &toolChainManager() const;
 
 public slots:
     void setExtraArgs(const QString& value);
@@ -64,7 +62,6 @@ protected:
     void stdOutput(const QString &line) override;
 
 private:
-    const ToolChainManager& m_toolChainManager;
     QStringList m_extraArgs;
     bool m_showJsonOnConsole;
 };
@@ -77,10 +74,15 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit BuildStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
-    BuildStep(ProjectExplorer::BuildStepList *bsl, BuildStep *bs);
+    explicit BuildStep(ProjectExplorer::BuildStepList *bsl);
 
     QStringList mainArgs() const override;
+};
+
+class BuildStepFactory final : public ProjectExplorer::BuildStepFactory
+{
+public:
+    BuildStepFactory();
 };
 
 class TestStep final : public CargoStep
@@ -91,10 +93,15 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit TestStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
-    TestStep(ProjectExplorer::BuildStepList *bsl, TestStep *bs);
+    explicit TestStep(ProjectExplorer::BuildStepList *bsl);
 
     QStringList mainArgs() const override;
+};
+
+class TestStepFactory final : public ProjectExplorer::BuildStepFactory
+{
+public:
+    TestStepFactory();
 };
 
 class BenchStep final : public CargoStep
@@ -105,10 +112,15 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit BenchStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
-    BenchStep(ProjectExplorer::BuildStepList *bsl, BenchStep *bs);
+    explicit BenchStep(ProjectExplorer::BuildStepList *bsl);
 
     QStringList mainArgs() const override;
+};
+
+class BenchStepFactory final : public ProjectExplorer::BuildStepFactory
+{
+public:
+    BenchStepFactory();
 };
 
 class CleanStep final : public CargoStep
@@ -119,10 +131,15 @@ public:
     static const char ID[];
     static const char DISPLAY_NAME[];
 
-    explicit CleanStep(ProjectExplorer::BuildStepList *bsl, const ToolChainManager& tcm);
-    CleanStep(ProjectExplorer::BuildStepList *bsl, CleanStep *bs);
+    explicit CleanStep(ProjectExplorer::BuildStepList *bsl);
 
     QStringList mainArgs() const override;
+};
+
+class CleanStepFactory final : public ProjectExplorer::BuildStepFactory
+{
+public:
+    CleanStepFactory();
 };
 
 namespace Ui { class BuildStepConfigWidget; }
@@ -133,25 +150,12 @@ class BuildStepConfigWidget : public ProjectExplorer::SimpleBuildStepConfigWidge
 
 public:
     explicit BuildStepConfigWidget(CargoStep *step);
-    ~BuildStepConfigWidget();
+    ~BuildStepConfigWidget() override;
 
     bool showWidget() const override { return true; }
 
 private:
     QScopedPointer<Ui::BuildStepConfigWidget> m_ui;
-};
-
-class BuildStepFactory final : public ProjectExplorer::IBuildStepFactory
-{
-public:
-    explicit BuildStepFactory(const ToolChainManager& tcm, QObject *parent = nullptr);
-
-    QList<ProjectExplorer::BuildStepInfo> availableSteps(ProjectExplorer::BuildStepList *parent) const override;
-    ProjectExplorer::BuildStep *create(ProjectExplorer::BuildStepList *parent, Core::Id id) override;
-    ProjectExplorer::BuildStep *clone(ProjectExplorer::BuildStepList *parent, ProjectExplorer::BuildStep *source) override;
-
-private:
-    const ToolChainManager& m_toolChainManager;
 };
 
 } // namespace Internal

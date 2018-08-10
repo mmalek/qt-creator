@@ -42,19 +42,21 @@ class RunConfiguration final : public ProjectExplorer::RunConfiguration
     Q_OBJECT
 
 public:
-    RunConfiguration(ProjectExplorer::Target *parent, Core::Id id);
-    RunConfiguration(ProjectExplorer::Target *parent, RunConfiguration *source);
+    RunConfiguration(ProjectExplorer::Target *parent);
 
-    bool isEnabled() const override;
+    bool isConfigured() const override;
     QWidget *createConfigurationWidget() override;
     ProjectExplorer::Runnable runnable() const override;
+    bool fromMap(const QVariantMap &map) override;
     Utils::FileName executable(ProjectExplorer::BuildConfiguration* bc) const;
     Utils::FileName workingDirectory() const;
-    const Project& project() const;
-    const Product* product() const;
+    const Project& rustProject() const;
+    const Product* product() const { return m_product; }
 
 private:
     QString defaultDisplayName() const;
+
+    const Product *m_product = nullptr;
 };
 
 class RunConfigurationFactory final : public ProjectExplorer::IRunConfigurationFactory
@@ -64,17 +66,9 @@ class RunConfigurationFactory final : public ProjectExplorer::IRunConfigurationF
 public:
     RunConfigurationFactory(QObject *parent = nullptr);
 
-    QList<Core::Id> availableCreationIds(ProjectExplorer::Target *parent, CreationMode mode) const override;
-    QString displayNameForId(Core::Id id) const override;
+    QList<ProjectExplorer::RunConfigurationCreationInfo> availableCreators(ProjectExplorer::Target *parent) const override;
 
-    bool canCreate(ProjectExplorer::Target *parent, Core::Id id) const override;
-    bool canRestore(ProjectExplorer::Target *parent, const QVariantMap &map) const override;
-    bool canClone(ProjectExplorer::Target *parent, ProjectExplorer::RunConfiguration *source) const override;
-    ProjectExplorer::RunConfiguration *clone(ProjectExplorer::Target *parent, ProjectExplorer::RunConfiguration *source) override;
-
-private:
-    ProjectExplorer::RunConfiguration *doCreate(ProjectExplorer::Target *parent, Core::Id id) override;
-    ProjectExplorer::RunConfiguration *doRestore(ProjectExplorer::Target *parent, const QVariantMap &map) override;
+    bool canHandle(ProjectExplorer::Target *target) const override;
 };
 
 class RunConfigurationWidget : public QWidget
@@ -91,8 +85,6 @@ private:
     void runConfigurationEnabledChange();
 
     RunConfiguration *m_rc;
-    QLabel *m_disabledIcon;
-    QLabel *m_disabledReason;
     QLabel *m_executableLineLabel;
     bool m_isShown = false;
 };

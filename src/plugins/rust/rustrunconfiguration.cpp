@@ -32,41 +32,43 @@
 #include <projectexplorer/target.h>
 #include <utils/detailswidget.h>
 #include <utils/fileutils.h>
+#include <utils/hostosinfo.h>
 #include <utils/pathchooser.h>
 #include <utils/utilsicons.h>
 
 #include <QBoxLayout>
 #include <QFormLayout>
 #include <QLabel>
+#include <QRegularExpression>
 
 namespace Rust {
 namespace Internal {
 
 namespace {
-    QString toString(Product::Kind kind)
+    QStringView toStringView(Product::Kind kind)
     {
         switch(kind)
         {
-        case Product::Benchmark: return QLatin1String("ben");
-        case Product::Binary: return QLatin1String("bin");
-        case Product::Example: return QLatin1String("exa");
-        case Product::Test: return QLatin1String("tes");
-        case Product::Library: return QLatin1String("lib");
+        case Product::Benchmark: return u"ben";
+        case Product::Binary: return u"bin";
+        case Product::Example: return u"exa";
+        case Product::Test: return u"tes";
+        case Product::Library: return u"lib";
         default: Q_UNREACHABLE();
         }
     }
 
-    Product::Kind toProductKind(const QStringRef& kind)
+    Product::Kind toProductKind(const QStringView& kind)
     {
-        if (kind == "ben") {
+        if (kind == u"ben") {
             return Product::Benchmark;
-        } else if (kind == "bin") {
+        } else if (kind == u"bin") {
             return Product::Binary;
-        } else if (kind == "exa") {
+        } else if (kind == u"exa") {
             return Product::Example;
-        } else if (kind == "tes") {
+        } else if (kind == u"tes") {
             return Product::Test;
-        } else if (kind == "lib") {
+        } else if (kind == u"lib") {
             return Product::Library;
         } else {
             Q_UNREACHABLE();
@@ -75,47 +77,46 @@ namespace {
 
     constexpr char RC_PREFIX[] = "Rust.RunConfiguration";
 
-    Core::Id toRunConfigurationId(const Product& product)
+    QString toRunConfigurationExtra(const Product& product)
     {
-        return Core::Id::fromString(QString("%1.%2.%3")
-                                        .arg(RC_PREFIX)
-                                        .arg(toString(product.kind))
-                                        .arg(product.name));
+        return QStringLiteral("%1.%2")
+                .arg(toStringView(product.kind))
+                .arg(product.name);
     }
 
-    const Product* toProduct(const Project& project, Core::Id id)
+    QPair<Product::Kind, QString> getKindAndName(const QString &extra)
     {
-        const QString suffix = id.suffixAfter(RC_PREFIX);
-        Q_ASSERT(suffix.length() > 5);
-        const Product::Kind kind = toProductKind(suffix.midRef(1, 3));
-        const QStringRef name = suffix.midRef(5);
+        QRegularExpression re(QStringLiteral("^(?<kind>\\w+)\\.(?<name>.+)"));
+        auto match = re.match(extra);
+        if (match.hasMatch()) {
+            auto kind = match.captured(u"kind");
+            auto name = match.captured(u"name");
+            return {toProductKind(kind), name};
+        } else {
+            return {};
+        }
+    }
 
-        for (const Product& product : project.products()) {
-            if (product.kind == kind && product.name == name) {
-                return &product;
+    const Product* toProduct(const Project& project, const QString &extra)
+    {
+        auto kindAndName = getKindAndName(extra);
+        const Product::Kind kind = kindAndName.first;
+        const QString &name = kindAndName.second;
+
+        if (!name.isEmpty()) {
+            for (const Product& product : project.products()) {
+                if (product.kind == kind && product.name == name) {
+                    return &product;
+                }
             }
         }
         return nullptr;
     }
 
-    QPair<Product::Kind,QString> getKindAndName(Core::Id id)
-    {
-        const QString suffix = id.suffixAfter(RC_PREFIX);
-        Q_ASSERT(suffix.length() > 5);
-        const Product::Kind kind = toProductKind(suffix.midRef(1, 3));
-        const QString name = suffix.mid(5);
-
-        return qMakePair(kind, name);
-    }
-
-    QString getProductDisplayName(Core::Id id)
-    {
-        return getKindAndName(id).second;
-    }
 } // namespace
 
-RunConfiguration::RunConfiguration(ProjectExplorer::Target *parent, Core::Id id)
-    : ProjectExplorer::RunConfiguration(parent, id)
+RunConfiguration::RunConfiguration(ProjectExplorer::Target *parent)
+    : ProjectExplorer::RunConfiguration (parent, RC_PREFIX)
 {
     addExtraAspect(new ProjectExplorer::ArgumentsAspect(
                        this, QStringLiteral("Rust.RunConfiguration.CommandLineArguments")));
@@ -128,13 +129,7 @@ RunConfiguration::RunConfiguration(ProjectExplorer::Target *parent, Core::Id id)
     setDefaultDisplayName(defaultDisplayName());
 }
 
-RunConfiguration::RunConfiguration(ProjectExplorer::Target *parent, RunConfiguration *source)
-    : ProjectExplorer::RunConfiguration(parent, source)
-{
-    setDefaultDisplayName(defaultDisplayName());
-}
-
-bool RunConfiguration::isEnabled() const
+bool RunConfiguration::isConfigured() const
 {
     return product() != nullptr;
 }
@@ -154,33 +149,46 @@ ProjectExplorer::Runnable RunConfiguration::runnable() const
     return r;
 }
 
+bool RunConfiguration::fromMap(const QVariantMap &map)
+{
+    if (!ProjectExplorer::RunConfiguration::fromMap(map))
+        return false;
+
+    QString extraId = ProjectExplorer::idFromMap(map).suffixAfter(id());
+    m_product = toProduct(rustProject(), extraId);
+    setDefaultDisplayName(defaultDisplayName());
+
+    return true;
+}
+
 Utils::FileName RunConfiguration::executable(ProjectExplorer::BuildConfiguration* bc) const
 {
     if (const Product* p = product()) {
         Utils::FileName path = bc->buildDirectory();
 
-        switch(p->kind) {
-        case Product::Binary:
-            path.appendPath(p->name);
-            break;
-        case Product::Example:
-            path.appendPath(QLatin1String("examples")).appendPath(p->name);
-            break;
-        default:
-            Q_UNIMPLEMENTED();
-            break;
+        QString name = p->name;
+        if (Utils::HostOsInfo::isWindowsHost()) {
+            name.append(QLatin1String(".exe"));
         }
 
-        return path;
+        switch(p->kind) {
+        case Product::Binary:
+            return path.appendPath(name);
+        case Product::Example:
+            return path.appendPath(QLatin1String("examples")).appendPath(name);
+        default:
+            Q_UNIMPLEMENTED();
+            return {};
+        }
     } else {
-        return Utils::FileName();
+        return {};
     }
 }
 
 Utils::FileName RunConfiguration::workingDirectory() const
 {
     if (const Product* p = product()) {
-        Utils::FileName path = target()->project()->projectDirectory();
+        Utils::FileName path = project()->projectDirectory();
 
         switch(p->kind) {
         case Product::Example:
@@ -199,91 +207,50 @@ Utils::FileName RunConfiguration::workingDirectory() const
     }
 }
 
-const Project& RunConfiguration::project() const
+const Project& RunConfiguration::rustProject() const
 {
-    Project* project = qobject_cast<Project*>(target()->project());
-    Q_ASSERT(project != nullptr);
-    return *project;
-}
-
-const Product* RunConfiguration::product() const
-{
-    return toProduct(project(), id());
+    Project* p = qobject_cast<Project*>(project());
+    Q_ASSERT(p != nullptr);
+    return *p;
 }
 
 QString RunConfiguration::defaultDisplayName() const
 {
-    QString defaultName = getProductDisplayName(id());
-    return !defaultName.isEmpty() ? defaultName : tr("Rust Run Configuration");
+    return m_product ? m_product->name : tr("Rust Run Configuration");
 }
 
 RunConfigurationFactory::RunConfigurationFactory(QObject *parent)
     : IRunConfigurationFactory(parent)
 {
+    registerRunConfiguration<RunConfiguration>(RC_PREFIX);
+    addSupportedProjectType(Project::ID);
+    setSupportedTargetDeviceTypes({ProjectExplorer::Constants::DESKTOP_DEVICE_TYPE});
 }
 
-QList<Core::Id> RunConfigurationFactory::availableCreationIds(ProjectExplorer::Target *parent,
-                                                              CreationMode mode) const
+QList<ProjectExplorer::RunConfigurationCreationInfo> RunConfigurationFactory::availableCreators(
+        ProjectExplorer::Target *parent) const
 {
-    Q_UNUSED(mode);
-
-    QList<Core::Id> ids;
+    QList<ProjectExplorer::RunConfigurationCreationInfo> creators;
 
     if (Project *project = qobject_cast<Project *>(parent->project())) {
         for (const Product& product : project->products()) {
-            if (product.kind == Product::Binary || product.kind == Product::Example)
-                ids << toRunConfigurationId(product);
+            if (product.kind == Product::Binary || product.kind == Product::Example) {
+                creators.push_back(
+                            ProjectExplorer::RunConfigurationCreationInfo {
+                                this,
+                                RC_PREFIX,
+                                toRunConfigurationExtra(product),
+                                product.name});
+            }
         }
     }
 
-    return ids;
+    return creators;
 }
 
-QString RunConfigurationFactory::displayNameForId(Core::Id id) const
+bool RunConfigurationFactory::canHandle(ProjectExplorer::Target *target) const
 {
-    return getProductDisplayName(id);
-}
-
-bool RunConfigurationFactory::canCreate(ProjectExplorer::Target *parent, Core::Id id) const
-{
-    Project *project = qobject_cast<Project *>(parent->project());
-    return project && toProduct(*project, id);
-}
-
-bool RunConfigurationFactory::canRestore(ProjectExplorer::Target *parent,
-                                         const QVariantMap &map) const
-{
-    Q_UNUSED(parent);
-    return ProjectExplorer::idFromMap(map).toString().startsWith(QLatin1String(RC_PREFIX));
-}
-
-bool RunConfigurationFactory::canClone(ProjectExplorer::Target *parent,
-                                       ProjectExplorer::RunConfiguration *source) const
-{
-    return canCreate(parent, source->id());
-}
-
-ProjectExplorer::RunConfiguration *RunConfigurationFactory::clone(
-        ProjectExplorer::Target *parent, ProjectExplorer::RunConfiguration *source)
-{
-    if (canClone(parent, source)) {
-        RunConfiguration *old = qobject_cast<RunConfiguration *>(source);
-        return new RunConfiguration(parent, old);
-    } else {
-        return 0;
-    }
-}
-
-ProjectExplorer::RunConfiguration *RunConfigurationFactory::doCreate(
-        ProjectExplorer::Target *parent, Core::Id id)
-{
-    return new RunConfiguration(parent, id);
-}
-
-ProjectExplorer::RunConfiguration *RunConfigurationFactory::doRestore(
-        ProjectExplorer::Target *parent, const QVariantMap &map)
-{
-    return new RunConfiguration(parent, ProjectExplorer::idFromMap(map));
+    return ProjectExplorer::IRunConfigurationFactory::canHandle(target);
 }
 
 RunConfigurationWidget::RunConfigurationWidget(RunConfiguration *rc)
@@ -291,17 +258,6 @@ RunConfigurationWidget::RunConfigurationWidget(RunConfiguration *rc)
 {
     auto vboxTopLayout = new QVBoxLayout(this);
     vboxTopLayout->setMargin(0);
-
-    auto hl = new QHBoxLayout();
-    hl->addStretch();
-    m_disabledIcon = new QLabel(this);
-    m_disabledIcon->setPixmap(Utils::Icons::WARNING.pixmap());
-    hl->addWidget(m_disabledIcon);
-    m_disabledReason = new QLabel(this);
-    m_disabledReason->setVisible(false);
-    hl->addWidget(m_disabledReason);
-    hl->addStretch();
-    vboxTopLayout->addLayout(hl);
 
     auto detailsContainer = new Utils::DetailsWidget(this);
     detailsContainer->setState(Utils::DetailsWidget::NoSummary);
@@ -324,13 +280,12 @@ RunConfigurationWidget::RunConfigurationWidget(RunConfiguration *rc)
     aspect->setDefaultWorkingDirectory(m_rc->workingDirectory());
     aspect->pathChooser()->setBaseFileName(m_rc->target()->project()->projectDirectory());
 
-    runConfigurationEnabledChange();
-
     connect(m_rc->target(), &ProjectExplorer::Target::activeBuildConfigurationChanged,
             this, &RunConfigurationWidget::onActiveBuildConfigChanged);
 
     connect(m_rc, &RunConfiguration::enabledChanged,
             this, &RunConfigurationWidget::runConfigurationEnabledChange);
+    runConfigurationEnabledChange();
 }
 
 void RunConfigurationWidget::onActiveBuildConfigChanged(ProjectExplorer::BuildConfiguration *bc)
@@ -341,11 +296,6 @@ void RunConfigurationWidget::onActiveBuildConfigChanged(ProjectExplorer::BuildCo
 
 void RunConfigurationWidget::runConfigurationEnabledChange()
 {
-    bool enabled = m_rc->isEnabled();
-    m_disabledIcon->setVisible(!enabled);
-    m_disabledReason->setVisible(!enabled);
-    m_disabledReason->setText(m_rc->disabledReason());
-
     onActiveBuildConfigChanged(m_rc->target()->activeBuildConfiguration());
 }
 

@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include <QStringRef>
+#include <QStringView>
 #include <QtGlobal>
 
 namespace Rust {
@@ -44,7 +44,7 @@ public:
     };
 
 public:
-    explicit Lexer(QStringRef buffer,
+    explicit Lexer(QStringView buffer,
                    MultiLineState multiLineState = MultiLineState::Default,
                    quint8 multiLineParam = 0,
                    int depth = 0)
@@ -64,7 +64,7 @@ public:
     Token next();
 
 private:
-    QStringRef m_buf;
+    QStringView m_buf;
     int m_pos;
     MultiLineState m_multiLineState;
     quint8 m_multiLineParam;
